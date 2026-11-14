@@ -14,7 +14,7 @@
  * @note A second copy of the table written out in this file would be the same data twice and would
  *       agree with the module until one of the two was edited. It would show nothing on the day it
  *       was written and would be wrong on the day the table changed.
- * @note cellul_pick_rows keeps the lowest cost it finds. Every case below follows from that: a byte
+ * @note cellul_pick_rows retains the lowest cost it finds. Every case below follows from that: a byte
  *       that costs nothing wins every comparison, a table with one value ranks nothing, and a NUL
  *       that dropped below the ceiling starts being chosen out of text it terminates.
  * @note Which of the five tables is linked is a build option, and no macro carries the choice into
@@ -111,7 +111,7 @@ void test_no_byte_costs_nothing(void)
  *       It terminates the strings the sieve walks. One open to choice anchors the search
  *       on a byte present exactly once and at the end of every string.
  * @note Checked against the ceiling and not merely against a high value. The ceiling
- *       keeps it from the lowest cost in any set that contains anything else.
+ *       retains it from the lowest cost in any set that contains anything else.
  */
 void test_the_terminator_sits_at_the_ceiling(void)
 {

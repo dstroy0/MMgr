@@ -46,7 +46,7 @@ EMBED_TABLE_LAYOUT(ImpensaAncoraeAcusNs, impensa);
  *
  * @param[in] args Byte to look up [BORROWS].
  * @return         The cost, 1 through 255.
- * @note Lower means the byte is rarer under the linked table. cellul_pick_rows keeps the lowest it
+ * @note Lower means the byte is rarer under the linked table. cellul_pick_rows retains the lowest it
  *       finds.
  * @warning The read through args has no null check, and so it must point to a readable AncoraeCfg.
  * @warning The value depends on which of the five tables the build linked, and so it is not portable between builds.

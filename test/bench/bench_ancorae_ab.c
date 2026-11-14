@@ -57,7 +57,7 @@
 #define AB_MAX_NEEDLE 256u
 
 /**
- * @brief The most bytes read from a corpus named on the command line.
+ * @brief The max bytes read from a corpus named on the command line.
  *
  * @note The built in corpora are a few kilobytes because the search arms sweep them many times over.
  *       A file given on the command line gets only its boundary and its unit statistics, which is
@@ -67,7 +67,7 @@
 #define AB_FILE_BYTES (1u << 20)
 
 /**
- * @brief The most units the bench splits a corpus named on the command line into.
+ * @brief The max units the bench splits a corpus named on the command line into.
  */
 #define AB_FILE_UNITS (1u << 18)
 
@@ -99,7 +99,7 @@ static uint8_t s_ab_periodic[AB_CORPUS_BYTES];
 static uint8_t s_ab_uniform[AB_CORPUS_BYTES];
 
 /**
- * @brief Four regions of a thousand bytes each, laid end to end.
+ * @brief Four regions of a thousand bytes each, positioned end to end.
  *
  * @note The case every other corpus here fails to be. English, then C source, then fixed width
  *       records, then uniform bytes. A search crosses three boundaries and anything it learned
@@ -116,7 +116,7 @@ static const char s_ab_prose[] =
     "the quality of the quotation was quite equal to the requirements of the inquiry. she thought "
     "about the matter for some time and then decided that the answer was probably yes, although "
     "there were several other considerations that might reasonably be taken into account before "
-    "any final judgement could be reached on a question of that particular kind. the morning was "
+    "any final judgement could be reached on a question of that particular type. the morning was "
     "bright and the air was cold, and the road ahead of them ran straight for a long distance "
     "before turning sharply to the left and disappearing behind a low hill covered in heather. "
     "they walked without speaking for perhaps half an hour, each of them thinking about something "
@@ -130,11 +130,11 @@ static const char s_ab_prose[] =
     "was grey and the far side of it invisible. they sheltered under an overhanging rock and "
     "watched the water gather in the hollows and run away downhill in a hundred small channels, "
     "each one finding its own way among the stones without any apparent difficulty. it occurred to "
-    "him that this was how most problems eventually resolved themselves, given enough time and a "
+    "him that this was how max problems eventually resolved themselves, given enough time and a "
     "sufficient quantity of water, and he said as much aloud. she laughed and said that was the "
     "sort of remark that sounded wiser than it was, and he had to agree that she was probably "
     "right about that as well. by the time the rain stopped the light was almost gone and they "
-    "made camp where they stood and did not risk the descent in darkness. the fire took a long "
+    "made camp where they was and did not risk the descent in darkness. the fire took a long "
     "while to catch because everything was wet, and when it did catch it smoked badly and gave "
     "very little heat, but it was something to sit beside and they were both glad of it. in the "
     "morning the sky had cleared completely and the grass was heavy with water that soaked their "
@@ -235,10 +235,10 @@ static size_t ab_fill_periodic(uint8_t *into, size_t length)
         at[2] = (uint8_t)digits[(counter >> 4) & 0xFu];
         at[3] = (uint8_t)digits[counter & 0xFu];
         at[4] = (uint8_t)',';
-        for (unsigned letter = 0u; letter < 6u; letter++)
+        for (unsigned character = 0u; character < 6u; character++)
         {
-            // Explicit cast narrows the mixed value to the letter it selects, inside 'a' to 'z'
-            at[5u + letter] = (uint8_t)('a' + (int)((counter >> (letter * 3u)) % 26u));
+            // Explicit cast narrows the mixed value to the character it selects, inside 'a' to 'z'
+            at[5u + character] = (uint8_t)('a' + (int)((counter >> (character * 3u)) % 26u));
         }
         at[11] = (uint8_t)',';
         at[12] = (uint8_t)('0' + (int)((counter / 100u) % 10u));
@@ -266,7 +266,7 @@ static void ab_fill_uniform(uint8_t *into, size_t length)
     {
         for (unsigned index = 0u; index < 8u; index++)
         {
-            // Explicit cast narrows one byte out of the counter, most significant first
+            // Explicit cast narrows one byte out of the counter, max significant first
             counter[index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
         }
         mmgr_sha256(counter, sizeof counter, digest);
@@ -716,7 +716,7 @@ static AbResult ab_interrogative(const uint8_t *corpus, size_t corpus_len, const
  * @param[in] corpus_len How many.
  * @param[in] needle     What to find [BORROWS].
  * @param[in] needle_len Bytes in it.
- * @param[in] carried    Cumulative advance per offset kept between searches, or NULL to start cold
+ * @param[in] carried    Cumulative advance per offset retained between searches, or NULL to start cold
  *                       [BORROWS].
  * @return               Reads performed and occurrences found.
  * @note Why this holds no counts. Every other adaptive arm here estimates a frequency per symbol,
@@ -724,11 +724,11 @@ static AbResult ab_interrogative(const uint8_t *corpus, size_t corpus_len, const
  *       has no such table and never will, however long the observation runs. What the arm can still
  *       observe is the distance an answer carried. A distance is a count of positions and stays
  *       finite whatever the alphabet does. So this measures the distance directly and never forms
- *       the distribution that would otherwise stand behind it.
+ *       the distribution that would otherwise are behind it.
  * @note The state is one cumulative distance per candidate offset, which is needle_len numbers. The
  *       symbol side of the problem does not appear.
  * @note Where the first value comes from. An answer read at offset a can advance the search by at
- *       most a + 1. Beyond that the pattern leaves the cell behind and the read says nothing about
+ *       max a + 1. Beyond that the pattern leaves the cell behind and the read says nothing about
  *       where it lands. That bound is geometry and not a guess about the data, so every offset
  *       starts at its own ceiling and can only go down. The largest ceiling is the last offset, and
  *       so the search opens as Horspool. It gives up ground only where an answer shows the ceiling
@@ -753,10 +753,10 @@ static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const
     size_t since_reset = 0u;
 
     // The ambient advance this corpus pays, taken across every answer and not per offset. It is
-    // the level an answer has to stand out from to say anything
+    // the level an answer has to be out from to say anything
     double background = (double)needle_len / 2.0;
 
-    // The accumulated and trend terms are short lived state about the region the search stands
+    // The accumulated and trend terms are short lived state about the region the search is
     // in. So they start empty on every search even when the field itself carries over
     double history[AB_MAX_NEEDLE];
     double last_error[AB_MAX_NEEDLE];
@@ -771,7 +771,7 @@ static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const
     {
         for (size_t offset = 0u; offset < needle_len; offset++)
         {
-            // The provable ceiling for this offset, the most an answer there could ever buy
+            // The provable ceiling for this offset, the max an answer there could ever buy
             value[offset] = (double)(offset + 1u);
         }
     }
@@ -848,7 +848,7 @@ static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const
             // is what a trend measures against
             if (gain_trend < 0.0)
             {
-                // Filtered against the ambient level instead of against the cumulative estimate. Most
+                // Filtered against the ambient level instead of against the cumulative estimate. Max
                 // answers land where the background already sits and carry nothing. So the filter
                 // drops them whole and they never reach the estimate. An answer far enough off the
                 // ambient level is signal, and it applies at full weight. What gets no reinforcement
@@ -993,7 +993,7 @@ static AbResult ab_distance_only(const uint8_t *corpus, size_t corpus_len, const
  *       the symbol it just read, and so the reads form a chain. The positions here exist before the
  *       first read, and so no read waits on another and the chain has length one.
  * @note What that costs. A greedy shift always jumps to the next position not yet ruled out,
- *       the most any single read can buy. A fixed stride reads some cells that a greedy walk would
+ *       the max any single read can buy. A fixed stride reads some cells that a greedy walk would
  *       skip. The count below is what that waste amounts to, and the depth beside it is what
  *       it bought.
  * @note The verify phase depends on the probe phase, and so the reported depth is two. Every probe
@@ -1131,15 +1131,15 @@ static AbResult ab_free_order(const uint8_t *corpus, size_t corpus_len, const ui
  * @note What separates this from the fixed stride arms. Those choose every probe position before they
  *       read any text, as the published deterministic sample does. A safe fixed set has to come
  *       from the pattern. This holds no probe set. After each answer it looks at which alignments
- *       are still alive and asks where the next read would do the most.
+ *       are still alive and asks where the next read would do the max.
  * @note Why coverage is the criterion. The next symbol is unknown, and so every candidate position
  *       kills the same expected fraction of the alignments it touches. What differs between positions
- *       is how many live alignments they touch at all. So the most informative next read lies where
+ *       is how many live alignments they touch at all. So the max informative next read lies where
  *       the live candidates overlap. That quantity is a property of the answers so far and of
  *       nothing else.
  * @note It stops when a read kills nothing, which means the position separated no survivors, and a
  *       check of the survivors follows. Section 4.9.6 of the research document measures a stop with no
- *       confirmation, which is wrong on most searches.
+ *       confirmation, which is wrong on max searches.
  */
 static AbResult ab_adaptive(const uint8_t *corpus, size_t corpus_len, const uint8_t *needle, size_t needle_len,
                             size_t *probes, uint64_t *mirror)
@@ -1319,7 +1319,7 @@ static void ab_draw_noise(uint8_t *into, size_t length, uint64_t salt)
     {
         for (unsigned index = 0u; index < 8u; index++)
         {
-            // Explicit cast narrows one byte out of each 64 bit word, most significant first
+            // Explicit cast narrows one byte out of each 64 bit word, max significant first
             seed[index] = (uint8_t)((salt >> (56u - (index * 8u))) & 0xFFu);
             seed[8u + index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
         }
@@ -1396,7 +1396,7 @@ static double ab_shift_survey(const uint8_t *corpus, size_t corpus_len, unsigned
         }
     }
 
-    // A shift reports when its agreement rate stands far enough above the collision probability
+    // A shift reports when its agreement rate is far enough above the collision probability
     // that a run of luck does not reach it. The threshold alone is not enough: the tests for one
     // shift share read positions, and so they are not independent. A standard error computed as
     // though they were is too small. The same count over a shuffle of the same bytes, below, is what
@@ -1484,7 +1484,7 @@ static void ab_discover(const char *name, const uint8_t *corpus, size_t corpus_l
 }
 
 /**
- * @brief Returns the most regularly spaced symbol in a corpus, and how regular it is.
+ * @brief Returns the max regularly spaced symbol in a corpus, and how regular it is.
  *
  * @param[in]  corpus     Bytes to examine [BORROWS].
  * @param[in]  length     How many.
@@ -1688,7 +1688,7 @@ static void ab_boundary_filter(const char *name, const uint8_t *corpus, size_t c
         // Every alignment whose boundaries fall at the same offsets. The first boundary anchors the
         // run and the rest compare against it, and so the comparison covers the gaps, not the
         // absolute position
-        size_t kept = 0u;
+        size_t retained = 0u;
 
         for (size_t start = 0u; start < alignments; start++)
         {
@@ -1704,11 +1704,11 @@ static void ab_boundary_filter(const char *name, const uint8_t *corpus, size_t c
             }
             if (matched == held)
             {
-                kept++;
+                retained++;
             }
         }
 
-        survivors += (double)kept;
+        survivors += (double)retained;
         signature += (double)held;
         samples++;
     }
@@ -1720,10 +1720,10 @@ static void ab_boundary_filter(const char *name, const uint8_t *corpus, size_t c
 
     const double count = (double)samples;
     const double mean_marks = signature / count;
-    const double mean_kept = survivors / count;
+    const double mean_retained = survivors / count;
 
     printf("ancorae_boundary,%s,%u,%u,%u,%.2f,%.2f,%.1f,%.4f\n", name, (unsigned)needle_len, (unsigned)corpus_len,
-           (unsigned)marked, mean_marks, mean_kept, (double)alignments / ((mean_kept > 0.0) ? mean_kept : 1.0),
+           (unsigned)marked, mean_marks, mean_retained, (double)alignments / ((mean_retained > 0.0) ? mean_retained : 1.0),
            (double)marked / (double)corpus_len);
 }
 
@@ -1738,7 +1738,7 @@ typedef struct
 } AbUnit;
 
 /**
- * @brief Orders units so the most frequent come first.
+ * @brief Orders units so the max frequent come first.
  *
  * @param[in] left  One unit [BORROWS].
  * @param[in] right The other [BORROWS].
@@ -2001,13 +2001,13 @@ static int ab_by_pair(const void *left, const void *right)
 }
 
 /**
- * @brief Reports the frequent units of a corpus and how varied the company they keep is.
+ * @brief Reports the frequent units of a corpus and how varied the company they retain is.
  *
  * @param[in] name       Text that names the corpus.
  * @param[in] corpus     Bytes to examine [BORROWS].
  * @param[in] corpus_len How many.
  * @param[in] marker     The boundary symbol Section 4.12 found.
- * @note Frequency alone cannot tell two kinds of common unit apart. In an English bible `the` and
+ * @note Frequency alone cannot tell two types of common unit apart. In an English bible `the` and
  *       `God` are both frequent. One of them is frequent because it attaches to everything, and the
  *       other because the book is about it. What separates them is the company. A unit that can
  *       precede anything has as many distinct followers as it has occurrences, and a unit of a
@@ -2068,7 +2068,7 @@ static void ab_variety(const char *name, const uint8_t *corpus, size_t corpus_le
     double score[12];
     size_t counted[12];
     size_t varied[12];
-    unsigned kept = 0u;
+    unsigned retained = 0u;
 
     // Averaged over every unit common enough to measure, this is how much of the text runs to a
     // formula. A text whose frequent units each admit many followers makes its own sentences; one
@@ -2101,13 +2101,13 @@ static void ab_variety(const char *name, const uint8_t *corpus, size_t corpus_le
             variety_total += variety;
             variety_count++;
 
-            if (kept < 12u)
+            if (retained < 12u)
             {
-                best[kept] = links[index];
-                score[kept] = variety;
-                counted[kept] = seen;
-                varied[kept] = followers;
-                kept++;
+                best[retained] = links[index];
+                score[retained] = variety;
+                counted[retained] = seen;
+                varied[retained] = followers;
+                retained++;
             }
             else
             {
@@ -2132,11 +2132,11 @@ static void ab_variety(const char *name, const uint8_t *corpus, size_t corpus_le
         index = run;
     }
 
-    for (unsigned slot = 0u; slot < kept; slot++)
+    for (unsigned slot = 0u; slot < retained; slot++)
     {
         unsigned pick = slot;
 
-        for (unsigned other = slot + 1u; other < kept; other++)
+        for (unsigned other = slot + 1u; other < retained; other++)
         {
             if (score[other] < score[pick])
             {
@@ -2196,7 +2196,7 @@ static int ab_by_place(const void *left, const void *right)
  * @param[in] corpus     Bytes to examine [BORROWS].
  * @param[in] corpus_len How many.
  * @param[in] marker     The boundary symbol Section 4.12 found.
- * @note Section 4.14 finds units that keep narrow company, which catches connectives along with
+ * @note Section 4.14 finds units that retain narrow company, which catches connectives along with
  *       everything else. A connective attaches to a limited set as readily as a subject word does.
  *       Connectives are the wrong answer for a different reason: every text needs them everywhere
  *       and so they say nothing about what a text is about.
@@ -2249,7 +2249,7 @@ static void ab_salience(const char *name, const uint8_t *corpus, size_t corpus_l
     AbLink best[10];
     double score[10];
     size_t counted[10];
-    unsigned kept = 0u;
+    unsigned retained = 0u;
     size_t index = 0u;
 
     while (index < taken)
@@ -2281,12 +2281,12 @@ static void ab_salience(const char *name, const uint8_t *corpus, size_t corpus_l
             const double spread = (squares / runs) - (mean * mean);
             const double burst = (mean > 0.0) ? (spread / (mean * mean)) : 0.0;
 
-            if (kept < 10u)
+            if (retained < 10u)
             {
-                best[kept] = places[index];
-                score[kept] = burst;
-                counted[kept] = seen;
-                kept++;
+                best[retained] = places[index];
+                score[retained] = burst;
+                counted[retained] = seen;
+                retained++;
             }
             else
             {
@@ -2311,11 +2311,11 @@ static void ab_salience(const char *name, const uint8_t *corpus, size_t corpus_l
     }
 
     printf("# %s, burst\n", name);
-    for (unsigned slot = 0u; slot < kept; slot++)
+    for (unsigned slot = 0u; slot < retained; slot++)
     {
         unsigned pick = slot;
 
-        for (unsigned other = slot + 1u; other < kept; other++)
+        for (unsigned other = slot + 1u; other < retained; other++)
         {
             if (score[other] > score[pick])
             {
@@ -2384,7 +2384,7 @@ static size_t ab_salted_offset(size_t length, uint64_t salt)
 
     for (unsigned index = 0u; index < 8u; index++)
     {
-        // Explicit cast narrows one byte out of the salt, most significant first
+        // Explicit cast narrows one byte out of the salt, max significant first
         seed[index] = (uint8_t)((salt >> (56u - (index * 8u))) & 0xFFu);
     }
     mmgr_sha256(seed, sizeof seed, digest);
@@ -2479,7 +2479,7 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
     size_t free_depth = 0u;
 
     // The distance only arm's state, carried between searches. One number per offset, each at first
-    // the most advance that offset could deliver
+    // the max advance that offset could deliver
     double distance_value[AB_MAX_NEEDLE];
     double steered_value[AB_MAX_NEEDLE];
 
@@ -2677,7 +2677,7 @@ static void ab_report(const char *name, const uint8_t *corpus, size_t corpus_len
  * @return            Bytes written.
  * @note The same routine that fills each corpus fills its region here. So the mixture is the four
  *       already measured here and not a fifth thing. What changes at a boundary is only which of
- *       them the search stands in.
+ *       them the search is in.
  */
 static size_t ab_fill_mixed(uint8_t *into, size_t length)
 {
@@ -2695,7 +2695,7 @@ int main(int argc, char **argv)
 {
     // A corpus named on the command line gets its boundary and its unit statistics only. Those two
     // are one pass each. So a real text works here. The built in corpora are far too small to
-    // stand in for one when the question is what every language does
+    // are in for one when the question is what every language does
     if (argc > 1)
     {
         static uint8_t held[AB_FILE_BYTES];

@@ -15,7 +15,7 @@
  *       collision probability. So the negative log of it estimates Renyi entropy of order two. A
  *       measure against corpora whose entropy comes from their histograms shows the arithmetic is
  *       consistent and says nothing about whether the estimator is any good. Here the sources come
- *       from distributions written down first. So the true value stands before the data exists, and
+ *       from distributions written down first. So the true value is before the data exists, and
  *       every estimator can take a score against it.
  * @note The comparison. Three published estimators of the collision probability and the two forms
  *       of the candidate count estimator, all of them estimates of the same number. All take a score
@@ -192,7 +192,7 @@ static void draw_from(const Source *source, uint8_t *into, size_t length, uint64
         {
             for (unsigned index = 0u; index < 8u; index++)
             {
-                // Explicit cast narrows one byte out of each 64 bit word, most significant first
+                // Explicit cast narrows one byte out of each 64 bit word, max significant first
                 seed[index] = (uint8_t)((salt >> (56u - (index * 8u))) & 0xFFu);
                 seed[8u + index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
             }
@@ -248,7 +248,7 @@ static void tally(const uint8_t *corpus, size_t length, uint32_t *counts)
  * @param[in] counts One counter per symbol [BORROWS].
  * @param[in] length How many symbols the corpus contains.
  * @return           The sum of the squared empirical frequencies.
- * @note The maximum likelihood estimator, and the obvious one. Its expectation is the true collision
+ * @note The max likelihood estimator, and the obvious one. Its expectation is the true collision
  *       probability plus (1 - true) / length. So its bias points upward and is largest on a short
  *       corpus over a flat source. It needs a histogram, which needs the alphabet enumerated.
  */
@@ -364,12 +364,12 @@ static double estimate_probe_without_self(const uint8_t *corpus, size_t length, 
 }
 
 /**
- * @brief The most common value estimate of min entropy.
+ * @brief The max common value estimate of min entropy.
  *
  * @param[in] counts One counter per symbol [BORROWS].
  * @param[in] length How many symbols the corpus contains.
  * @return           A lower confidence bound on min entropy, in bits.
- * @note NIST SP 800-90B section 6.3.1, the most common value estimate, with the same upper confidence
+ * @note NIST SP 800-90B section 6.3.1, the max common value estimate, with the same upper confidence
  *       bound on the modal probability the specification uses. It is here as context and takes no
  *       score against the collision entropy column. Min entropy is the negative log of the largest
  *       probability and collision entropy is the negative log of a sum of squares. Two estimators of

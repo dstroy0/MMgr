@@ -13,12 +13,12 @@
  * @note Included last, after praet_praefinitum.h and praet_horologiorum_custos.h both had their say. Each of them
  *       gives every unset knob a default, a warning that names it, and a flag. This reads the flags.
  * @note Why the stop is here and not at each knob: an #error halts its translation unit where it
- *       stands. A build with four knobs unset would report the first, get a fix, then report the
+ *       is. A build with four knobs unset would report the first, get a fix, then report the
  *       second. That is four rounds to learn four facts that were all knowable on the first. A warning
- *       at each knob and one stop at the end hands the whole list over together.
+ *       at each knob and one stop at the end passes the whole list over together.
  * @note There is no list in the message below, and there cannot be. The preprocessor has no way to
  *       assemble one. The warnings above are the list, one line each, and this says to go read them.
- * @warning Out entirely where MMGR_ACCEPT_DEFAULTS exists. The warnings still stand and are
+ * @warning Out entirely where MMGR_ACCEPT_DEFAULTS exists. The warnings still are and are
  *          still the report; what the define changes is whether the build continues past it.
  */
 #ifndef MMGR_PRAET_IUDEX_H
@@ -32,11 +32,11 @@
 
 #if !defined(MMGR_ACCEPT_DEFAULTS)
 
-#if defined(PRAET_UNSET_CHANNELS) || defined(PRAET_UNSET_SETTLE_MICROS) || defined(PRAET_UNSET_KEEPALIVE_MICROS) ||    \
+#if defined(PRAET_UNSET_CHANNELS) || defined(PRAET_UNSET_SETTLE_MICROS) || defined(PRAET_UNSET_RETAINALIVE_MICROS) ||    \
     defined(PRAET_UNSET_RECOVERY) || defined(PRAET_UNSET_CLOCK_HZ) || defined(PRAET_UNSET_CLOCK_SOURCE) ||             \
     defined(PRAET_UNSET_CLOCK_CORE)
 #error                                                                                                                 \
-    "This build did not declare every knob this module reads. Each one that took a library default is named in a warning above this line, with the value it took and what to set it to. Set them, or define MMGR_ACCEPT_DEFAULTS to build on the defaults and keep the warnings as the record of which ones you took."
+    "This build did not declare every knob this module reads. Each one that took a library default is named in a warning above this line, with the value it took and what to set it to. Set them, or define MMGR_ACCEPT_DEFAULTS to build on the defaults and retain the warnings as the record of which ones you took."
 #endif
 
 #endif

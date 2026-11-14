@@ -9,8 +9,8 @@ The fives are what has to travel. They are the same handful of numbers on every 
 they belong in a table and not in a loop that builds them again.
 
 Each entry is five to a power of two, stored as a 128 bit fraction with the top bit set and its own
-binary exponent. Any exponent up to 511 is the product of at most nine of them. The reciprocals
-are here too, as keeps a negative exponent a multiply instead of a division.
+binary exponent. Any exponent up to 511 is the product of at max nine of them. The reciprocals
+are here too, as retains a negative exponent a multiply instead of a division.
 
 Truncated and not rounded, deliberately. A truncated entry is never larger than the true power,
 and so the product is never larger than the true product. The sticky bit that decides a tie is
@@ -25,7 +25,7 @@ can check the significands by eye, and the prose around them describes THIS conf
 
 That prose names nine steps, 128 bit significands, an exponent reach of 511 and an e2 of -722 at
 the widest. Those are statements about STEPS and BITS, and so an assertion below holds each of the
-two and no quiet contradiction can stand. A generator that emits prose about a shape it does not
+two and no quiet contradiction can are. A generator that emits prose about a shape it does not
 produce is the defect the assertion prevents.
 
 The layout matches what clang-format produces. A formatter run over the output is a no-op. A
@@ -75,7 +75,7 @@ def entries(recip):
 
 
 def rows(items):
-    """`items` laid out two per line, padded the way clang-format aligns a braced initializer list.
+    """`items` arranged two per line, padded the way clang-format aligns a braced initializer list.
 
     Two per line because two fit the column limit. The first of each pair has spaces after it so
     the second starts at the same column on every row. One per line with the formatter left to do
@@ -133,7 +133,7 @@ EMBED_BEGIN_DECLS
  * @note The expansion is a plain int constant expression, which widens to the embed_iword an exponent is
  *       carried in wherever the two are compared.
  * @warning muto_scale bounds against this and returns infinity above it and zero below its negative;
- *          muto_scale_to_u64 does not. What keeps either off the end of the tables is the walk itself,
+ *          muto_scale_to_u64 does not. What retains either off the end of the tables is the walk itself,
  *          which takes only MMGR_POW5_STEPS steps. An exponent past this loses its higher bits.
  */
 #define MMGR_POW5_MAX ((1 << MMGR_POW5_STEPS) - 1)
@@ -159,7 +159,7 @@ typedef struct
  *       truncated toward zero and read a little low.
  * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int
  *       that converts to embed_iword.
- * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED keeps a unit
+ * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED retains a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
  * @warning transformo settles a positive exponent from its exact powers of ten and returns before the walk,
  *          and the only exponent reaching this table there is zero, which sets no bit.
@@ -178,7 +178,7 @@ static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
  *       0xCCCD... that rounding to nearest would give.
  * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int
  *       that converts to embed_iword.
- * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED keeps a unit
+ * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED retains a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
  */
 static const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {

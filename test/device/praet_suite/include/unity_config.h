@@ -26,10 +26,10 @@ extern "C"
     /**
      * @brief Sends one character to the part's serial port.
      *
-     * @param[in] letter Character to send, as Unity hands it over.
+     * @param[in] character Character to send, as Unity passes it over.
      * @note Defined in device_main.cpp, the only file here that knows what a serial port is.
      */
-    void device_putchar(int letter);
+    void device_putchar(int character);
 
 #ifdef __cplusplus
 }
@@ -38,8 +38,8 @@ extern "C"
 /**
  * @brief Where Unity writes every character it emits.
  *
- * @param letter_ Character Unity emits.
+ * @param character_ Character Unity emits.
  */
-#define UNITY_OUTPUT_CHAR(letter_) device_putchar(letter_)
+#define UNITY_OUTPUT_CHAR(character_) device_putchar(character_)
 
 #endif

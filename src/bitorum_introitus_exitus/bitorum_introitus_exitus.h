@@ -13,7 +13,7 @@
  * @note Packs bit fields of any width into a byte buffer and no bit ever crosses a call. The
  *       writer holds the partial byte. A caller states widths and values and never does its own
  *       shifts or masks.
- * @note The writer is a value the caller owns and not state this module keeps. Two streams are two
+ * @note The writer is a value the caller owns and not state this module retains. Two streams are two
  *       writers, and neither module state nor a lock comes into it.
  * @warning put writes whole bytes only. So bits that do not fill one stay in the writer's residue
  *          and align puts that last partial byte out. A stream whose length is not a
@@ -81,7 +81,7 @@ EMBED_TABLE_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
  *
  * @param[in] args Buffer and capacity [BORROWS].
  * @return         A writer with no bytes written and no residue.
- * @note The returned writer keeps args->out, which must outlive it [BORROWS].
+ * @note The returned writer retains args->out, which must outlive it [BORROWS].
  * @warning args->out must not be null and args->cap must not be zero. Neither has a check outside a
  *          MMGR_DEBUG_CHECKS build, and a null out passes here. mmgr_bitor_put writes
  *          through it on the first whole byte.

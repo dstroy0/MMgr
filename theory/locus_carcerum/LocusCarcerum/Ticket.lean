@@ -14,13 +14,13 @@ three devices under other names, and this file states each one as an instance of
 
 - The owner word is a stamp. The completion fetch-or of a give is `Flags.transition` with the completion bit as
   the flag. `complete_once` is `Flags.set_once`: the fetch-or that finds the bit clear changes the word, and a
-  second one finds it set. `complete_keeps_place`, `complete_keeps_sequence` and `complete_keeps_signal` are
-  `Flags.set_keeps_others`: the completion bit changes no other field.
+  second one finds it set. `complete_retains_place`, `complete_retains_sequence` and `complete_retains_signal` are
+  `Flags.set_retains_others`: the completion bit changes no other field.
 
 - A give is a claim. A give that names the cell's owner is a claim with the stamp of the slot. A give that
   names another owner is a claim with another stamp. `give_counts_as_claims` maps every sequence of gives on
   one cell onto `Claim.claims` on one slot: the bytes counted off are the cell's size times the claims that
-  landed. `give_bytes_once` is then `Claim.claims_at_most_one`: the bytes come off once at the most.
+  landed. `give_bytes_once` is then `Claim.claims_at_max_one`: the bytes come off once at max.
 
 - The owner's sequence is a ticket. `OwnerWord.lean` reads the sequence in `b` bits of the word, and
   `sequence_window_distinct` is `TicketRing.window_distinct`: two takes fewer than `2^b` apart have sequences
@@ -52,19 +52,19 @@ theorem complete_once (w : BitVec 64) (h : w &&& OwnerWord.complete64 = 0) :
   Flags.set_once w OwnerWord.complete64 (by decide) h
 
 /-- The completion bit changes no bit of the place field. -/
-theorem complete_keeps_place (w : BitVec 64) :
+theorem complete_retains_place (w : BitVec 64) :
     Flags.transition w OwnerWord.complete64 &&& OwnerWord.placeMask64 = w &&& OwnerWord.placeMask64 :=
-  Flags.set_keeps_others w OwnerWord.complete64 OwnerWord.placeMask64 (by decide)
+  Flags.set_retains_others w OwnerWord.complete64 OwnerWord.placeMask64 (by decide)
 
 /-- The completion bit changes no bit of the sequence field. -/
-theorem complete_keeps_sequence (w : BitVec 64) :
+theorem complete_retains_sequence (w : BitVec 64) :
     Flags.transition w OwnerWord.complete64 &&& OwnerWord.sequenceMask64 = w &&& OwnerWord.sequenceMask64 :=
-  Flags.set_keeps_others w OwnerWord.complete64 OwnerWord.sequenceMask64 (by decide)
+  Flags.set_retains_others w OwnerWord.complete64 OwnerWord.sequenceMask64 (by decide)
 
 /-- The completion bit changes no signal bit. -/
-theorem complete_keeps_signal (w : BitVec 64) :
+theorem complete_retains_signal (w : BitVec 64) :
     Flags.transition w OwnerWord.complete64 &&& OwnerWord.signal64 = w &&& OwnerWord.signal64 :=
-  Flags.set_keeps_others w OwnerWord.complete64 OwnerWord.signal64 (by decide)
+  Flags.set_retains_others w OwnerWord.complete64 OwnerWord.signal64 (by decide)
 
 /-! ## A give as a claim -/
 
@@ -72,13 +72,13 @@ theorem complete_keeps_signal (w : BitVec 64) :
 stamp where it names another owner. -/
 def stampOf (permit : Bool) (s : Nat) : Nat := if permit then s else s + 1
 
-/-- The slot a cell's completion bit stands for: pushed while the bit is clear, consumed by some pass once the bit
+/-- The slot a cell's completion bit is for: pushed while the bit is clear, consumed by some pass once the bit
 holds. -/
 def Rel (complete : Bool) (slot : Claim.Slot) (s : Nat) : Prop :=
   (complete = false ∧ slot = .pushed s) ∨ (complete = true ∧ ∃ q, slot = .consumed s q)
 
 /-- One give is one claim. The claim lands exactly where the give has its permit and the bit is clear, and the
-slot after stands for the bit after. -/
+slot after is for the bit after. -/
 theorem claim_step (c : Bool) (slot : Claim.Slot) (s : Nat) (hr : Rel c slot s) (p : Bool) (q : Nat) :
     (Claim.claim slot (stampOf p s) q).2 = (p && !c) ∧ Rel (p || c) (Claim.claim slot (stampOf p s) q).1 s := by
   rcases hr with ⟨hc, hs⟩ | ⟨hc, q0, hs⟩
@@ -110,12 +110,12 @@ theorem give_counts_as_claims (size s : Nat) (c : Bool) (slot : Claim.Slot) (hr 
     rw [this, hbytes, hland]
     cases p <;> cases c <;> simp [Nat.mul_add, Nat.add_comm]
 
-/-- The bytes a sequence of gives counts off one cell are the cell's size at the most, since at most one claim
+/-- The bytes a sequence of gives counts off one cell are the cell's size at max, since at max one claim
 lands. -/
 theorem give_bytes_once (size s : Nat) (gives : List (Bool × Nat)) :
     Give.claims size false (gives.map Prod.fst) ≤ size := by
   rw [give_counts_as_claims size s false (.pushed s) (Or.inl ⟨rfl, rfl⟩) gives]
-  have := Claim.claims_at_most_one (.pushed s) (gives.map fun g => (stampOf g.1 s, g.2))
+  have := Claim.claims_at_max_one (.pushed s) (gives.map fun g => (stampOf g.1 s, g.2))
   calc size * (Claim.claims (.pushed s) (gives.map fun g => (stampOf g.1 s, g.2))).2 ≤ size * 1 :=
         Nat.mul_le_mul_left size this
     _ = size := Nat.mul_one size
@@ -131,7 +131,7 @@ theorem sequence_window_distinct (b c1 c2 : Nat) (hlt : c1 < c2) (hwin : c2 - c1
   exact TicketRing.window_distinct b c1 c2 hlt hwin (by simpa [TicketRing.place] using this)
 
 /-- A counter that rolls at 32 bits gives the same sequence field as the counter with no roll, for a field of at
-most 32 bits. -/
+max 32 bits. -/
 theorem sequence_roll (b c : Nat) (hb : b ≤ 32) : BitVec.ofNat b (c % 2 ^ 32) = BitVec.ofNat b c := by
   apply BitVec.eq_of_toNat_eq
   simp only [BitVec.toNat_ofNat]
@@ -139,7 +139,7 @@ theorem sequence_roll (b c : Nat) (hb : b ≤ 32) : BitVec.ofNat b (c % 2 ^ 32) 
 
 /-! ## A movable entry as a slot -/
 
-/-- The slot an entry's claim bit stands for: empty while the bit is clear, pushed once the bit holds. -/
+/-- The slot an entry's claim bit is for: empty while the bit is clear, pushed once the bit holds. -/
 def entrySlot (claimed : Bool) : Claim.Slot := if claimed then .pushed 0 else .empty
 
 /-- The fetch-or on the claim bit lands exactly where the bit was clear, which is the push that lands on an empty

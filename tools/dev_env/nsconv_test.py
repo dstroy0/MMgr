@@ -23,7 +23,7 @@ eq("literal paren", s[2 : N.close_paren(s, 2) - 1], 'a, ")", b')
 # 2. a ',' inside a literal separates no arguments
 eq("literal comma", N.split_args('a, "x,y", b'), ["a", '"x,y"', "b"])
 
-# 3. a nested call keeps its own parens
+# 3. a nested call retains its own parens
 eq("nested call", N.split_args("gcm(key), n12, NULL"), ["gcm(key)", "n12", "NULL"])
 
 # 4. an escaped quote does not end the literal
@@ -70,7 +70,7 @@ eq(
     "void t(void)\n{\n    Ns.args.a = a;\n    Ns.entry(w);\n}\n",
 )
 
-# 8. a call used as a loop condition keeps the loop's shape (staging hoisted above the whole 'while')
+# 8. a call used as a loop condition retains the loop's shape (staging hoisted above the whole 'while')
 src3 = "void t(void)\n{\n    while ((n = old_call(a)) > 0)\n    {\n    }\n}\n"
 pos3 = src3.index("old_call")
 end3 = N.close_paren(src3, pos3 + len("old_call("))
@@ -169,7 +169,7 @@ eq(
     "void t(void)\n{\n    goto done;\ndone:\n    Ns.entry(w);\n}\n",
 )
 
-# 11b. DBENCH_BULK hands its expr to the same DBENCH_CYCLES loop. A bench with the entry lifted
+# 11b. DBENCH_BULK passes its expr to the same DBENCH_CYCLES loop. A bench with the entry lifted
 # above it would time `sink += Ns.n`
 src6b = 'void t(void)\n{\n    DBENCH_BULK("x", 50000, 21, sink += old_call(a));\n}\n'
 pos6b = src6b.index("old_call")
@@ -225,7 +225,7 @@ eq(
 )
 
 # 14. one statement becomes several. A braceless control head has to gain a brace. Without it
-# an `else` keeps only the first staging line and runs the rest unconditionally. The second arm
+# an `else` retains only the first staging line and runs the rest unconditionally. The second arm
 # then writes over the first arm's result.
 src9 = "void t(void)\n{\n    if (rpk)\n    {\n        x = 1;\n    }\n    else\n        n = old_call(a);\n}\n"
 pos9 = src9.index("old_call")
@@ -254,7 +254,7 @@ src9b = "void t(void)\n{\n    if (ok)\n        n = old_call(a);\n    next();\n}\
 pos9b = src9b.index("old_call")
 end9b = N.close_paren(src9b, pos9b + len("old_call("))
 eq(
-    "braceless if keeps the call guarded",
+    "braceless if retains the call guarded",
     N.rewrite(src9b, pos9b, end9b, ["Ns.args.a = a;", "Ns.entry(w);"], "Ns.n"),
     "void t(void)\n{\n    if (ok)\n{\n        Ns.args.a = a;\n        Ns.entry(w);\n"
     "        n = Ns.n;\n        }\n    next();\n}\n",

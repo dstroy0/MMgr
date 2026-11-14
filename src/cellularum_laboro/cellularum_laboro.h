@@ -21,7 +21,7 @@
  *       terminator is the usual one.
  * @note The VerboProgrediorCfg pair take their operands by value and read no memory, and so
  *       neither carries a bound.
- * @warning Nothing here allocates or hands back ownership. Every pointer in and out is the caller's,
+ * @warning Nothing here allocates or passes back ownership. Every pointer in and out is the caller's,
  *          and the addresses find and chr return point into the src they received.
  */
 #ifndef MMGR_CELLULARUM_LABORO_H
@@ -37,7 +37,7 @@
 EMBED_BEGIN_DECLS
 
 /**
- * @brief Most needle offsets the search sieve tests per candidate word.
+ * @brief Max needle offsets the search sieve tests per candidate word.
  *
  * @note A ceiling and not a count. cellul_pick_rows takes the smallest of this, the needle length
  *       and MMGR_SWAR_BYTES. A short needle gets a sieve on fewer offsets than this allows.
@@ -172,7 +172,7 @@ CatenaFinitaCfg mmgr_cellul_init(const CatenaFinitaCfg *args);
  * @brief Returns the bytes in src before its terminator, from args->at on.
  *
  * @param[in] args Bytes src, the extent cap, and the start offset at [BORROWS].
- * @return         Bytes before the terminator, at most cap minus at.
+ * @return         Bytes before the terminator, at max cap minus at.
  * @note Returns cap minus at when no terminator lies in range.
  * @warning args->at must not exceed args->cap, and src must be readable to args->cap. The last partial
  *          word comes in whole and gets a mask after. So the read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap.
@@ -245,7 +245,7 @@ embed_bool mmgr_cellul_has(const CatenaFinitaCfg *args);
 const char *mmgr_cellul_chr(const CatenaFinitaCfg *args);
 
 /**
- * @brief Copies src into dst, and writes at most cap bytes, the terminator among them.
+ * @brief Copies src into dst, and writes at max cap bytes, the terminator among them.
  *
  * @param[in,out] args Source src, destination dst, and the destination extent cap [BORROWS].
  * @return             Bytes copied, with the terminator not in the count.

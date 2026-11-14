@@ -164,7 +164,7 @@ and that no free operation is in progress. Then no free cell is at the edge of $
 
 ## 4. Lemmas
 
-A **round** is a maximum interval between two exclusive operations. In a round, only the operations of §3.1, §3.2
+A **round** is a max interval between two exclusive operations. In a round, only the operations of §3.1, §3.2
 and §3.4 run.
 
 **Lemma 1** (monotone in a round). In a round, $E$ does not decrease and $T$ does not increase.
@@ -293,23 +293,23 @@ turnstile import its Manifold proofs: `Order.lean` carries `Manifold.Open.passes
 
 - `LocusCarcerum/Packed.lean` proves Lemmas 1 to 5 and the theorem for one word.
 - `LocusCarcerum/Split.lean` writes the two-word steps and checks the example above.
-- `LocusCarcerum/Layout.lean` writes the persistent tier as its cells. It proves that the sweep keeps every byte
-  laid, the busy cells in order and the count of each owner, that no two free cells stand together after the merge,
+- `LocusCarcerum/Layout.lean` writes the persistent tier as its cells. It proves that the sweep retains every byte
+  positioned, the busy cells in order and the count of each owner, that no two free cells are together after the merge,
   that no free cell is at the end after the trim, and that the end does not rise.
-- `LocusCarcerum/Take.lean` proves that a take over a free run keeps the bytes of the run, that the cell carries at
+- `LocusCarcerum/Take.lean` proves that a take over a free run retains the bytes of the run, that the cell carries at
   least the request and less than the request, a header and the alignment more, and that the count of the owner
-  rises by what the cell carries. It proves that the mover keeps the count of each owner equal to the count the
+  rises by what the cell carries. It proves that the mover retains the count of each owner equal to the count the
   layout holds.
 - `LocusCarcerum/Spill.lean` proves the spill over the first free run, the bump at the end, and both growths: the
-  bytes laid and the count of each owner after each, and that a temporary growth keeps the owner word in its place.
+  bytes positioned and the count of each owner after each, and that a temporary growth retains the owner word in its place.
 - `LocusCarcerum/Give.lean` proves that a cell is counted off its owner once over any sequence of gives, and not at
   all by gives that name another owner.
 - `LocusCarcerum/Temporary.lean` writes the temporary tier as the persistent tier mirrored, its base at the
-  cellblock's size. It proves that the sweep keeps the busy cells and the counts, does not raise the tier's bytes and
+  cellblock's size. It proves that the sweep retains the busy cells and the counts, does not raise the tier's bytes and
   leaves no free cell at the top; that the last fitting run is free, holds the take and has no fitting run nearer the
-  base; that a take laid at the run's high end keeps the tier's bytes and raises its owner's count alone; and that
-  the laying is the persistent tier's reversed.
-- `LocusCarcerum/Fragment.lean` proves that the fragmentation reading is at most 100.
+  base; that a take positioned at the run's high end retains the tier's bytes and raises its owner's count alone; and that
+  the positioning is the persistent tier's reversed.
+- `LocusCarcerum/Fragment.lean` proves that the fragmentation reading is at max 100.
 - `LocusCarcerum/Bounds.lean` proves that a span the test passes lies inside its cell and a span it refuses does
   not, the test of a pointer, and that a high-water mark is at or past each count it was raised to.
 - `LocusCarcerum/Entry.lean` proves that no two contexts name one movable entry, and the bytes a give zeroes.
@@ -345,8 +345,8 @@ turnstile import its Manifold proofs: `Order.lean` carries `Manifold.Open.passes
 - `LocusCarcerum/Word.lean` also proves the limit on bumps down in progress. A top that wraps below 0 is more than
   $S$, and §3.2 rejects it. It proves this limit for 63 lanes at $H = 32$ and for 31 lanes at $H = 16$.
 - `LocusCarcerum/Ticket.lean` states the cellblock over the ticket ring of embedded_types. The completion bit of
-  the owner word is a transition of the flag matrix, which lands once and keeps every other field. A sequence of
-  gives on one cell is a sequence of claims on one slot, and the bytes come off once at the most. The sequence of
-  an owner is a ticket: two takes fewer than $2^b$ apart have sequences of their own. A roll at 32 bits keeps the
+  the owner word is a transition of the flag matrix, which lands once and retains every other field. A sequence of
+  gives on one cell is a sequence of claims on one slot, and the bytes come off once at max. The sequence of
+  an owner is a ticket: two takes fewer than $2^b$ apart have sequences of their own. A roll at 32 bits retains the
   field, and the claim bit of a movable entry is the push of a slot. The release of a movable cell inside a pass
   is a claim that the drain of a move waits for.

@@ -57,7 +57,7 @@ cmake --build build
 `buf_available()` is per cellblock, `prison.work.buf_available()`, and reports the bytes still
 between the two tiers at the moment you call it, never the largest it ever got.
 
-For the largest, build with `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Every allocation then keeps a peak in
+For the largest, build with `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Every allocation then retains a peak in
 the cellblock's own state, one per tier: `persistent_hw` tracks the persistent end and `temporary_hw`
 tracks the bytes taken from the top. It is off by default. A workload run without it leaves both
 at zero. Read the field, add whatever margin your failure policy wants, then size the pool.
@@ -65,7 +65,7 @@ at zero. Read the field, add whatever margin your failure policy wants, then siz
 **A cell goes back in any order, on either tier.** A release frees a cell and returns a free cell at a tier's
 boundary to the gap. A take of either tier bumps its boundary while the gap holds it. Where the gap cannot, the
 take merges the tier's free cells and reuses the one that fits farthest from the gap. A cell released below its
-tier's boundary stays laid, with its owner word and its take's nanosecond. It stays until a take reuses it or the
+tier's boundary stays positioned, with its owner word and its take's nanosecond. It stays until a take reuses it or the
 boundary comes back over it.
 
 **A cellblock can no longer be lied to about its extent.** It takes the count from the pool's own
@@ -75,8 +75,8 @@ still taken as written is any address the library did not hand out. See @ref pro
 ## When to reach for it
 
 It fits when the set of things you allocate is known, the sizes are bounded, and the lifetimes are
-either "forever" or "until this operation finishes", which describes most protocol handling, most
-parsing, and most device I/O.
+either "forever" or "until this operation finishes", which describes max protocol handling, max
+parsing, and max device I/O.
 
 It does not fit a workload whose shape is discovered at runtime and whose objects outlive each other
 in an arbitrary order. Use a heap for that, and use it deliberately.

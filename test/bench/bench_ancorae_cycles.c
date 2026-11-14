@@ -65,7 +65,7 @@ static uint64_t cycles_now(void)
 {
 #if MMGR_CYCLES_ARE_REAL
     /* Ordering deviation: __rdtsc may move against the work under the clock. The compiler
-     * barrier below keeps the loads and stores of one arm on their side of it. That leaves
+     * barrier below retains the loads and stores of one arm on their side of it. That leaves
      * the difference between two reads attributable to that arm. */
     __asm__ __volatile__("" ::: "memory");
     const uint64_t taken = (uint64_t)__rdtsc();
@@ -244,7 +244,7 @@ static size_t search_horspool(const uint8_t *corpus, size_t corpus_len, const ui
  * @param[out] offsets    Where the chosen offsets go [BORROWS].
  * @param[in]  wanted     How many to choose.
  * @param[in]  needle_len Length of the needle they index.
- * @note One draw per cell keeps the spread and gives the anchor set no period of its own. The
+ * @note One draw per cell retains the spread and gives the anchor set no period of its own. The
  *       ledger records that as better sized than an even comb on both corpora.
  */
 static void choose_offsets(size_t *offsets, size_t wanted, size_t needle_len)

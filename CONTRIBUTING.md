@@ -102,7 +102,7 @@ and did not document shows up in `docs/doxygen-warnings.log`.
 
 1. A directory under `src/`.
 2. A three-line `CMakeLists.txt` calling `mmgr_add_module()`. Nothing central lists the modules, and so
-   there is no registry to keep in step.
+   there is no registry to retain in step.
 3. One line in `src/CMakeLists.txt`.
 4. One `@defgroup` in `docs/groups.dox`, placed where it belongs in the data path.
 5. One guide in `docs/modules/`.

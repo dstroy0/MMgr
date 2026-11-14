@@ -17,7 +17,7 @@
 /**
  * @brief Cost of each byte value, indexed by the byte itself.
  *
- * @note Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.
+ * @note Lower means rarer, and cellul_pick_rows retains the lowest cost it finds.
  * @note 255 marks the NUL and the space, and so neither is ever chosen as a sieve offset.
  * @note Bytes 128 through 255 all carry 107, and so no high byte ranks over another.
  * @note The entries carry no U suffix. Each is within 0 to 255, and so the initializer stores it as a

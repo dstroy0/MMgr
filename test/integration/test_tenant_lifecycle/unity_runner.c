@@ -10,7 +10,7 @@ extern void setUp(void);
 extern void tearDown(void);
 extern void test_the_two_series_cellularum_are_separate(void);
 extern void test_the_allocation_puts_them_back_to_back(void);
-extern void test_maximum_security_release_zeroes_the_cell(void);
+extern void test_max_security_release_zeroes_the_cell(void);
 extern void test_minimum_security_release_does_not_zero(void);
 extern void test_each_series_cellularum_tracks_its_own_fill(void);
 extern void test_release_gives_the_bytes_back_to_the_right_series_cellularum(void);
@@ -77,7 +77,7 @@ int main(void)
   UnityBegin("test/integration/test_tenant_lifecycle\\test_tenant_lifecycle.c");
   run_test(test_the_two_series_cellularum_are_separate, "test_the_two_series_cellularum_are_separate", 27);
   run_test(test_the_allocation_puts_them_back_to_back, "test_the_allocation_puts_them_back_to_back", 41);
-  run_test(test_maximum_security_release_zeroes_the_cell, "test_maximum_security_release_zeroes_the_cell", 51);
+  run_test(test_max_security_release_zeroes_the_cell, "test_max_security_release_zeroes_the_cell", 51);
   run_test(test_minimum_security_release_does_not_zero, "test_minimum_security_release_does_not_zero", 67);
   run_test(test_each_series_cellularum_tracks_its_own_fill, "test_each_series_cellularum_tracks_its_own_fill", 79);
   run_test(test_release_gives_the_bytes_back_to_the_right_series_cellularum, "test_release_gives_the_bytes_back_to_the_right_series_cellularum", 97);

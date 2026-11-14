@@ -17,7 +17,7 @@ object also carries relocations, symbol tables and debug records that never get 
 `build/compile_commands.json`, and so its figures are x86-64 code size, and this page used to be written
 from them. They do not merely differ from the target by a constant: on the host `-O1` comes in under
 `-O2`, and on **all three** targets it comes in over. A level picked off the host table is picked off
-the wrong machine. Keep sizes.py for what it is good for - checking a change did not blow a unit up
+the wrong machine. Retain sizes.py for what it is good for - checking a change did not blow a unit up
 while you are working on the desktop - and decide with the table below.
 
 ## Size
@@ -79,7 +79,7 @@ only to show the disagreement: it puts -O1 under -O2, which reads as a sensible 
 one any shipping target walks. Three instruction sets agree with each other and not one of them agrees
 with the desktop.
 
-Two units carry most of it. `verba_scribo` and `cellularum_laboro` are half the total at every level,
+Two units carry the majority of it. `verba_scribo` and `cellularum_laboro` are half the total at every level,
 as a decimal engine and a string module cost. `verba_scribo` is also the one unit where
 the size is buying correctness and not speed: both of its render entries were wrong before it
 inlined that engine, `verba.fixed` by 15.87% below about 1e-41, and `verba.g` failing to name its
@@ -98,7 +98,7 @@ those bought, measured on the parts themselves - `len` went 5.040 cycles per byt
 Whether that trade is right is a judgement about the target and not a fact. The section below on
 newlib is where it shows up as flash.
 
-@note These are a fresh measurement of the tree as it stands. The per-module deltas that used to be
+@note These are a fresh measurement of the tree as it is. The per-module deltas that used to be
 here compared against a table taken before the module split, and its build settings are not recorded
 anywhere, and so those comparisons were dropped and not carried forward against numbers that cannot
 be reproduced.
@@ -111,7 +111,7 @@ A host measurement, taken on x86-64, does not belong here, because it misleads e
 round of optimization work: it puts the scans within a few percent of libc,
 while on the parts this library ships to they are three to sixteen times off. A
 desktop libc answers `strlen`, `memcmp` and `memchr` with SSE or AVX, reading 16 to 48 bytes per
-instruction. No target in the list has anything of the kind. A comparison drawn on the host measures
+instruction. No target in the list has anything of the type. A comparison drawn on the host measures
 the vector unit and reports it as a fact about this library.
 
 Speed lives in @ref ref_performance, measured on silicon against the target's own libc, and nowhere
@@ -168,7 +168,7 @@ iteration and lost to ROM `memcpy` by half again, and so both were unrolled; the
 masks per word, took the aligned load, and gained a mask chain for short needles. What it bought is
 in @ref ref_performance - `cellul.len` at 0.28 against ROM `strnlen`, `memor.chr` at 0.47, `cpy` and
 `set` level with ROM assembly. Whether roughly 3,350 bytes is the right price is a judgement about
-the target, not a fact, and it is the number on this page most worth arguing with.
+the target, not a fact, and it is the number on this page max worth arguing with.
 
 Every entry on both sides is bounded, and so the libc column names `strnlen` and `strncmp`
 and not their unbounded twins, and `snprintf` and `vsnprintf` instead of `printf`. A bounded

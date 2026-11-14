@@ -16,7 +16,7 @@ static void bench_nop(void)
     BENCH_TIME_CYCLES(cy, ITERS, {
         const size_t r_ = (size_t)(bench_i_ & (SPREAD - 1u));
         const uint64_t v_ = (uint64_t)r_;
-        BENCH_KEEP(v_);
+        BENCH_RETAIN(v_);
     });
     printf("scrut,nop,%u,%.4f,%.4f\n", MMGR_SWAR_BITS, cy, cy / (double)MMGR_SWAR_BYTES);
     fflush(stdout);
@@ -30,7 +30,7 @@ static void bench_nop(void)
             const size_t r_ = (size_t)(bench_i_ & (SPREAD - 1u));                                                      \
             const embed_word w_ = EMBED_CALL(word.load, ScrutWordCfg, .at = g_buf + r_);                               \
             const uint64_t v_ = (uint64_t)(EXPR);                                                                      \
-            BENCH_KEEP(v_);                                                                                            \
+            BENCH_RETAIN(v_);                                                                                            \
         });                                                                                                            \
         printf("scrut,%s,%u,%.4f,%.4f\n", LABEL, MMGR_SWAR_BITS, cy_, cy_ / (double)MMGR_SWAR_BYTES);                  \
         fflush(stdout);                                                                                                \

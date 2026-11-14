@@ -504,7 +504,7 @@ void test_g_and_fixed_of_the_specials(void)
     fresh(sizeof buf);
     fixed(-0.0, 2u);
     finish();
-    TEST_ASSERT_EQUAL_CHAR_MESSAGE('-', buf[0], "negative zero keeps its sign");
+    TEST_ASSERT_EQUAL_CHAR_MESSAGE('-', buf[0], "negative zero retains its sign");
 }
 
 void test_overflow_latches_and_finish_reports_it(void)
@@ -915,11 +915,11 @@ void test_g_clamps_its_digit_count(void)
     g(1.8464766514526577e-301, MMGR_G_MAX_SIG + 7u);
     finish();
 
-    TEST_ASSERT_EQUAL_STRING_MESSAGE(at_max, buf, "asking past the maximum did not come back at the maximum");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(at_max, buf, "asking past the max did not come back at the max");
     TEST_ASSERT_EQUAL_UINT(MMGR_G_MAX_SIG, significant_digits(buf));
 }
 
-void test_g_at_its_maximum_still_reads_back(void)
+void test_g_at_its_max_still_reads_back(void)
 {
     const double v = 1.8447470568367377e-236;
 

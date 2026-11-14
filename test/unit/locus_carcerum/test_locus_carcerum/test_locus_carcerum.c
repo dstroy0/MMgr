@@ -36,7 +36,7 @@ LocusCarcerum(octo, MMGR_MINIMUM_SECURITY(o0), MMGR_MINIMUM_SECURITY(o1), MMGR_M
               MMGR_MINIMUM_SECURITY(o3), MMGR_MINIMUM_SECURITY(o4), MMGR_MINIMUM_SECURITY(o5),
               MMGR_MINIMUM_SECURITY(o6), MMGR_MINIMUM_SECURITY(o7));
 
-// The owners the cases take for, which the queue hands out to the first setUp. The owner queue lives as long
+// The owners the cases take for, which the queue passes out to the first setUp. The owner queue lives as long
 // as the program does
 // The owners every case takes for, declared with the cellblocks as the program's table
 #define RAM_OWNERS(owner_) owner_(cells, "cells") owner_(grower, "grower")
@@ -62,8 +62,8 @@ void test_the_namespace_is_wired(void)
 {
     TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof(MinimumSecurityGuard), sizeof ram.a,
                                      "a minimum security cellblock is not its own type");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof(MaximumSecurityGuard), sizeof ram.b,
-                                     "a maximum security cellblock is not its own type");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof(MaxSecurityGuard), sizeof ram.b,
+                                     "a max security cellblock is not its own type");
 }
 
 void test_the_machinery_sits_below_the_arena(void)
@@ -85,7 +85,7 @@ void test_a_four_series_cellularum_site_builds_all_four(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(QUAD_BYTES, quad_q3_ctx.size, "and the fourth is a whole cellblock");
 }
 
-void test_a_four_series_cellularum_site_lays_them_end_to_end(void)
+void test_a_four_series_cellularum_site_positions_them_end_to_end(void)
 {
     TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_q0, quad_q0_ctx.base);
     TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_q1, quad_q1_ctx.base);
@@ -119,7 +119,7 @@ void test_an_eight_series_cellularum_site_builds_and_allocates(void)
 
     TEST_ASSERT_NOT_NULL(first);
     TEST_ASSERT_NOT_NULL(last);
-    TEST_ASSERT_TRUE_MESSAGE(octo.o0.who_owns_buf(first), "the first cellblock hands out storage inside itself");
+    TEST_ASSERT_TRUE_MESSAGE(octo.o0.who_owns_buf(first), "the first cellblock passes out storage inside itself");
     TEST_ASSERT_TRUE_MESSAGE(octo.o7.who_owns_buf(last), "and so does the eighth");
     TEST_ASSERT_FALSE_MESSAGE(octo.o0.who_owns_buf(last), "which is not the first cellblock's");
 }
@@ -137,7 +137,7 @@ void test_init_records_the_site_it_was_given(void)
     TEST_ASSERT_EQUAL_size_t(B_BYTES, ram_b_ctx.size);
 }
 
-void test_the_build_lays_the_series_cellularum_end_to_end(void)
+void test_the_build_positions_the_series_cellularum_end_to_end(void)
 {
     TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_a, ram_a_ctx.base);
     TEST_ASSERT_EQUAL_size_t(A_BYTES, ram_a_ctx.size);
@@ -157,7 +157,7 @@ void test_the_owner_readers_answer_what_an_owner_counts(void)
     static CellOwner s_unlisted = {"unlisted", 0u, EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u)};
     const size_t before = mmgr_owner_in_use(cells);
 
-    TEST_ASSERT_FALSE_MESSAGE(mmgr_owner_listed(NULL), "no owner stands in no queue");
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_owner_listed(NULL), "no owner is in no queue");
     TEST_ASSERT_FALSE_MESSAGE(mmgr_owner_listed(&s_unlisted), "a record of the caller's own is none the queue holds");
     TEST_ASSERT_TRUE(mmgr_owner_listed(cells));
     void *const cell = ram.a.persistent_buf_alloc(128u, cells);
@@ -166,7 +166,7 @@ void test_the_owner_readers_answer_what_an_owner_counts(void)
     TEST_ASSERT_TRUE(mmgr_owner_hw(cells) >= (before + 128u));
     ram.a.persistent_buf_release(cell, cells);
     TEST_ASSERT_EQUAL_size_t(before, mmgr_owner_in_use(cells));
-    TEST_ASSERT_TRUE_MESSAGE(mmgr_owner_hw(cells) >= (before + 128u), "the peak stands");
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_owner_hw(cells) >= (before + 128u), "the peak is");
 }
 
 void test_the_series_cellularum_readers_answer_what_its_tiers_hold(void)
@@ -216,7 +216,7 @@ void test_both_tiers_hand_out_aligned_addresses(void)
     }
 }
 
-void test_the_persistent_tier_hands_out_the_bottom_and_walks_up(void)
+void test_the_persistent_tier_passes_out_the_bottom_and_walks_up(void)
 {
     uint8_t *p = (uint8_t *)ram.a.persistent_buf_alloc(64u, cells);
     uint8_t *q = (uint8_t *)ram.a.persistent_buf_alloc(64u, cells);
@@ -225,7 +225,7 @@ void test_the_persistent_tier_hands_out_the_bottom_and_walks_up(void)
     TEST_ASSERT_TRUE(ram.a.who_owns_buf(p));
 }
 
-void test_the_temporary_tier_hands_out_the_top_and_walks_down(void)
+void test_the_temporary_tier_passes_out_the_top_and_walks_down(void)
 {
     uint8_t *p = (uint8_t *)ram.a.temporary_buf_alloc(64u, cells);
     uint8_t *q = (uint8_t *)ram.a.temporary_buf_alloc(64u, cells);
@@ -297,15 +297,15 @@ void test_cells_given_back_below_a_held_cell_come_off_with_it(void)
 {
     void *const p = ram.a.persistent_buf_alloc(32u, cells);
     void *const q = ram.a.persistent_buf_alloc(32u, cells);
-    void *const keep = ram.a.persistent_buf_alloc(32u, cells);
+    void *const retain = ram.a.persistent_buf_alloc(32u, cells);
     const size_t end_with_three = mmgr_series_cellularum_persistent_end(&ram_a_ctx);
 
-    TEST_ASSERT_NOT_NULL(keep);
+    TEST_ASSERT_NOT_NULL(retain);
     ram.a.persistent_buf_release(p, cells);
     ram.a.persistent_buf_release(q, cells);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(end_with_three, mmgr_series_cellularum_persistent_end(&ram_a_ctx),
                                      "two free cells under a held one stay in the tier");
-    ram.a.persistent_buf_release(keep, cells);
+    ram.a.persistent_buf_release(retain, cells);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_persistent_end(&ram_a_ctx),
                                      "the give at the end trims every free cell below it in turn");
 
@@ -330,7 +330,7 @@ void test_a_minimum_security_release_leaves_the_bytes_alone(void)
     }
 }
 
-void test_a_maximum_security_release_zeroes_the_bytes_first(void)
+void test_a_max_security_release_zeroes_the_bytes_first(void)
 {
     uint8_t *const p = (uint8_t *)ram.b.persistent_buf_alloc(64u, cells);
 
@@ -346,7 +346,7 @@ void test_a_maximum_security_release_zeroes_the_bytes_first(void)
     }
 }
 
-void test_a_maximum_security_release_zeroes_the_whole_cell(void)
+void test_a_max_security_release_zeroes_the_whole_cell(void)
 {
     uint8_t *const p = (uint8_t *)ram.b.persistent_buf_alloc(33u, cells);
     const size_t held = mmgr_align_up_buf(33u);
@@ -386,7 +386,7 @@ void test_the_zeroing_clears_exactly_what_it_was_given(void)
     }
 }
 
-void test_temporary_cells_given_back_in_order_return_the_top_to_where_it_stood(void)
+void test_temporary_cells_given_back_in_order_return_the_top_to_where_it_was(void)
 {
     const size_t before = mmgr_series_cellularum_temporary_top(&ram_a_ctx);
     void *const first = ram.a.temporary_buf_alloc(64u, cells);
@@ -396,7 +396,7 @@ void test_temporary_cells_given_back_in_order_return_the_top_to_where_it_stood(v
     ram.a.persistent_buf_release(second, cells);
     ram.a.persistent_buf_release(first, cells);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(before, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
-                                     "the top must come back to where it stood");
+                                     "the top must come back to where it was");
 }
 
 void test_a_temporary_cell_given_back_under_the_top_waits_for_the_cell_above_it(void)
@@ -466,12 +466,12 @@ void test_the_newest_persistent_cell_grows_in_place(void)
     }
     uint8_t *const grown = ram.b.buf_grow(cell, 96u, grower);
 
-    TEST_ASSERT_EQUAL_PTR_MESSAGE(cell, grown, "a persistent cell keeps its address as it grows");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(cell, grown, "a persistent cell retains its address as it grows");
     TEST_ASSERT_EQUAL_size_t(end_before + mmgr_align_up_buf(96u) - mmgr_align_up_buf(32u),
                              mmgr_series_cellularum_persistent_end(&ram_b_ctx));
     for (size_t at = 0u; at < 32u; at += 1u)
     {
-        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0xA5u, grown[at], "the payload keeps its bytes");
+        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0xA5u, grown[at], "the payload retains its bytes");
     }
     for (size_t at = 32u; at < 96u; at += 1u)
     {
@@ -705,7 +705,7 @@ void test_the_top_temporary_cell_grows_by_moving_down(void)
     TEST_ASSERT_EQUAL_size_t(top_before - growth, mmgr_series_cellularum_temporary_top(&ram_b_ctx));
     for (size_t at = 0u; at < 32u; at += 1u)
     {
-        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0x5Au, grown[at], "the payload keeps its bytes, moved");
+        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0x5Au, grown[at], "the payload retains its bytes, moved");
     }
     for (size_t at = 32u; at < 96u; at += 1u)
     {
@@ -740,7 +740,7 @@ void test_a_growth_the_gap_cannot_meet_is_refused(void)
     ram.a.persistent_buf_release(cell, cells);
 }
 
-void test_a_cell_carrying_the_size_asked_is_answered_as_it_stands(void)
+void test_a_cell_carrying_the_size_asked_is_answered_as_it_is(void)
 {
     void *const cell = ram.a.persistent_buf_alloc(64u, cells);
     const size_t end_before = mmgr_series_cellularum_persistent_end(&ram_a_ctx);
@@ -764,9 +764,9 @@ void test_a_request_over_the_cellblock_is_refused_on_both_tiers(void)
         TEST_ASSERT_NULL_MESSAGE(ram.a.persistent_buf_alloc(s_over[at], cells), "a persistent take over the cellblock");
         TEST_ASSERT_NULL_MESSAGE(ram.a.temporary_buf_alloc(s_over[at], cells), "a temporary take over the cellblock");
         TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_persistent_end(&ram_a_ctx),
-                                         "a refused take leaves the end where it stood");
+                                         "a refused take leaves the end where it was");
         TEST_ASSERT_EQUAL_size_t_MESSAGE(A_BYTES, mmgr_series_cellularum_temporary_top(&ram_a_ctx),
-                                         "a refused take leaves the top where it stood");
+                                         "a refused take leaves the top where it was");
         TEST_ASSERT_EQUAL_size_t_MESSAGE(in_use_before, mmgr_owner_in_use(cells), "a refused take counts nothing");
     }
     void *const low = ram.a.persistent_buf_alloc(8u, cells);
@@ -788,7 +788,7 @@ void test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell(void)
     {
         TEST_ASSERT_NULL_MESSAGE(ram.b.buf_grow(cell, s_over[at], grower), "a growth over the cellblock");
         TEST_ASSERT_EQUAL_size_t_MESSAGE(end_before, mmgr_series_cellularum_persistent_end(&ram_b_ctx),
-                                         "a refused growth leaves the end where it stood");
+                                         "a refused growth leaves the end where it was");
         TEST_ASSERT_EQUAL_size_t_MESSAGE(mmgr_align_up_buf(32u), mmgr_owner_in_use(grower),
                                          "a refused growth leaves the cell its size");
     }

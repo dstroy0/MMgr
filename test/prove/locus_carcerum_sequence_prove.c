@@ -8,7 +8,7 @@
  * @file locus_carcerum_sequence_prove.c
  * @brief Layout, Take, Spill, Give and Temporary of the Lean theory proved on the C. Every sequence of PROVE_STEPS
  *        operations on a small cellblock. Each step is a take of either tier at any of four sizes, or a give of
- *        any cell in place. A give is plain or with a zero fill. After each step every cell in place keeps its bytes and
+ *        any cell in place. A give is plain or with a zero fill. After each step every cell in place retains its bytes and
  *        counts to its owner, and the gap is the top less the end. Once every cell goes back, both boundaries are
  *        where they started and every count is 0.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
@@ -23,7 +23,7 @@
 #endif
 
 #define PROVE_BYTES 512u
-#define PROVE_LIVE_MOST 4u
+#define PROVE_LIVE_MAX 4u
 
 #define PROVE_OWNERS(owner_) owner_(s_p0, "p0") owner_(s_p1, "p1")
 MMGR_OWNERS(PROVE_OWNERS)
@@ -42,7 +42,7 @@ typedef struct
     int temporary;
 } ProveLive;
 
-static ProveLive s_live[PROVE_LIVE_MOST];
+static ProveLive s_live[PROVE_LIVE_MAX];
 static unsigned int s_count;
 
 static const CellOwner *owner_at(unsigned int which)
@@ -61,8 +61,8 @@ static void checked(void)
     for (unsigned int at = 0u; at < s_count; at += 1u)
     {
         const ProveLive *const live = &s_live[at];
-        PROVE_ASSERT(live->payload[0] == (uint8_t)(live->bytes ^ 0x5Au), "a cell keeps its first byte");
-        PROVE_ASSERT(live->payload[live->bytes - 1u] == (uint8_t)(live->bytes ^ 0xA5u), "a cell keeps its last byte");
+        PROVE_ASSERT(live->payload[0] == (uint8_t)(live->bytes ^ 0x5Au), "a cell retains its first byte");
+        PROVE_ASSERT(live->payload[live->bytes - 1u] == (uint8_t)(live->bytes ^ 0xA5u), "a cell retains its last byte");
         PROVE_ASSERT(mmgr_owner_of_buf(BLOCK, live->payload) == owner_at(live->owner), "a cell counts to its owner");
         PROVE_ASSERT(mmgr_who_owns_buf(BLOCK, live->payload) != 0, "a cell lies in its cellblock");
     }
@@ -73,7 +73,7 @@ static void checked(void)
 
 static void taken(uint8_t choice)
 {
-    if (s_count >= PROVE_LIVE_MOST)
+    if (s_count >= PROVE_LIVE_MAX)
     {
         return;
     }

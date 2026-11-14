@@ -251,7 +251,7 @@ static void praet_check_one(const PraetScenario *scenario)
  * @brief Checks that the control scenario comes out clean.
  *
  * @note The first row, and the one that has to pass before any other means anything. A harness that
- *       cannot produce a clean column has not shown it can tell the columns apart.
+ *       cannot produce a clean column has not displayed it can tell the columns apart.
  */
 void test_the_control_is_clean(void)
 {
@@ -332,7 +332,7 @@ static void praet_case_attach_and_settle(embed_word channel)
  */
 static embed_bool praet_case_submit(embed_word channel, embed_word length)
 {
-    // Not PraetSubmit, because that bounds a span whose length stands at compile time and this takes
+    // Not PraetSubmit, because that bounds a span whose length is at compile time and this takes
     // one as an argument. The cases that check the bound call PraetSubmit with literals
     (void)length;
 #if PRAET_RECOVERY
@@ -383,7 +383,7 @@ static void praet_joined_poll(embed_word channel)
 /**
  * @brief The microsecond a pump gives back when what it waited for never happened.
  *
- * @note The largest value a word holds. No window a case pumps through comes near it, which keeps it
+ * @note The largest value a word holds. No window a case pumps through comes near it, which retains it
  *       apart from every microsecond a pump can legitimately return.
  * @note The complement runs at int width under the integer promotions, and the outer cast puts the
  *       result back at the word's own width.
@@ -428,7 +428,7 @@ static void praet_pump(embed_word micros)
  * @note The same shape as the thing it times. A limit, a sign of life, and a verdict when the limit
  *       goes by is what the keepalive is, and PRAET_PUMP_NEVER is this one's PRAET_STALLED. It
  *       costs nothing, as long as the next note holds.
- * @warning The limit comes from PRAET_KEEPALIVE_MICROS or PRAET_SETTLE_MICROS, which are numbers the
+ * @warning The limit comes from PRAET_RETAINALIVE_MICROS or PRAET_SETTLE_MICROS, which are numbers the
  *          caller declared. Reading it out of context->keepalive_deadline or context->settle_deadline
  *          would make every case here agree with the schedule by construction and pass forever,
  *          whatever the schedule did.
@@ -558,7 +558,7 @@ void test_a_transfer_reports_ok_when_the_port_says_so(void)
 }
 
 /**
- * @brief Checks that a transfer the port says failed reports an error and keeps what it moved.
+ * @brief Checks that a transfer the port says failed reports an error and retains what it moved.
  *
  * @note The case of the failed half of praet_ordo_completed. It sets PRAET_ERROR and clears it, which
  *       no other case does.
@@ -634,7 +634,7 @@ void test_a_recovery_is_cleared_by_the_next_transfer(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, 20u);
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE));
     TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 1u) & PRAET_SCRUBBED) != 0u);
@@ -664,7 +664,7 @@ void test_the_watchdog_marks_a_stalled_channel(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS - 1u);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the watchdog fired before its window elapsed");
@@ -690,7 +690,7 @@ void test_a_kick_clears_a_stall_and_pushes_the_window(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u);
 
@@ -698,7 +698,7 @@ void test_a_kick_clears_a_stall_and_pushes_the_window(void)
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "a channel that moved again is still marked stalled");
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS - 1u);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the kick did not push the window out");
@@ -745,9 +745,9 @@ void test_the_watchdog_fires_on_the_microsecond_the_window_closes(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     const embed_word fired =
-        praet_pump_until(1u, (uint32_t)PRAET_STALLED, EMBED_TRUE, (embed_word)PRAET_KEEPALIVE_MICROS * 2u);
+        praet_pump_until(1u, (uint32_t)PRAET_STALLED, EMBED_TRUE, (embed_word)PRAET_RETAINALIVE_MICROS * 2u);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)PRAET_KEEPALIVE_MICROS, fired,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)PRAET_RETAINALIVE_MICROS, fired,
                                      "the watchdog did not fire on the microsecond its window closed");
 }
 
@@ -766,16 +766,16 @@ void test_a_kick_rearms_the_window_to_a_full_length(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_pump((embed_word)PRAET_KEEPALIVE_MICROS - 1u);
+    praet_pump((embed_word)PRAET_RETAINALIVE_MICROS - 1u);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the watchdog fired before its window had closed");
 
     praet_case_kick(1u, 16u);
 
     const embed_word fired =
-        praet_pump_until(1u, (uint32_t)PRAET_STALLED, EMBED_TRUE, (embed_word)PRAET_KEEPALIVE_MICROS * 2u);
+        praet_pump_until(1u, (uint32_t)PRAET_STALLED, EMBED_TRUE, (embed_word)PRAET_RETAINALIVE_MICROS * 2u);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)PRAET_KEEPALIVE_MICROS, fired,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)PRAET_RETAINALIVE_MICROS, fired,
                                      "a kick bought less than a whole window");
 }
 
@@ -783,8 +783,8 @@ void test_a_kick_rearms_the_window_to_a_full_length(void)
  * @brief Checks that a kick that reports less than the last one does not shrink the recorded extent.
  *
  * @note A position that went backwards is nonsense from the port, and to take it would shrink the
- *       extent a backout has to cover. Bytes with writes in them keep them whatever the engine says
- *       afterwards. So the high water mark is the only reading that is safe to keep.
+ *       extent a backout has to cover. Bytes with writes in them retain them whatever the engine says
+ *       afterwards. So the high water mark is the only reading that is safe to retain.
  * @note Reports as ignored where PRAET_RECOVERY is off, because that build records no extent.
  *       A case that quietly passed instead would make the run look like it covered the same ground.
  */
@@ -819,7 +819,7 @@ void test_backing_out_records_what_was_touched(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     praet_case_kick(1u, 20u);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u);
 
@@ -853,7 +853,7 @@ void test_zeroing_records_that_the_bytes_were_scrubbed(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
 
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE));
@@ -977,7 +977,7 @@ void test_the_boundary_word_check_measures_one_word(void)
     const embed_word sampled = word_bytes + 1u;
 
     // The pool's storage, where the pool's own name would not do. The name is a const view and this
-    // stands in for the engine as it writes the bytes
+    // is in for the engine as it writes the bytes
     for (embed_word walk = 0u; walk < s_case_pool_bytes; walk++)
     {
         mmgr_pars_storage_s_case_pool[walk] = (uint8_t)walk;
@@ -987,7 +987,7 @@ void test_the_boundary_word_check_measures_one_word(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, sampled);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
@@ -1003,7 +1003,7 @@ void test_the_boundary_word_check_measures_one_word(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, sampled);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
@@ -1018,7 +1018,7 @@ void test_the_boundary_word_check_measures_one_word(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, sampled);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
@@ -1044,7 +1044,7 @@ void test_a_sample_on_a_boundary_measures_nothing(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     praet_case_kick(1u, (embed_word)sizeof(embed_word) * 2u);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
@@ -1069,7 +1069,7 @@ void test_a_context_that_said_no_measures_nothing(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     praet_case_kick(1u, (embed_word)sizeof(embed_word) + 1u);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
@@ -1088,7 +1088,7 @@ void test_a_context_that_said_no_measures_nothing(void)
  * @note The other half of the capability. Recovery off takes away what anyone can say about the
  *       bytes. It does not take away the knowledge that the engine stopped, because the watchdog is
  *       the keepalive and that is there either way.
- * @note The two recovery statuses keep their bits on every build, and so this reads them on a build that
+ * @note The two recovery statuses retain their bits on every build, and so this reads them on a build that
  *       has no way to set them. A flag word means one thing everywhere or it means nothing.
  */
 void test_a_build_without_recovery_still_stalls_and_records_none(void)
@@ -1100,7 +1100,7 @@ void test_a_build_without_recovery_still_stalls_and_records_none(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
 
     const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
@@ -1115,7 +1115,7 @@ void test_a_build_without_recovery_still_stalls_and_records_none(void)
 /**
  * @brief Checks that ticks off the declared clock scale into the microseconds the deadlines are in.
  *
- * @note The whole point of a declared frequency. A port reads a counter and hands over ticks. Every
+ * @note The whole point of a declared frequency. A port reads a counter and passes over ticks. Every
  *       deadline in this module is microseconds, and this is the single one place the two meet.
  * @note Driven against the watchdog, with no counter read back. The property under test is that a
  *       window measured in microseconds closes after the right number of ticks.
@@ -1129,7 +1129,7 @@ void test_ticks_scale_into_microseconds(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     // One microsecond short of the window, counted in ticks
-    praet_ordo_advance_ticks(&s_schedule, ((embed_word)PRAET_KEEPALIVE_MICROS - 1u) * per_micro);
+    praet_ordo_advance_ticks(&s_schedule, ((embed_word)PRAET_RETAINALIVE_MICROS - 1u) * per_micro);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the ticks scaled up to more microseconds than they are worth");
@@ -1421,7 +1421,7 @@ void test_a_backout_covers_what_the_port_last_reported(void)
     TEST_ASSERT_EQUAL_UINT32(20u, praet_ordo_situs(&s_schedule, 1u));
 
     // Nothing reports for a whole window, and so the engine stopped where it last said it was
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u,
                              "the engine stopped and the watchdog did not notice");
@@ -1471,7 +1471,7 @@ void test_a_refused_attach_does_not_start_the_timer(void)
 }
 
 /**
- * @brief Checks that a poll of the port keeps an active channel off the watchdog.
+ * @brief Checks that a poll of the port retains an active channel off the watchdog.
  *
  * @note A poll is the port's word that the engine is alive, and the kick is what the schedule does with
  *       that. A channel polled inside its window never stalls, and the same channel left alone for
@@ -1479,7 +1479,7 @@ void test_a_refused_attach_does_not_start_the_timer(void)
  * @note The engine holds the transfer throughout. What is under test is the watchdog against the
  *       port's activity, and so nothing here completes anything.
  */
-void test_polling_the_port_keeps_the_watchdog_fed(void)
+void test_polling_the_port_retains_the_watchdog_fed(void)
 {
     praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
@@ -1491,16 +1491,16 @@ void test_polling_the_port_keeps_the_watchdog_fed(void)
     TEST_ASSERT_TRUE(EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 1u, .buf = mmgr_pars_storage_s_case_pool,
                                 .bytes = 64u));
 
-    // Most of the window goes by, then the port reports the engine is still alive. Position unchanged,
+    // The majority of the window goes by, then the port reports the engine is still alive. Position unchanged,
     // because this engine says how far it got only when it finishes
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS - 1u);
     praet_case_kick(1u, 0u);
     praet_ordo_poll(&s_schedule);
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS - 1u);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
-                                     "a channel the port kept reporting on was marked stalled");
+                                     "a channel the port retained reporting on was marked stalled");
 
     // Nothing reports for a whole window this time
     praet_ordo_advance(&s_schedule, 1u);
@@ -1548,7 +1548,7 @@ void test_the_interrupt_can_raise_set_any_number_of_times(void)
     praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(0u);
     TEST_ASSERT_TRUE(praet_case_submit(0u, 64u));
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
 
     for (unsigned raised = 0u; raised < 100u; raised++)
     {
@@ -1575,7 +1575,7 @@ void test_a_nested_service_declines_while_the_lock_is_taken(void)
     praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(0u);
     TEST_ASSERT_TRUE(praet_case_submit(0u, 64u));
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
 
     const uint32_t before = praet_ordo_flags(&s_schedule, 0u);
 
@@ -1731,13 +1731,13 @@ void test_a_circular_descriptor_points_at_itself(void)
 }
 
 /**
- * @brief Checks that a ping-pong pair hands off in both directions and writes different halves.
+ * @brief Checks that a ping-pong pair passes off in both directions and writes different halves.
  *
  * @note Ping-pong, and it is two descriptors whose next point at each other. What makes it a double
  *       buffer is that the two write different halves, the offsets of the declaration and not
  *       anything the library decided.
  */
-void test_a_ping_pong_pair_hands_off_both_ways(void)
+void test_a_ping_pong_pair_passes_off_both_ways(void)
 {
     TEST_ASSERT_EQUAL_PTR_MESSAGE(&s_pong, s_ping.next, "the first half does not hand off to the second");
     TEST_ASSERT_EQUAL_PTR_MESSAGE(&s_ping, s_pong.next, "the second half does not hand back to the first");
@@ -1752,7 +1752,7 @@ void test_a_ping_pong_pair_hands_off_both_ways(void)
 }
 
 /**
- * @brief A register that stands in for one a part would name.
+ * @brief A register that is in for one a part would name.
  *
  * @note A host has no peripherals, and so this is a byte of this file's own with a volatile view taken of
  *       it. What a real caller writes is the name out of their vendor's header, which the compiler has

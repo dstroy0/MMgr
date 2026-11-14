@@ -154,24 +154,24 @@ void test_a_run_of_high_bytes_measures_and_searches_like_libc(void)
     fences_intact("high bytes");
 }
 
-void test_folding_never_touches_a_byte_outside_the_letters(void)
+void test_folding_never_touches_a_byte_outside_the_characters(void)
 {
     for (unsigned c = 0; c < 256u; c++)
     {
         const char a[2] = {(char)c, '\0'};
         const char b2[2] = {(char)(c ^ 0x20u), '\0'};
 
-        const int is_letter = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+        const int is_character = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
         const embed_bool same =
             EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = a, .other = b2, .cap = 2u, .ci = EMBED_TRUE);
 
-        if (is_letter)
+        if (is_character)
         {
-            TEST_ASSERT_TRUE_MESSAGE(same, "two cases of a letter did not fold together");
+            TEST_ASSERT_TRUE_MESSAGE(same, "two cases of a character did not fold together");
         }
         else
         {
-            TEST_ASSERT_FALSE_MESSAGE(same, "the fold reached a byte that is not a letter");
+            TEST_ASSERT_FALSE_MESSAGE(same, "the fold reached a byte that is not a character");
         }
     }
 }

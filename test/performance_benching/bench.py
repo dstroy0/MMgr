@@ -2,8 +2,8 @@
 """
 bench.py - the one entry point for the microbenchmark matrix.
 
-Adapted from ProtoCore's bench.py, whose commands and matrix shape this keeps. What changed is
-the host arm: MMgr has no platform HAL to stand in for. A host build compiles the module's
+Adapted from ProtoCore's bench.py, whose commands and matrix shape this retains. What changed is
+the host arm: MMgr has no platform HAL to be in for. A host build compiles the module's
 own sources, alone. `bench.py help` is the whole surface:
 
   help    every command's help in one call, or one command's
@@ -16,7 +16,7 @@ own sources, alone. `bench.py help` is the whole surface:
   flash   build and upload one bench to a device, through pio
 
 bench_matrix.json is the single source of truth. Nobody edits it by hand. Every mutation takes the
-table's lock, splices the change as text so the file keeps its format, and re-parses to prove no
+table's lock, splices the change as text so the file retains its format, and re-parses to prove no
 other bench moved. Each project's platformio.ini comes from `gen`, which throws away any change to one.
 """
 
@@ -121,7 +121,7 @@ def cmd_add(a):
 
 def cmd_rename(a):
     """Change a bench's key. A module that moves takes its bench's name with it. The name is in
-    storage and not derived, and so without this the table keeps the name of the tree the module left."""
+    storage and not derived, and so without this the table retains the name of the tree the module left."""
     lock = lock_acquire(TABLE)
     if not lock:
         print("could not take the bench table lock")
@@ -245,7 +245,7 @@ def cmd_list(a):
 
 
 # MMgr asks nothing of a platform: no clock, no NVS, no crypto or PHY seam. A host build has
-# no vendor arm to stand in for and this list is empty. It stays because host_arm_archive still
+# no vendor arm to be in for and this list is empty. It stays because host_arm_archive still
 # runs over it. An empty archive is the honest answer for a library whose every module compiles on
 # its own.
 HOST_ARMS = []
@@ -282,7 +282,7 @@ def _mm_headers(cc, entry, main_c):
     Read as a tree (-H) and not a flat list (-MM) so the cut of the subtree under the umbrella is
     possible. A bench measures one module. A reach of mmgr.h through any header would otherwise
     make the whole tree its source list, hundreds of translation units for the same numbers. The
-    cut of the subtree keeps the path available so every TU still compiles, and only the
+    cut of the subtree retains the path available so every TU still compiles, and only the
     membership question ignores it.
     """
     incs, defs = host_flags(entry)

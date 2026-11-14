@@ -55,7 +55,7 @@ prebuilt archive can silently disagree with its consumer about the size of `embe
 the source makes that impossible. See @ref guide_install.
 
 **Compiler intrinsics in the scan path.** Measured and rejected. See @ref concept_swar. Beyond the
-performance answer, keeping them out keeps every compiler conditional in one file.
+performance answer, retention them out retains every compiler conditional in one file.
 
 **Locks.** A cellblock is shared on atomic words, each boundary, claim and count moved in one step,
 and no context waits for another. A lock inside a bump allocator is a lock on the hot path of a
@@ -63,6 +63,6 @@ library whose whole claim is bounded, predictable cost, and there is none.
 
 ## Versioning
 
-The version is 1.1.1 and the API is stable. It stands in five places: `CMakeLists.txt`,
+The version is 1.1.1 and the API is stable. It is in five places: `CMakeLists.txt`,
 `library.json`, `library.properties`, `CITATION.cff` and `sonar-project.properties`, with nothing
-to keep them in step. A generator for them is open work.
+to retain them in step. A generator for them is open work.

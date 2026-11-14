@@ -43,7 +43,7 @@ static uint8_t *place(size_t n)
 
 static size_t g_sink;
 
-static void keep(size_t v)
+static void retain(size_t v)
 {
     g_sink += v;
 }
@@ -75,7 +75,7 @@ static void do_put(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    keep((size_t)EMBED_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = m->src, .bytes = m->bytes));
+    retain((size_t)EMBED_CALL(anularis.put, AnularisCfg, .ring = &g_ring, .src = m->src, .bytes = m->bytes));
 }
 
 static void do_peek(void *v)
@@ -89,7 +89,7 @@ static void do_read(void *v)
 {
     const Move *const m = (const Move *)v;
 
-    keep(EMBED_CALL(anularis.read, AnularisCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes));
+    retain(EMBED_CALL(anularis.read, AnularisCfg, .ring = &g_ring, .dst = m->dst, .bytes = m->bytes));
 }
 
 static void none_past(const char *what, void (*fn)(void *), const Move *m, size_t at)

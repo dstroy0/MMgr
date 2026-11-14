@@ -21,12 +21,12 @@ static uint8_t s_store[FUZZ_BYTES];
 
 static mmgr_span drawn_span(FuzzInput *input)
 {
-    const uint8_t kind = fuzz_byte(input);
+    const uint8_t type = fuzz_byte(input);
     mmgr_span span;
-    span.buf = ((kind & 7u) == 0u) ? NULL : s_store;
-    span.cap = ((kind & 0x18u) == 0u) ? 0u : fuzz_below(input, FUZZ_BYTES + 1u);
+    span.buf = ((type & 7u) == 0u) ? NULL : s_store;
+    span.cap = ((type & 0x18u) == 0u) ? 0u : fuzz_below(input, FUZZ_BYTES + 1u);
     span.pos = fuzz_below(input, FUZZ_BYTES * 2u);
-    span.overflow = (embed_bool)((kind & 0x20u) != 0u);
+    span.overflow = (embed_bool)((type & 0x20u) != 0u);
     return span;
 }
 
@@ -61,7 +61,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
         const mmgr_cspan cbuilt = EMBED_CALL(spat.cfrom, SpatiumCfg, .cbuf = span.buf, .cap = span.cap);
         fuzz_check(same_cspan(cbuilt, (mmgr_cspan){span.buf, span.cap, 0u, EMBED_FALSE}),
-                   "cfrom builds a read span as it is handed");
+                   "cfrom builds a read span as it is passed");
 
         fuzz_check((EMBED_CALL(spat.has_storage, SpatiumCfg, .span = span) != 0) == storage,
                    "has_storage is a buffer and a cap");

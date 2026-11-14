@@ -345,7 +345,7 @@ void test_reading_an_index_does_not_move_it(void)
  * @note The check reads what swap returned back against the pair itself. A swap that moved the pair
  *       and returned the old index fails on the second assertion and does not pass unnoticed.
  */
-void test_swap_hands_back_the_index_it_moved_to(void)
+void test_swap_passes_back_the_index_it_moved_to(void)
 {
     PingPong pair;
 

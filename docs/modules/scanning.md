@@ -72,7 +72,7 @@ write the first byte they did not consume to `.end`. Equal to `.src` means nothi
 **`to_long` and `to_ulong` return `embed_iword` and `embed_word`,** so they parse to the target's own
 word width. On a 16-bit build `to_ulong` saturates at 65535 and not at 4294967295.
 
-**The cap is a cap instead of a length.** `len` with `.cap = 64` returns at most 64 regardless of whether a
+**The cap is a cap instead of a length.** `len` with `.cap = 64` returns at max 64 regardless of whether a
 terminator was found. If you need to know which happened, compare against the cap.
 
 **`find` anchors on the rarest byte of the needle**, using @ref mod_anchor_guide. For that reason it is
@@ -97,8 +97,8 @@ path; the chain compares raw bytes. See `MMGR_FIND_CHAIN_MAX` in @ref ref_config
 Character classes as sixteen-byte bitmaps.
 
 ```c
-if (EMBED_CALL(ascii.in, AsciiCfg, .kind = MMGR_ASCII_NUM, .byte = c)) { }
-if (EMBED_CALL(ascii.in, AsciiCfg, .kind = MMGR_ASCII_HEX, .byte = c)) { }
+if (EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_NUM, .byte = c)) { }
+if (EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_HEX, .byte = c)) { }
 ```
 
 Available: `MMGR_ASCII_NUM`, `MMGR_ASCII_ALPHA`, `MMGR_ASCII_ALNUM`, `MMGR_ASCII_UPPER`,

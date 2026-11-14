@@ -56,7 +56,7 @@
 /**
  * @brief English prose, the corpus behind the weights of the english profile.
  *
- * @note Ordinary text with ordinary structure: the letter frequencies are Zipf skewed and the
+ * @note Ordinary text with ordinary structure: the character frequencies are Zipf skewed and the
  *       digraphs have correlation, the very condition the independence question is about.
  */
 static const char s_english[] =
@@ -64,7 +64,7 @@ static const char s_english[] =
     "the quality of the quotation was quite equal to the requirements of the inquiry. she thought "
     "about the matter for some time and then decided that the answer was probably yes, although "
     "there were several other considerations that might reasonably be taken into account before "
-    "any final judgement could be reached on a question of that particular kind. the morning was "
+    "any final judgement could be reached on a question of that particular type. the morning was "
     "bright and the air was cold, and the road ahead of them ran straight for a long distance "
     "before turning sharply to the left and disappearing behind a low hill covered in heather. "
     "they walked without speaking for perhaps half an hour, each of them thinking about something "
@@ -78,11 +78,11 @@ static const char s_english[] =
     "was grey and the far side of it invisible. they sheltered under an overhanging rock and "
     "watched the water gather in the hollows and run away downhill in a hundred small channels, "
     "each one finding its own way among the stones without any apparent difficulty. it occurred to "
-    "him that this was how most problems eventually resolved themselves, given enough time and a "
+    "him that this was how max problems eventually resolved themselves, given enough time and a "
     "sufficient quantity of water, and he said as much aloud. she laughed and said that was the "
     "sort of remark that sounded wiser than it was, and he had to agree that she was probably "
     "right about that as well. by the time the rain stopped the light was almost gone and they "
-    "made camp where they stood rather than risk the descent in darkness. the fire took a long "
+    "made camp where they was rather than risk the descent in darkness. the fire took a long "
     "while to catch because everything was wet, and when it did catch it smoked badly and gave "
     "very little heat, but it was something to sit beside and they were both glad of it. in the "
     "morning the sky had cleared completely and the grass was heavy with water that soaked their "
@@ -97,7 +97,7 @@ static const char s_english[] =
  *
  * @note The corpus english is the prose above, repeated to fill. The corpus structured is C
  *       punctuation and identifiers, which has a different and much narrower alphabet. The corpus
- *       uniform stands in for a normal sequence: every byte equally likely and no correlation
+ *       uniform is in for a normal sequence: every byte equally likely and no correlation
  *       between positions. That is the regime where a weird anchor does not exist and the
  *       multiplication is exact.
  * @warning uniform is a surrogate from a fixed generator and not the digits of any constant.
@@ -113,14 +113,14 @@ static uint8_t s_periodic_corpus[CORPUS_BYTES];
  *
  * @note The opposite limit from uniform. Every position holds every needle, and so nothing an anchor does
  *       can remove a candidate and the cost columns have nothing to report. What it is here for is the
- *       invariant. The case with the most occurrences to lose is the case where the loss of one would show.
+ *       invariant. The case with the max occurrences to lose is the case where the loss of one would show.
  */
 static uint8_t s_flat_corpus[CORPUS_BYTES];
 
 /**
  * @brief C source, which is a narrow alphabet with heavy repetition of a few identifiers.
  *
- * @note The other end of the range from prose. Where English has a long tail of rare letters, this
+ * @note The other end of the range from prose. Where English has a long tail of rare characters, this
  *       has almost none: a handful of punctuation marks and the same dozen keywords. So the anchor
  *       has much less to work with and the correlation between any two positions is far stronger.
  */
@@ -216,7 +216,7 @@ static size_t fill_from_text(uint8_t *into, const char *text, size_t length)
  * @note The distinction that makes this a period and not a repetition. A corpus built from repeats
  *       of one string is self similar and every needle finds itself. This varies every field per
  *       record. A needle occurs once, and only the column positions recur.
- * @note Layout: four hex digits, a comma, six letters, a comma, three digits, a newline.
+ * @note Layout: four hex digits, a comma, six characters, a comma, three digits, a newline.
  */
 static size_t fill_periodic(uint8_t *into, size_t length)
 {
@@ -233,10 +233,10 @@ static size_t fill_periodic(uint8_t *into, size_t length)
         at[2] = (uint8_t)hex[(counter >> 4) & 0xFu];
         at[3] = (uint8_t)hex[counter & 0xFu];
         at[4] = (uint8_t)',';
-        for (unsigned letter = 0u; letter < 6u; letter++)
+        for (unsigned character = 0u; character < 6u; character++)
         {
-            // Explicit cast narrows the mixed value to the letter it selects, inside 'a' to 'z'
-            at[5u + letter] = (uint8_t)('a' + (int)((counter >> (letter * 3u)) % 26u));
+            // Explicit cast narrows the mixed value to the character it selects, inside 'a' to 'z'
+            at[5u + character] = (uint8_t)('a' + (int)((counter >> (character * 3u)) % 26u));
         }
         at[11] = (uint8_t)',';
         at[12] = (uint8_t)('0' + (int)((counter / 100u) % 10u));
@@ -253,7 +253,7 @@ static size_t fill_periodic(uint8_t *into, size_t length)
  * @param[out] into   Corpus to fill [BORROWS].
  * @param[in]  length Bytes to write.
  * @note SHA-256 in counter mode, from block zero every run, and so the numbers are reproducible.
- *       What it stands in for is a sequence with no rank ordering and no correlation between
+ *       What it is in for is a sequence with no rank ordering and no correlation between
  *       positions, as a normal constant's digits look like empirically.
  */
 static void fill_uniform(uint8_t *into, size_t length)
@@ -271,7 +271,7 @@ static void fill_uniform(uint8_t *into, size_t length)
     {
         for (unsigned index = 0u; index < 8u; index++)
         {
-            // Explicit cast narrows one byte out of the counter, most significant first
+            // Explicit cast narrows one byte out of the counter, max significant first
             counter[index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
         }
         mmgr_sha256(counter, sizeof counter, digest);
@@ -351,7 +351,7 @@ static unsigned s_random_cost[256];
  * @brief Fills the random cost table with a permutation of 0 through 255.
  *
  * @note Drawn from SHA-256 in counter mode for the same reason the uniform corpus is. A permutation
- *       keeps the arm honest: every cost is still distinct. So the picker behaves exactly as it does
+ *       retains the arm honest: every cost is still distinct. So the picker behaves exactly as it does
  *       under the real table, and the only thing absent is a table that is right.
  */
 static void fill_random_costs(void)
@@ -372,7 +372,7 @@ static void fill_random_costs(void)
         {
             for (unsigned index = 0u; index < 8u; index++)
             {
-                // Explicit cast narrows one byte out of the counter, most significant first
+                // Explicit cast narrows one byte out of the counter, max significant first
                 counter[index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
             }
             mmgr_sha256(counter, sizeof counter, digest);
@@ -508,7 +508,7 @@ static uint32_t candidates(const uint8_t *corpus, size_t length, uint8_t first, 
 }
 
 /**
- * @brief The most anchors a cascade row will stack.
+ * @brief The max anchors a cascade row will stack.
  *
  * @note Six is where this bench stops its sweep. The count is a parameter of the shape and not a limit
  *       of it. So the ceiling is a choice about run time, and the rows say what each step buys.
@@ -521,7 +521,7 @@ static uint32_t candidates(const uint8_t *corpus, size_t length, uint8_t first, 
  * @param[in]  needle     The needle to pick from [BORROWS].
  * @param[in]  needle_len Bytes in it.
  * @param[in]  policy     Which price rule decides what cheapest means.
- * @param[out] offsets    Receives the chosen offsets, CASCADE_MAX of them at most [BORROWS].
+ * @param[out] offsets    Receives the chosen offsets, CASCADE_MAX of them at max [BORROWS].
  * @param[in]  count      How many to pick.
  * @return                How many it picked, which is short of count only when the needle has
  *                        fewer distinct offsets than that.
@@ -583,7 +583,7 @@ static unsigned pick_anchors(const uint8_t *needle, size_t needle_len, AnchorPol
  * @param[in] needle_len Bytes in the needle, which bounds where a candidate can start.
  * @return               Positions that survive every anchor.
  * @note One early exit per anchor. Under SWAR each is a mask and the whole set is an AND. So the
- *       shape here counts the same survivors a branchless form would keep.
+ *       shape here counts the same survivors a branchless form would retain.
  */
 static uint32_t candidates_n(const uint8_t *corpus, size_t length, const uint8_t *needle, const size_t *offsets,
                              unsigned count, size_t needle_len)
@@ -856,7 +856,7 @@ static void report(const char *name, const uint8_t *corpus, size_t corpus_len, s
             candidates(corpus, corpus_len, needle[first_at], first_at, needle[second_at], second_at, needle_len);
 
         // What two independent anchors would admit: the first anchor's rate times the second's,
-        // over the positions the first already kept
+        // over the positions the first already retained
         const double positions = (double)(corpus_len - needle_len + 1u);
         const double second_rate = (double)counts[needle[second_at]] / (double)corpus_len;
 
@@ -913,7 +913,7 @@ static void report(const char *name, const uint8_t *corpus, size_t corpus_len, s
  * @note What an uninformed anchor costs is not a free parameter, and this row is here to say so
  *       before the sweep runs. An anchor picked with no information is a byte drawn from the corpus
  *       by the corpus's own frequencies. So it matches at the collision probability, the sum of the
- *       squared byte frequencies. Multiply that by the number of positions and the maximum entropy
+ *       squared byte frequencies. Multiply that by the number of positions and the max entropy
  *       candidate count is a prediction in advance. The sweep either lands on it or the account is wrong.
  * @note Shannon entropy sits beside it because the two answer different questions. Shannon says how
  *       many bits a byte carries on average. Collision says how often two independent draws agree,
@@ -1058,7 +1058,7 @@ static void report_refutation(const char *name, const uint8_t *corpus, size_t co
         {
             const uint8_t seen = corpus[start + anchor];
 
-            // Alignments the one read rules out. A needle with that byte somewhere keeps an
+            // Alignments the one read rules out. A needle with that byte somewhere retains an
             // alignment alive, and so this read settles every offset with a different byte
             refuted += (double)needle_len - (double)inside[seen];
             observations += 1.0;
@@ -1134,7 +1134,7 @@ static void report_widths(const char *name, const uint8_t *corpus, size_t corpus
             for (unsigned step = 0u; step < width; step++)
             {
                 const size_t at = bit + step;
-                // The bits come most significant first inside each byte, which is how a byte reads
+                // The bits come max significant first inside each byte, which is how a byte reads
                 // on paper and how the standard's padding indexes them
                 const unsigned held = (corpus[at / 8u] >> (7u - (at % 8u))) & 1u;
 

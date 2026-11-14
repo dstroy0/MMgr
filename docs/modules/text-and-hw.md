@@ -47,7 +47,7 @@ argument you passed.
 
 ## A line that carries its own cursor
 
-`verba_scribo/verba_linea.h` keeps the buffer, the cursor and an optional flush together in a
+`verba_scribo/verba_linea.h` retains the buffer, the cursor and an optional flush together in a
 `VerbaLinea`, and its `mmgr_line_*` entries take that line and the value as plain arguments. The
 header includes `mmgr.h` alone and defines no table, and therefore a C++ translation unit calls them as they
 are.
@@ -66,10 +66,10 @@ const size_t len = mmgr_line_finish(&line);
 
 Every write leaves the buffer terminated, one store paid on every call, and a written line whose
 buffer holds no terminator has been corrupted by something other than the line. A line with no flush
-behaves as `snprintf` does: a write that does not fit keeps what fits, terminated in the last byte,
+behaves as `snprintf` does: a write that does not fit retains what fits, terminated in the last byte,
 leaves the line full, and `finish` reports zero. `mmgr_line_put`, `mmgr_line_put_n` and
-`mmgr_line_put_most` answer the bytes of the text the line took, and a caller that sees fewer than
-the text holds goes on from `text + taken`, in the same buffer with `at` set to zero once those bytes are read. A line with a flush hands what it
+`mmgr_line_put_max` answer the bytes of the text the line took, and a caller that sees fewer than
+the text holds goes on from `text + taken`, in the same buffer with `at` set to zero once those bytes are read. A line with a flush passes what it
 holds to the flush as it fills and goes on, and a text of any length passes through a buffer of any
 size. A flush answers 1 where it took the bytes and 0 where it refused, which leaves the line full. `mmgr_line_put`
 reads its text a room at a time and never past the terminator, and so it needs no bound on the
@@ -77,7 +77,7 @@ text's length.
 
 | job       | entries                                                                  |
 | --------- | ------------------------------------------------------------------------ |
-| raw text  | `mmgr_line_put`, `mmgr_line_put_n`, `mmgr_line_put_most`, `mmgr_line_ch` |
+| raw text  | `mmgr_line_put`, `mmgr_line_put_n`, `mmgr_line_put_max`, `mmgr_line_ch` |
 | columns   | `mmgr_line_put_columns`, `mmgr_line_decimal_columns`                     |
 | numbers   | `mmgr_line_decimal`, `mmgr_line_decimal_signed`, `mmgr_line_hex`         |
 | making    | `mmgr_line_over`                                                         |
@@ -91,7 +91,7 @@ reports zero. See @ref ref_error_handling.
 
 **`xml` and `json` escape, they do not quote.** You supply the surrounding quotes.
 
-**`put_clip` truncates deliberately.** It is for a field with a maximum width, and it is not the same
+**`put_clip` truncates deliberately.** It is for a field with a max width, and it is not the same
 as running out of room.
 
 **Float formatting is exact bit work, not `printf`.** It goes through @ref mod_fract_guide.
@@ -130,7 +130,7 @@ EMBED_CALL(numer.build, NumerosCfg, .out = buf, .cap = sizeof buf,
 ```
 
 A literal is a `MMGR_FK_LIT` field carrying its own text and length, and so it costs no scan. Every
-other spec entry is a bare kind taking no argument. There is a one-word macro for some of them,
+other spec entry is a bare type taking no argument. There is a one-word macro for some of them,
 `MMGR_STR`, `MMGR_U32`, `MMGR_U64`, `MMGR_I64`, `MMGR_CH`, `MMGR_JSON`, `MMGR_XML`, `MMGR_END`
 (`src/numeros_scribo/numeros_scribo.h:60-85`), and the rest are written as the brace form above.
 `MMGR_FK_HEX`, `MMGR_FK_DEC`, `MMGR_FK_OCT`, `MMGR_FK_G` and `MMGR_FK_FIX` have no such macro.
@@ -141,17 +141,17 @@ and `append` and `emit_append` add to a record already in the buffer.
 ## Why a spec array and not a format string
 
 A format string is parsed at runtime and nothing checks it against the arguments. Here the spec is a
-`const` array in flash, the kind is an enum, and every value carries its own kind tag. `build`
+`const` array in flash, the type is an enum, and every value carries its own type tag. `build`
 compares the two and refuses the record if they disagree.
 
 ## Gotchas
 
 **`MMGR_END` terminates the spec.** Leaving it off runs off the end of the array.
 
-**A kind mismatch returns 0 and empties the buffer.** So does too few values, or too many. The
+**A type mismatch returns 0 and empties the buffer.** So does too few values, or too many. The
 record is written or it is not; there is no partial record.
 
-**`emit` takes no spec.** Each value carries its own kind and width, and so it is the entry to use when
+**`emit` takes no spec.** Each value carries its own type and width, and so it is the entry to use when
 the layout is not fixed.
 
 @ref mod_numer "Generated reference"

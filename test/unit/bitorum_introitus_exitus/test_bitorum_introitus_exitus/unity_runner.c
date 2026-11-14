@@ -8,7 +8,7 @@
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_bitio_header_is_self_contained(void);
-extern void test_init_hands_back_an_empty_writer(void);
+extern void test_init_passes_back_an_empty_writer(void);
 extern void test_align_after_an_overflow_writes_nothing(void);
 extern void test_a_whole_byte_lands_as_that_byte(void);
 extern void test_bits_pack_from_the_low_end(void);
@@ -17,7 +17,7 @@ extern void test_padding_to_the_byte_writes_it(void);
 extern void test_a_put_of_no_bits_writes_nothing(void);
 extern void test_a_put_of_no_bits_on_an_empty_writer_writes_nothing(void);
 extern void test_a_wide_put_spans_bytes(void);
-extern void test_a_wide_put_onto_a_fragment_keeps_every_bit(void);
+extern void test_a_wide_put_onto_a_fragment_retains_every_bit(void);
 extern void test_n_at_or_above_32_takes_the_value_whole(void);
 extern void test_a_narrow_put_ignores_the_high_bits(void);
 extern void test_overflow_latches_and_stops_writing(void);
@@ -93,7 +93,7 @@ int main(void)
 {
   UnityBegin("test/unit/bitorum_introitus_exitus/test_bitorum_introitus_exitus\\test_bitorum_introitus_exitus.c");
   run_test(test_bitio_header_is_self_contained, "test_bitio_header_is_self_contained", 26);
-  run_test(test_init_hands_back_an_empty_writer, "test_init_hands_back_an_empty_writer", 31);
+  run_test(test_init_passes_back_an_empty_writer, "test_init_passes_back_an_empty_writer", 31);
   run_test(test_align_after_an_overflow_writes_nothing, "test_align_after_an_overflow_writes_nothing", 40);
   run_test(test_a_whole_byte_lands_as_that_byte, "test_a_whole_byte_lands_as_that_byte", 53);
   run_test(test_bits_pack_from_the_low_end, "test_bits_pack_from_the_low_end", 61);
@@ -102,7 +102,7 @@ int main(void)
   run_test(test_a_put_of_no_bits_writes_nothing, "test_a_put_of_no_bits_writes_nothing", 88);
   run_test(test_a_put_of_no_bits_on_an_empty_writer_writes_nothing, "test_a_put_of_no_bits_on_an_empty_writer_writes_nothing", 96);
   run_test(test_a_wide_put_spans_bytes, "test_a_wide_put_spans_bytes", 103);
-  run_test(test_a_wide_put_onto_a_fragment_keeps_every_bit, "test_a_wide_put_onto_a_fragment_keeps_every_bit", 113);
+  run_test(test_a_wide_put_onto_a_fragment_retains_every_bit, "test_a_wide_put_onto_a_fragment_retains_every_bit", 113);
   run_test(test_n_at_or_above_32_takes_the_value_whole, "test_n_at_or_above_32_takes_the_value_whole", 126);
   run_test(test_a_narrow_put_ignores_the_high_bits, "test_a_narrow_put_ignores_the_high_bits", 136);
   run_test(test_overflow_latches_and_stops_writing, "test_overflow_latches_and_stops_writing", 143);

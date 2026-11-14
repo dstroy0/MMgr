@@ -4,14 +4,14 @@ import LocusCarcerum.Take
 /-!
 # LocusCarcerum, the spill and the growths
 
-A persistent take the gap cannot meet (`carcer_spilled`) sweeps the tier. Then it lays the take over the first free
-run that holds it. Where none does and the gap has room, it bumps the take at the end. The theorems: a take laid over a
-run keeps the tier's bytes and raises the owner's count by what the cell carries. A bump at the end lays the cell's
+A persistent take the gap cannot meet (`carcer_spilled`) sweeps the tier. Then it positions the take over the first free
+run that holds it. Where none does and the gap has room, it bumps the take at the end. The theorems: a take positioned over a
+run retains the tier's bytes and raises the owner's count by what the cell carries. A bump at the end positions the cell's
 footprint past the end and raises the count by the request. The other owners' counts do not move.
 
 A growth (`carcer_grown`) grows the newest cell of its tier. A persistent cell grows in place: the end rises by
 the bytes added and the owner's count by the same. A temporary cell moves down: its header at the new top, its
-owner word where it stood, the tier's end where it stood.
+owner word where it was, the tier's end where it was.
 -/
 
 namespace LocusCarcerum.Spill
@@ -54,14 +54,14 @@ theorem len_append (a b : List Cell) : len H (a ++ b) = len H a + len H b := by
 
 /-- A spill over the first run that fits in the swept tier. -/
 def spilled (want owner : Nat) (low : List Cell) (run : Cell) (high : List Cell) : List Cell :=
-  low ++ laid H A want owner run ++ high
+  low ++ positioned H A want owner run ++ high
 
 theorem spill_len (want owner : Nat) (l low high : List Cell) (run : Cell)
     (h : firstFit want (sweep H l) = some (low, run, high)) :
     len H (spilled H A want owner low run high) = len H (sweep H l) := by
   obtain ⟨e, _, _⟩ := firstFit_spec want _ low high run h
   rw [e]; unfold spilled
-  simp [len_append, laid_len, len]
+  simp [len_append, positioned_len, len]
 
 theorem spill_count (want owner o : Nat) (l low high : List Cell) (run : Cell)
     (h : firstFit want (sweep H l) = some (low, run, high)) :
@@ -70,11 +70,11 @@ theorem spill_count (want owner o : Nat) (l low high : List Cell) (run : Cell)
   have hs := sweep_count H o l
   rw [e] at hs
   unfold spilled
-  rw [count_append, count_append, laid_count H A want owner o run hb, ← hs, count_append]
+  rw [count_append, count_append, positioned_count H A want owner o run hb, ← hs, count_append]
   simp [count, hb]
   omega
 
-/-- A bump at the end: the cell laid past the last. -/
+/-- A bump at the end: the cell positioned past the last. -/
 def bumped (want owner : Nat) (l : List Cell) : List Cell := l ++ [⟨want, true, owner⟩]
 
 theorem bump_len (want owner : Nat) (l : List Cell) : len H (bumped want owner l) = len H l + (H + want) := by
@@ -97,7 +97,7 @@ theorem grownUp_count (want o : Nat) (l : List Cell) (c : Cell) (hb : c.busy = t
   by_cases ho : c.owner = o <;> simp [count, hb, ho] <;> omega
 
 /-- A temporary growth of the newest cell, at `top` with `size` bytes, to `want`: the new top, and where its owner
-word stands, the end of its footprint. -/
+word is, the end of its footprint. -/
 def grownDown (top size want : Nat) : Nat × Nat := (top - (want - size), top - (want - size) + H + want)
 
 theorem grownDown_owner_word (top size want : Nat) (h : size ≤ want) (room : want - size ≤ top) :

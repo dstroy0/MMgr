@@ -56,7 +56,7 @@ EMBED_BEGIN_DECLS
  * @brief Expands to a word with 0x80 in every lane, which is 0x8080...80.
  *
  * @note The shape every lane mask takes. A caller can and two masks together lane by lane.
- * @note An or of it into a word before a subtraction gives each lane a borrow to spend, which keeps lanes apart.
+ * @note An or of it into a word before a subtraction gives each lane a borrow to spend, which retains lanes apart.
  */
 #define MMGR_VERBUM_SCRUTOR_HIGH (MMGR_SWAR_ONES * 0x80u)
 
@@ -72,9 +72,9 @@ EMBED_BEGIN_DECLS
  * @brief Expands to 0, the first of three verdicts a scan step can report.
  *
  * @note MMGR_SWAR_GO, MMGR_SWAR_YES and MMGR_SWAR_NO are 0, 1 and 2, and so the three fit in one byte.
- * @note The three carry no size suffix, and so each takes int in an expression. A scanner that keeps a
+ * @note The three carry no size suffix, and so each takes int in an expression. A scanner that retains a
  *       verdict in a uint8_t converts it on the way in.
- * @note verbum_scrutor.c reads none of the three. They stand here for the scanners that
+ * @note verbum_scrutor.c reads none of the three. They are here for the scanners that
  *       include it.
  */
 #define MMGR_SWAR_GO 0
@@ -86,7 +86,7 @@ EMBED_BEGIN_DECLS
 #define MMGR_SWAR_NO 2
 
 /**
- * @brief Expands to 0x60u, the two bits that separate the ASCII blocks a letter can fall in.
+ * @brief Expands to 0x60u, the two bits that separate the ASCII blocks a character can fall in.
  *
  * @note Passed to lane.fam_eq as the family, with MMGR_FAM_CI as the byte, to pick out the capital block.
  */
@@ -112,8 +112,8 @@ typedef struct
     const embed_word val;  /**< Whole word xor_ compares against, which the caller broadcasts itself. */
     const embed_word mask; /**< Lane mask the three index calls read. */
     const uint8_t byte;    /**< Byte the call broadcasts into every lane before the compare. */
-    const uint8_t fam;     /**< Bits fam_eq keeps on both sides before the compare. */
-    const embed_bool ci;   /**< Non-zero to let a letter match either case. */
+    const uint8_t fam;     /**< Bits fam_eq retains on both sides before the compare. */
+    const embed_bool ci;   /**< Non-zero to let a character match either case. */
 } ScrutLaneCfg;
 
 /**
@@ -163,7 +163,7 @@ typedef struct
     embed_word (*fam_eq)(const ScrutLaneCfg *args);    /**< Lanes that match a byte within a set of bits. */
     embed_word (*any_upper)(const ScrutLaneCfg *args); /**< Lanes whose MMGR_FAM_CS bits equal MMGR_FAM_CI. */
     embed_word (*any_digit)(const ScrutLaneCfg *args); /**< Lanes in the 0x30 to 0x3F block. */
-    embed_word (*alpha)(const ScrutLaneCfg *args);     /**< Lanes with an ASCII letter. */
+    embed_word (*alpha)(const ScrutLaneCfg *args);     /**< Lanes with an ASCII character. */
     size_t (*count)(const ScrutLaneCfg *args);         /**< How many lanes of a mask hold. */
     size_t (*first)(const ScrutLaneCfg *args);         /**< Index of the first set lane in memory order. */
     size_t (*last)(const ScrutLaneCfg *args);          /**< Index of the last set lane in memory order. */
@@ -203,7 +203,7 @@ typedef struct
 {
     embed_word (*load)(const ScrutWordCfg *args);       /**< Reads a word from any address. */
     embed_word (*load_al)(const ScrutWordCfg *args);    /**< Reads a word from an aligned address. */
-    embed_word (*fold_lower)(const ScrutWordCfg *args); /**< Turns every letter lane to lower case. */
+    embed_word (*fold_lower)(const ScrutWordCfg *args); /**< Turns every character lane to lower case. */
     size_t (*count)(const ScrutWordCfg *args);          /**< Words a scan of a byte count must read. */
 } ScrutWordNs;
 EMBED_TABLE_LAYOUT(ScrutWordNs, load, load_al, fold_lower, count);
@@ -231,7 +231,7 @@ embed_word mmgr_scrut_ge(const ScrutLaneCfg *args);
 embed_word mmgr_scrut_le(const ScrutLaneCfg *args);
 
 /**
- * @brief Subtracts args->byte from every lane of args->word and keeps the low seven bits of each result.
+ * @brief Subtracts args->byte from every lane of args->word and retains the low seven bits of each result.
  *
  * @param[in] args The word and the byte to subtract [BORROWS].
  * @return         The seven low bits of each lane's difference, every lane's high bit clear.
@@ -258,7 +258,7 @@ embed_word mmgr_scrut_has_zero(const ScrutLaneCfg *args);
  * @param[in] args The word, the byte to find, and the case flag [BORROWS].
  * @return         A lane mask with the lanes that match.
  * @note Broadcasts args->byte itself, and so the caller passes a single byte and not a whole word.
- * @note With args->ci set, a letter matches either case. Every other byte still compares exactly.
+ * @note With args->ci set, a character matches either case. Every other byte still compares exactly.
  */
 embed_word mmgr_scrut_eq(const ScrutLaneCfg *args);
 
@@ -268,7 +268,7 @@ embed_word mmgr_scrut_eq(const ScrutLaneCfg *args);
  * @param[in] args The two words and the case flag [BORROWS].
  * @return         A word whose lanes are zero exactly where the two agreed.
  * @note Takes a whole word in args->val, and so the caller broadcasts a byte itself if it wants that.
- * @note With args->ci set, the case bit goes to zero on letter lanes, and so the two cases of a letter agree.
+ * @note With args->ci set, the case bit goes to zero on character lanes, and so the two cases of a character agree.
  * @note Pass the result to mmgr_scrut_has_zero to turn it into a lane mask.
  */
 embed_word mmgr_scrut_xor(const ScrutLaneCfg *args);
@@ -291,7 +291,7 @@ embed_word mmgr_scrut_fam_eq(const ScrutLaneCfg *args);
  * @note Reads args->word alone, since the family and the byte are both fixed.
  * @warning That block holds six bytes that are not capitals, the at sign and the five after Z. Bit
  *          seven takes no part, and so 0xC0 to 0xDF gets a mark as well. And it with mmgr_scrut_alpha
- *          for letters alone.
+ *          for characters alone.
  */
 embed_word mmgr_scrut_any_upper(const ScrutLaneCfg *args);
 
@@ -307,10 +307,10 @@ embed_word mmgr_scrut_any_upper(const ScrutLaneCfg *args);
 embed_word mmgr_scrut_any_digit(const ScrutLaneCfg *args);
 
 /**
- * @brief Marks the lanes of args->word with an ASCII letter, of either case.
+ * @brief Marks the lanes of args->word with an ASCII character, of either case.
  *
  * @param[in] args The word to test [BORROWS].
- * @return         A lane mask with the letter lanes.
+ * @return         A lane mask with the character lanes.
  * @note Reads args->word alone, and byte, val, fam and ci take no part.
  * @note A byte at 0x80 or above is never marked, and so this is exact where mmgr_scrut_any_upper is not.
  *       Beyond the ten digits mmgr_scrut_any_digit marks only the six symbols after the nine
@@ -396,7 +396,7 @@ embed_word mmgr_scrut_bytes_below(const ScrutMaskCfg *args);
  * @param[in] args The lane count to cover [BORROWS].
  * @return         A lane mask with those lanes.
  * @note mmgr_scrut_bytes_below reduced to lane bits, and so this ands cleanly against another lane mask.
- * @note And a match mask with this to keep a scan off bytes past its count.
+ * @note And a match mask with this to retain a scan off bytes past its count.
  */
 embed_word mmgr_scrut_lanes_below(const ScrutMaskCfg *args);
 
@@ -426,7 +426,7 @@ embed_word mmgr_scrut_tail_mask(const ScrutMaskCfg *args);
  * @param[in] args The lane mask and the run length wanted [BORROWS].
  * @return         A lane mask with the lanes each run starts at.
  * @note A lane that survives is where a run begins, in memory order, on either byte order.
- * @note A args->bytes of 0 or 1 returns args->mask as it stands, since every set lane starts such a run.
+ * @note A args->bytes of 0 or 1 returns args->mask as it is, since every set lane starts such a run.
  * @warning Returns 0 for an args->bytes above MMGR_SWAR_BYTES, since no run that long fits in one word.
  */
 embed_word mmgr_scrut_run(const ScrutMaskCfg *args);
@@ -449,7 +449,7 @@ embed_word mmgr_scrut_run_edge(const ScrutMaskCfg *args);
  * @param[in] args Address to load from [BORROWS].
  * @return         The bytes at args->at, one per lane, in the target's own order.
  * @warning Reads MMGR_SWAR_BYTES bytes even for a caller that wants fewer. args->at must be readable for all of them.
- * @note Any alignment will do. Use mmgr_scrut_load_al for an address that stands on the alignment.
+ * @note Any alignment will do. Use mmgr_scrut_load_al for an address that is on the alignment.
  */
 embed_word mmgr_scrut_load(const ScrutWordCfg *args);
 
@@ -458,17 +458,17 @@ embed_word mmgr_scrut_load(const ScrutWordCfg *args);
  *
  * @param[in] args Address to load from [BORROWS].
  * @return         The bytes at args->at, one per lane, in the target's own order.
- * @warning Reads MMGR_SWAR_BYTES bytes even for a caller that wants fewer, and args->at must stand on a word boundary.
+ * @warning Reads MMGR_SWAR_BYTES bytes even for a caller that wants fewer, and args->at must are on a word boundary.
  * @note Use mmgr_scrut_load when the address may sit anywhere.
  */
 embed_word mmgr_scrut_load_al(const ScrutWordCfg *args);
 
 /**
- * @brief Returns args->word with every letter lane turned to lower case.
+ * @brief Returns args->word with every character lane turned to lower case.
  *
  * @param[in] args The word to fold [BORROWS].
- * @return         The word with its letter lanes lowered and every other lane untouched.
- * @note Only letter lanes change. A digit or a symbol keeps bit five exactly as it was.
+ * @return         The word with its character lanes lowered and every other lane untouched.
+ * @note Only character lanes change. A digit or a symbol retains bit five exactly as it was.
  * @note Fold two words and compare them for a case insensitive test over whole words at once.
  */
 embed_word mmgr_scrut_fold_lower(const ScrutWordCfg *args);

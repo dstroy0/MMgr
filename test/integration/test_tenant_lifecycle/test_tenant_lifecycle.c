@@ -32,8 +32,8 @@ void test_the_two_series_cellularum_are_separate(void)
     TEST_ASSERT_NOT_NULL(s);
     TEST_ASSERT_NOT_NULL(p);
     TEST_ASSERT_NOT_EQUAL(s, p);
-    TEST_ASSERT_TRUE_MESSAGE(ram.secret.who_owns_buf(s), "the secure cellblock must claim what it handed out");
-    TEST_ASSERT_TRUE_MESSAGE(ram.plain.who_owns_buf(p), "the plaintext cellblock must claim what it handed out");
+    TEST_ASSERT_TRUE_MESSAGE(ram.secret.who_owns_buf(s), "the secure cellblock must claim what it passed out");
+    TEST_ASSERT_TRUE_MESSAGE(ram.plain.who_owns_buf(p), "the plaintext cellblock must claim what it passed out");
     TEST_ASSERT_FALSE_MESSAGE(ram.secret.who_owns_buf(p), "the secure cellblock must not claim plaintext bytes");
     TEST_ASSERT_FALSE_MESSAGE(ram.plain.who_owns_buf(s), "the plaintext cellblock must not claim secure bytes");
 }
@@ -48,7 +48,7 @@ void test_the_allocation_puts_them_back_to_back(void)
     TEST_ASSERT_FALSE_MESSAGE(ram.plain.who_owns_buf(ram_secret_ctx.base), "in either direction");
 }
 
-void test_maximum_security_release_zeroes_the_cell(void)
+void test_max_security_release_zeroes_the_cell(void)
 {
     unsigned char *p = (unsigned char *)ram.secret.persistent_buf_alloc((size_t)32, cells);
 
@@ -60,7 +60,7 @@ void test_maximum_security_release_zeroes_the_cell(void)
     ram.secret.persistent_buf_release(p, cells);
     for (unsigned i = 0; i < 32u; i++)
     {
-        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, p[i], "released maximum security bytes must be zeroed");
+        TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, p[i], "released max security bytes must be zeroed");
     }
 }
 

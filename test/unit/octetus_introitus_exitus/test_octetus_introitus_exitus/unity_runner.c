@@ -16,7 +16,7 @@ extern void test_byteio_namespace_is_wired(void);
 extern void test_put_appends_one_byte_and_moves_the_cursor(void);
 extern void test_put_be_writes_the_high_byte_first(void);
 extern void test_put_be_writes_only_the_bytes_it_was_given(void);
-extern void test_put_be_keeps_only_the_low_bytes(void);
+extern void test_put_be_retains_only_the_low_bytes(void);
 extern void test_appends_follow_one_another(void);
 extern void test_take_be_reads_what_put_be_wrote_at_every_width(void);
 extern void test_takes_follow_one_another(void);
@@ -104,7 +104,7 @@ int main(void)
   run_test(test_put_appends_one_byte_and_moves_the_cursor, "test_put_appends_one_byte_and_moves_the_cursor", 82);
   run_test(test_put_be_writes_the_high_byte_first, "test_put_be_writes_the_high_byte_first", 93);
   run_test(test_put_be_writes_only_the_bytes_it_was_given, "test_put_be_writes_only_the_bytes_it_was_given", 105);
-  run_test(test_put_be_keeps_only_the_low_bytes, "test_put_be_keeps_only_the_low_bytes", 120);
+  run_test(test_put_be_retains_only_the_low_bytes, "test_put_be_retains_only_the_low_bytes", 120);
   run_test(test_appends_follow_one_another, "test_appends_follow_one_another", 130);
   run_test(test_take_be_reads_what_put_be_wrote_at_every_width, "test_take_be_reads_what_put_be_wrote_at_every_width", 147);
   run_test(test_takes_follow_one_another, "test_takes_follow_one_another", 166);

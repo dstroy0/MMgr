@@ -51,20 +51,20 @@
  * @param[in] width  Bytes in the field, 1 through 8.
  * @param[in] offset Offset within the field, where 0 is the first byte written.
  * @return           That byte.
- * @note One shift and one mask. Most significant first means offset 0 holds the highest byte of the
+ * @note One shift and one mask. Max significant first means offset 0 holds the highest byte of the
  *       low width bytes, the shift below, alone.
  * @note This is the whole reference. It reverses nothing and selects no step width, as
  *       lets it disagree with the module.
  */
 static uint8_t accuracy_big_endian_byte(uint64_t value, unsigned width, unsigned offset)
 {
-    // Explicit cast narrows the shifted value to the byte a field position holds. The mask keeps
+    // Explicit cast narrows the shifted value to the byte a field position holds. The mask retains
     // eight bits, as a uint8_t carries
     return (uint8_t)((value >> (8u * (width - 1u - offset))) & 0xFFu);
 }
 
 /**
- * @brief Returns the value a run of bytes stands for, read most significant first.
+ * @brief Returns the value a run of bytes is for, read max significant first.
  *
  * @param[in] at    First byte of the run [BORROWS].
  * @param[in] width Bytes in the run, 1 through 8.
@@ -131,7 +131,7 @@ void tearDown(void)
  */
 void test_the_byte_arithmetic_this_suite_relies_on_is_itself_right(void)
 {
-    static const uint8_t laid_out[8] = {0x01u, 0x02u, 0x03u, 0x04u, 0x05u, 0x06u, 0x07u, 0x08u};
+    static const uint8_t arranged[8] = {0x01u, 0x02u, 0x03u, 0x04u, 0x05u, 0x06u, 0x07u, 0x08u};
 
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0x01u, accuracy_big_endian_byte(UINT64_C(0x0102030405060708), 8u, 0u),
                                    "the first byte of a width of eight is not the highest");
@@ -144,10 +144,10 @@ void test_the_byte_arithmetic_this_suite_relies_on_is_itself_right(void)
     TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xEFu, accuracy_big_endian_byte(UINT64_C(0xEF), 1u, 0u),
                                    "a width of one is not the lowest byte");
 
-    TEST_ASSERT_EQUAL_HEX64_MESSAGE(UINT64_C(0x0102030405060708), accuracy_big_endian_value(laid_out, 8u),
-                                    "eight bytes do not assemble into the value they stand for");
-    TEST_ASSERT_EQUAL_HEX64_MESSAGE(UINT64_C(0x010203), accuracy_big_endian_value(laid_out, 3u),
-                                    "three bytes do not assemble into the value they stand for");
+    TEST_ASSERT_EQUAL_HEX64_MESSAGE(UINT64_C(0x0102030405060708), accuracy_big_endian_value(arranged, 8u),
+                                    "eight bytes do not assemble into the value they are for");
+    TEST_ASSERT_EQUAL_HEX64_MESSAGE(UINT64_C(0x010203), accuracy_big_endian_value(arranged, 3u),
+                                    "three bytes do not assemble into the value they are for");
 
     for (unsigned width = 1u; width <= 8u; width++)
     {
@@ -168,7 +168,7 @@ void test_the_byte_arithmetic_this_suite_relies_on_is_itself_right(void)
 }
 
 /**
- * @brief Checks that a big endian append lays every byte where the reference puts it.
+ * @brief Checks that a big endian append positions every byte where the reference puts it.
  *
  * @note This is the case the file exists for. The case offers every width from one to eight, at values
  *       whose bytes all differ. A step that stored its piece at the wrong offset is then visible as
@@ -178,7 +178,7 @@ void test_the_byte_arithmetic_this_suite_relies_on_is_itself_right(void)
  * @note Every value has eight different bytes or is an extreme. A value with repeated bytes passes a
  *       reversal that put them in the wrong places.
  */
-void test_a_big_endian_append_lays_every_byte_where_the_reference_puts_it(void)
+void test_a_big_endian_append_positions_every_byte_where_the_reference_puts_it(void)
 {
     static const uint64_t value_of[] = {UINT64_C(0x0102030405060708), UINT64_C(0xFEDCBA9876543210), 0uLL, UINT64_MAX,
                                         UINT64_C(0x00FF00FF00FF00FF)};
@@ -218,7 +218,7 @@ void test_a_big_endian_append_lays_every_byte_where_the_reference_puts_it(void)
 }
 
 /**
- * @brief Checks that a big endian read returns the value its bytes stand for.
+ * @brief Checks that a big endian read returns the value its bytes are for.
  *
  * @note The bytes come down here one at a time and the reference builds the expectation from them.
  *       So nothing about the value comes from the module's own assembly.
@@ -227,20 +227,20 @@ void test_a_big_endian_append_lays_every_byte_where_the_reference_puts_it(void)
  * @note The case checks that the cursor advances by the width, and that a read that succeeded leaves
  *       the span usable.
  */
-void test_a_big_endian_read_returns_the_value_its_bytes_stand_for(void)
+void test_a_big_endian_read_returns_the_value_its_bytes_are_for(void)
 {
-    static const uint8_t laid_out[8] = {0x8Fu, 0x1Cu, 0x27u, 0x64u, 0xB3u, 0x05u, 0xDEu, 0x41u};
+    static const uint8_t arranged[8] = {0x8Fu, 0x1Cu, 0x27u, 0x64u, 0xB3u, 0x05u, 0xDEu, 0x41u};
 
     for (unsigned width = 1u; width <= 8u; width++)
     {
-        mmgr_cspan span = EMBED_CALL(spat.cfrom, SpatiumCfg, .cbuf = laid_out, .cap = sizeof laid_out);
+        mmgr_cspan span = EMBED_CALL(spat.cfrom, SpatiumCfg, .cbuf = arranged, .cap = sizeof arranged);
         uint64_t taken = 0u;
         char message[128];
 
         (void)snprintf(message, sizeof message, "a read of %u bytes", width);
         TEST_ASSERT_TRUE_MESSAGE(
             EMBED_CALL(byteio.take_be, OctetusCfg, .read_span = &span, .bytes = width, .out = &taken), message);
-        TEST_ASSERT_EQUAL_HEX64_MESSAGE(accuracy_big_endian_value(laid_out, width), taken, message);
+        TEST_ASSERT_EQUAL_HEX64_MESSAGE(accuracy_big_endian_value(arranged, width), taken, message);
         TEST_ASSERT_EQUAL_size_t_MESSAGE(width, span.pos, message);
         TEST_ASSERT_FALSE_MESSAGE(span.err, "a read inside the span set the error flag");
     }
@@ -347,7 +347,7 @@ void test_a_raw_append_copies_its_bytes_unchanged(void)
 /**
  * @brief Checks that a length-prefixed read points at the run and advances past both parts.
  *
- * @note No copy of the run. The claim is that the pointer handed back names the first byte of the
+ * @note No copy of the run. The claim is that the pointer passed back names the first byte of the
  *       payload inside the span's own storage. The check is an address and not a compare of bytes
  *       alone.
  * @note The case offers every payload length from none to sixteen. The length prefix comes down
@@ -367,7 +367,7 @@ void test_a_length_prefixed_read_points_at_the_run_and_advances_past_both(void)
         accuracy_fill_guard(buffer);
         for (unsigned index = 0u; index < 4u; index++)
         {
-            // The four byte length, most significant first, laid down without the module's help
+            // The four byte length, max significant first, positioned down without the module's help
             buffer[index] = accuracy_big_endian_byte((uint64_t)payload, 4u, index);
         }
         for (unsigned index = 0u; index < payload; index++)

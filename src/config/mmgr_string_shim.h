@@ -151,7 +151,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
 /**
  * @brief Replaces memcmp with mmgr_shim_cmp.
  *
- * @note Keeps the ordering the standard requires; the sign follows the first byte pair that differs.
+ * @note Retains the ordering the standard requires; the sign follows the first byte pair that differs.
  */
 #define memcmp(left, right, bytes) mmgr_shim_cmp((left), (right), (bytes))
 
@@ -213,7 +213,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
     (!MMGR_CALL(cellul.eq, CatenaFinitaCfg, .src = (left), .other = (right), .cap = MMGR_STR_MAX, .ci = MMGR_TRUE))
 
 /**
- * @brief Replaces strncmp with an equality test over at most limit bytes.
+ * @brief Replaces strncmp with an equality test over at max limit bytes.
  *
  * @note Gives 0 when the two agree through limit and 1 when they differ before it.
  * @warning Never negative and never above 1: it cannot order strings.
@@ -224,7 +224,7 @@ MMGR_INLINE void *mmgr_shim_chr(const void *region, mmgr_iword value, size_t byt
      (limit))
 
 /**
- * @brief Replaces strncasecmp with a case-folded equality test over at most limit bytes.
+ * @brief Replaces strncasecmp with a case-folded equality test over at max limit bytes.
  *
  * @note Gives 0 when the two agree through limit and 1 when they differ before it.
  * @warning Never negative and never above 1: it cannot order strings.

@@ -11,7 +11,7 @@
  *
  * @note Each step is a movable take at any of four sizes, or a persistent take and give that leave a run
  *       below. Or it is a read or a write at any offset and length, a move, or a release.
- * @note A span the module takes lies inside its cell and one it refuses runs past it. Every cell keeps its
+ * @note A span the module takes lies inside its cell and one it refuses runs past it. Every cell retains its
  *       bytes through every move, and no two cells share an entry. Once every cell goes back the owner's
  *       count is 0 and the cellblock whole.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
@@ -27,7 +27,7 @@
 
 #define PROVE_BYTES 512u
 #define PROVE_CELLS 4u
-#define PROVE_SPAN_MOST 40u
+#define PROVE_SPAN_MAX 40u
 
 #define PROVE_OWNERS(owner_) owner_(s_mover, "mover")
 MMGR_OWNERS(PROVE_OWNERS)
@@ -56,8 +56,8 @@ static void checked(void)
         uint8_t first = 0u;
         PROVE_ASSERT(
             mmgr_movable_buf_read(BLOCK, &(CarcerMovableCfg){.cell = s_cell[at].entry, .dst = &first, .bytes = 1u}),
-            "a standing movable cell reads");
-        PROVE_ASSERT(first == s_cell[at].first, "a movable cell keeps its bytes through every move");
+            "a located movable cell reads");
+        PROVE_ASSERT(first == s_cell[at].first, "a movable cell retains its bytes through every move");
         for (unsigned int other = at + 1u; other < s_count; other += 1u)
         {
             PROVE_ASSERT(s_cell[at].entry != s_cell[other].entry, "no two cells name one entry");
@@ -74,13 +74,13 @@ static void spanned(uint8_t choice)
     ProveMovable *const cell = &s_cell[choice % s_count];
     const size_t offset = nondet_size();
     const size_t bytes = nondet_size();
-    PROVE_ASSUME(bytes <= PROVE_SPAN_MOST);
-    PROVE_ASSUME(offset <= PROVE_SPAN_MOST);
-    uint8_t span[PROVE_SPAN_MOST];
+    PROVE_ASSUME(bytes <= PROVE_SPAN_MAX);
+    PROVE_ASSUME(offset <= PROVE_SPAN_MAX);
+    uint8_t span[PROVE_SPAN_MAX];
     const size_t carried = mmgr_align_up_buf(cell->bytes);
     const embed_bool fits = mmgr_movable_buf_read(
         BLOCK, &(CarcerMovableCfg){.cell = cell->entry, .offset = offset, .dst = span, .bytes = bytes});
-    // the cell carries its rounded request, and a header and an owner word more where a move kept a run whole
+    // the cell carries its rounded request, and a header and an owner word more where a move retained a run whole
     PROVE_ASSERT(!fits || (offset + bytes <= carried + 2u * PROVE_CELL_HEADER),
                  "a span the module takes lies inside the cell");
     PROVE_ASSERT(fits || (offset + bytes > cell->bytes), "a span inside the request is taken");
@@ -128,7 +128,7 @@ int main(void)
             }
             break;
         case 2: {
-            // a run left below every movable cell, of a size the move may keep whole or split
+            // a run left below every movable cell, of a size the move may retain whole or split
             void *const low = mmgr_persistent_buf_alloc(BLOCK, 8u * (size_t)(1u + ((choice >> 2) & 7u)), s_mover);
             if (low != NULL)
             {

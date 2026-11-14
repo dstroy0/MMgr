@@ -18,13 +18,13 @@
 
 static size_t drawn_size(FuzzInput *input)
 {
-    const uint8_t kind = fuzz_byte(input);
-    switch (kind & 3u)
+    const uint8_t type = fuzz_byte(input);
+    switch (type & 3u)
     {
     case 0:
-        return (size_t)(kind >> 2);
+        return (size_t)(type >> 2);
     case 1:
-        return SIZE_MAX - (size_t)(kind >> 2);
+        return SIZE_MAX - (size_t)(type >> 2);
     default:
         return (size_t)fuzz_word(input);
     }

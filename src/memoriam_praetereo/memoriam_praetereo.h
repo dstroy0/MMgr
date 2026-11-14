@@ -52,14 +52,14 @@ typedef struct
  * @note Runs in whatever context the port layer finishes a transfer in. No mmgr_praet_ entry point
  *       calls it.
  * @warning event and event->data belong to the port layer and last only until this returns. Copy
- *          anything kept [BORROWS].
+ *          anything retained [BORROWS].
  */
 typedef void (*mmgr_praet_callback)(const mmgr_praet_event *event, void *user);
 
 /**
- * @brief A completion callback and the pointer handed back to it.
+ * @brief A completion callback and the pointer passed back to it.
  *
- * @warning mmgr_praet_open forwards the pointer to this struct unchanged and keeps no copy. So it
+ * @warning mmgr_praet_open forwards the pointer to this struct unchanged and retains no copy. So it
  *          must stay valid for as long as the channel is open [BORROWS].
  */
 typedef struct

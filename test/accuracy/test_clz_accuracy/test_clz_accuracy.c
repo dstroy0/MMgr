@@ -8,7 +8,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-31
  *
- * @note The module halves the search five times and folds the result, or hands the value to a
+ * @note The module halves the search five times and folds the result, or passes the value to a
  *       builtin. The reference walks one bit at a time from the end it counts from, the
  *       construction the halving replaced and shares no step with it.
  * @note Both counts are exact integers, and so every comparison here is an equality and none of them has
@@ -97,7 +97,7 @@ static int accuracy_trailing_zeros(uint64_t value)
  *
  * @param[in] value Value to measure.
  * @return          The leading count the module produced.
- * @note Flattens the embed_iword to the int the reference returns, which keeps every comparison
+ * @note Flattens the embed_iword to the int the reference returns, which retains every comparison
  *       below between two counts and not between two containers.
  */
 static int accuracy_module_leading(uint64_t value)

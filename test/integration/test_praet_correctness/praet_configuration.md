@@ -28,16 +28,16 @@ A build with nothing declared reports six warnings and one error:
 ```
 warning: #warning "PRAET_CHANNELS was not set and took the library default of 8. Set it to the channels your part gives one engine."
 warning: #warning "PRAET_SETTLE_MICROS was not set and took the library default of 0, so this build waits for nothing after an attach. Set it to what your engine takes to come up."
-warning: #warning "PRAET_KEEPALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
+warning: #warning "PRAET_RETAINALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
 warning: #warning "PRAET_RECOVERY was not set and took the library default of 0. A stalled transfer cannot be backed out or scrubbed in this build. Set it to 1 to have that machinery, 0 to say you meant to leave it out."
 warning: #warning "No clock is declared, so PRAET_CLOCK_HZ took the library default of 1000000 and a tick is read as one microsecond. Every deadline in this module is then wrong by whatever the real frequency is. Set it to the frequency of the clock this reads."
 warning: #warning "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_CALLER, because this architecture defines no cycle counter a timer could be pinned to. Say so, and supply the clock."
-error: #error "This build did not declare every knob this module reads. Each one that took a library default is named in a warning above this line, with the value it took and what to set it to. Set them, or define MMGR_ACCEPT_DEFAULTS to build on the defaults and keep the warnings as the record of which ones you took."
+error: #error "This build did not declare every knob this module reads. Each one that took a library default is named in a warning above this line, with the value it took and what to set it to. Set them, or define MMGR_ACCEPT_DEFAULTS to build on the defaults and retain the warnings as the record of which ones you took."
 ```
 
 `PRAET_CLOCK_CORE` is absent from that list because the derivation put this build on the caller's clock, and nothing pins a timer there. On an architecture that defines a counter, the source falls back to `PRAET_CLOCK_OWN` and the core joins the list.
 
-Nothing in this depends on a build system. These are preprocessor directives, and so `gcc` or `clang` invoked on one file behaves the way any tree driving them does. A keep-going build (`ninja -k 0`, `make -k`) collects failures across translation units, the same idea at a different scale and is not something this needs.
+Nothing in this depends on a build system. These are preprocessor directives, and so `gcc` or `clang` invoked on one file behaves the way any tree driving them does. A retain-going build (`ninja -k 0`, `make -k`) collects failures across translation units, the same idea at a different scale and is not something this needs.
 
 ## The build knobs
 
@@ -53,7 +53,7 @@ Microseconds the engine spends coming up before it will take a transfer. One tim
 
 Default 0, with a warning (`praet_praefinitum.h:64-69`). A build taking that default waits for nothing after an attach.
 
-### PRAET_KEEPALIVE_MICROS
+### PRAET_RETAINALIVE_MICROS
 
 Microseconds a running channel may go unkicked before it reads stalled. This is a watchdog window and never a transfer length. An unkicked window means the engine stopped moving, and says nothing about the transfer having finished.
 
@@ -126,7 +126,7 @@ whose name carries the context, the channel and the pool. `PraetAttach` and `Pra
 that enumerator (`praet_ordo.h:411`), and so reaching either with a pool the channel is not over is an
 undeclared identifier printing the triple that was written. This is the shape `locus_carcerum` uses,
 where `MMGR_CARCER_BODY` pastes the site and the pool into `prisonsite_##_##name_##_ctx` and a
-cellblock's entries cannot be handed another cellblock's bytes. The channel joins the paste here
+cellblock's entries cannot be passed another cellblock's bytes. The channel joins the paste here
 because a context has several and they may be over different pools.
 
 The channel number is pasted, and so it is written as a plain literal. `0u` pastes to `channel0u` and
@@ -141,10 +141,10 @@ surface settles it before anything runs.
 (void)PraetSubmit(s_frame_dma, 0, frame_pool, 1024u, 512u);
 ```
 
-`PraetAttach` hands the entry `mmgr_pars_storage_##pool_` and `pool_##_bytes` (`praet_ordo.h:368-371`).
+`PraetAttach` passes the entry `mmgr_pars_storage_##pool_` and `pool_##_bytes` (`praet_ordo.h:368-371`).
 Both are emitted by `ParsMemoriaeInternae` and `ParsMemoriaeExternum` and by nothing else, and both
 have internal linkage. A translation unit that did not declare the pool cannot reach either. The
-test leaves ownership aside and asks whether whoever hands them over can answer everything
+test leaves ownership aside and asks whether whoever passes them over can answer everything
 about them: the address, the extent, and which channel is over them. A caller with all three has said
 the bytes are legal to touch.
 
@@ -158,7 +158,7 @@ does not have the caller's plan.
 `praet_ordo_relatio` takes no pointer (`praet_ordo.h:449`). The address came from the pool named
 at the attach. A transfer adds an offset and a length. `PraetSubmit` compares that span against
 `sizeof(mmgr_pars_storage_##pool_)` while compiling (`praet_ordo.h:469-475`). The comparison uses the size the
-compiler laid down, and not the count the declaration was handed. A span that does not fit gives a
+compiler positioned down, and not the count the declaration was passed. A span that does not fit gives a
 negative bitfield width, and the member's name is the diagnostic. Measured at `-O0` and at `-O2`: a
 span that fits reports nothing at either, and one that does not fails at both.
 
@@ -270,7 +270,7 @@ to, and so the clock is the caller's and no core is named:
 ```
 -DPRAET_CHANNELS=8u
 -DPRAET_SETTLE_MICROS=40u
--DPRAET_KEEPALIVE_MICROS=250u
+-DPRAET_RETAINALIVE_MICROS=250u
 -DPRAET_RECOVERY=1
 -DPRAET_CLOCK_HZ=240000000u
 -DPRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER

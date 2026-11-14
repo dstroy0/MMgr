@@ -110,7 +110,7 @@ def main() -> int:
     for start, end in spans:
         block.extend(src[start - 1 : end])
 
-    keep = [ln for i, ln in enumerate(src, start=1) if not any(s <= i <= e for s, e in spans)]
+    retain = [ln for i, ln in enumerate(src, start=1) if not any(s <= i <= e for s, e in spans)]
 
     if args.append:
         at = len(dst)
@@ -130,7 +130,7 @@ def main() -> int:
     for start, end in spans:
         print(f"  {args.src}:{start}-{end}  {src[start - 1].strip()[:64]}")
     print(f"  -> {args.dst} at line {at + 1}")
-    print(f"{args.src}: {len(src)} -> {len(keep)} lines")
+    print(f"{args.src}: {len(src)} -> {len(retain)} lines")
     print(f"{args.dst}: {len(dst)} -> {len(out)} lines")
 
     if args.dry_run:
@@ -140,7 +140,7 @@ def main() -> int:
         raise SystemExit("--src and --dst must differ")
 
     write_lines(args.dst, out)
-    write_lines(args.src, keep)
+    write_lines(args.src, retain)
     return 0
 
 

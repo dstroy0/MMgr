@@ -36,7 +36,7 @@ ninja -C test/performance_benching/cellularum/build_esp32s3 -j 2
 idf.py -C test/performance_benching/cellularum -B build_esp32s3 -p COM4 flash
 ```
 
-Substitute `esp32c6` and its port for the RISC-V part. Each target keeps its own sdkconfig: the
+Substitute `esp32c6` and its port for the RISC-V part. Each target retains its own sdkconfig: the
 default is one shared file, and the two do not agree on CPU frequency, and so configuring one otherwise
 leaves the other's build directory pointing at a config that no longer matches the part it was built
 for.
@@ -56,7 +56,7 @@ link unconditionally, and appending `-flto` after it is not enough - the flag ha
 out, which each bench's `main/CMakeLists.txt` does. Built without it, one four-byte word step becomes
 three to five windowed calls with their argument structs spilled to the stack.
 
-**Every timed result must be kept.** `DBENCH_KEEP` stores each one to a volatile sink. A result that
+**Every timed result must be retained.** `DBENCH_RETAIN` stores each one to a volatile sink. A result that
 is computed and dropped is a call the optimizer may delete outright, and under LTO it does: the first
 run of the dispatch measurement reported `0.00` cycles for both arms because both loops had been
 removed.

@@ -225,7 +225,7 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
  * @note The lane under test and the threshold are swept over the seven bit range, and the neighbors
  *       are 0x00 and 0xFF. verbum_scrutor.h states both entries compare bytes as unsigned with 0x80
  *       and above the largest values, and this asserts it.
- * @note le fails here. The borrow that keeps lanes apart is the lane's own high bit. A neighbor at
+ * @note le fails here. The borrow that retains lanes apart is the lane's own high bit. A neighbor at
  *       0x80 or above has that bit spoken for as data. So it takes a borrow out of the lane under
  *       test even when that lane is itself inside the seven bit range. Neighbors narrowed to 0x7F
  *       make this pass and measure nothing, and so they stay as they are.
@@ -312,7 +312,7 @@ void test_both_candidates_answer_for_every_lane_under_a_low_threshold(void)
  * @brief Expands to 4, the boundary values one lane takes in the full word sweep.
  *
  * @note 0x00, 0x7F, 0x80 and 0xFF: the two ends of each half of the byte. A borrow either escapes at
- *       one of those or it does not escape at all. Four values keep the whole-word sweep to
+ *       one of those or it does not escape at all. Four values retain the whole-word sweep to
  *       4 raised to the lane count. That is 65536 on an eight lane word and 16 on a two lane one.
  */
 #define MMGR_ACCURACY_EDGE_VALUES 4u
@@ -377,7 +377,7 @@ void test_both_candidates_answer_with_the_byte_in_every_lane(void)
  *       than one boundary is only reachable here.
  * @note 4 raised to the lane count: 65536 arrangements on an eight lane word, 256 on a four lane one
  *       and 16 on a two lane one. Every environment sweeps its own width in full.
- * @note The thresholds are the four boundaries themselves. All 128 of them would keep the pass well
+ * @note The thresholds are the four boundaries themselves. All 128 of them would retain the pass well
  *       past a second, and the four cover each end of the range the candidates state.
  */
 void test_both_candidates_answer_over_every_boundary_word(void)
@@ -468,7 +468,7 @@ void test_eq_answers_per_lane_with_contrasting_neighbors(void)
  * @brief Checks has_zero for a zero placed in each lane in turn, with the rest at 0xFF.
  *
  * @note A zero lane beside a full one is the hardest case for a test built on a subtraction. The
- *       neighbor is the value most able to lend a borrow.
+ *       neighbor is the value max able to lend a borrow.
  * @note Also covers the word with no zero lane at all, where the answer is an empty mask.
  */
 void test_has_zero_finds_the_zero_lane_and_no_other(void)
@@ -504,7 +504,7 @@ void test_has_zero_finds_the_zero_lane_and_no_other(void)
 /**
  * @brief Checks alpha, any_upper and any_digit for every byte value, in every lane position.
  *
- * @note The reference is the byte range each entry documents. For alpha it is the two letter runs.
+ * @note The reference is the byte range each entry documents. For alpha it is the two character runs.
  *       For any_upper it is the 0x40 block with bit seven disregarded, and for any_digit the 0x30 block.
  * @note A sweep of the lane position as well as the value separates two predicates. One is right,
  *       and the other is right only in the lane the constants happen to favor.
@@ -532,7 +532,7 @@ void test_the_character_predicates_answer_per_lane_for_every_byte(void)
             }
             TEST_ASSERT_EQUAL_HEX64_MESSAGE((uint64_t)accuracy_mask_from(lane_matched_of),
                                             (uint64_t)EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = assembled),
-                                            "alpha disagrees with the two letter ranges");
+                                            "alpha disagrees with the two character ranges");
 
             for (size_t lane_index = 0u; lane_index < sizeof(embed_word); lane_index++)
             {
@@ -558,13 +558,13 @@ void test_the_character_predicates_answer_per_lane_for_every_byte(void)
 /**
  * @brief Checks fold_lower for every byte value, in every lane position.
  *
- * @note The reference lowers a byte in the capital range and leaves every other byte as it stands,
- *       as the entry documents. A fold that reached past the letters changes a byte here
+ * @note The reference lowers a byte in the capital range and leaves every other byte as it is,
+ *       as the entry documents. A fold that reached past the characters changes a byte here
  *       that the reference does not.
  * @note The result is a whole word and not a lane mask, and so the comparison is against a word built
  *       from the folded bytes.
  */
-void test_fold_lower_changes_the_letters_and_leaves_every_other_byte(void)
+void test_fold_lower_changes_the_characters_and_leaves_every_other_byte(void)
 {
     uint8_t lane_byte_of[sizeof(embed_word)];
     uint8_t lane_folded_of[sizeof(embed_word)];
@@ -588,7 +588,7 @@ void test_fold_lower_changes_the_letters_and_leaves_every_other_byte(void)
             TEST_ASSERT_EQUAL_HEX64_MESSAGE(
                 (uint64_t)accuracy_word_from(lane_folded_of),
                 (uint64_t)EMBED_CALL(word.fold_lower, ScrutWordCfg, .word = accuracy_word_from(lane_byte_of)),
-                "fold_lower changed a byte the letter ranges do not cover");
+                "fold_lower changed a byte the character ranges do not cover");
         }
     }
 }

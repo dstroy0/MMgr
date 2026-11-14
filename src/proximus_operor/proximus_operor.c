@@ -33,7 +33,7 @@ typedef uint64_t mmgr_proxim_u64_t EMBED_RAW;
 /**
  * @brief The aligned access type for sixty-four bits.
  *
- * @note EMBED_ALIAS without EMBED_ALIGN(1), and so this keeps uint64_t's own alignment.
+ * @note EMBED_ALIAS without EMBED_ALIGN(1), and so this retains uint64_t's own alignment.
  * @warning An access through this needs an address aligned for a uint64_t.
  */
 typedef uint64_t mmgr_aequus_u64_t EMBED_ALIAS;
@@ -44,7 +44,7 @@ typedef uint64_t mmgr_aequus_u64_t EMBED_ALIAS;
 typedef embed_word mmgr_proxim_word_t EMBED_RAW;
 
 /**
- * @brief The word-width access type that keeps embed_word's own alignment.
+ * @brief The word-width access type that retains embed_word's own alignment.
  *
  * @warning A read or write through this needs an address aligned for an embed_word.
  */
@@ -138,7 +138,7 @@ EMBED_INLINE embed_word proxim_load(const ProximLoadCtx *args)
  *
  * @param[in] args Address to read from [BORROWS].
  * @return         The bytes as an embed_word.
- * @note Reads through mmgr_aequus_word_t, which keeps embed_word's alignment, unlike proxim_load.
+ * @note Reads through mmgr_aequus_word_t, which retains embed_word's alignment, unlike proxim_load.
  * @warning args->at must be readable for sizeof(embed_word) bytes and aligned for an embed_word.
  */
 EMBED_INLINE embed_word aequus_load(const ProximLoadCtx *args)
@@ -151,7 +151,7 @@ EMBED_INLINE embed_word aequus_load(const ProximLoadCtx *args)
  *
  * @param[in] args Address to read from [BORROWS].
  * @return         The eight bytes as a uint64_t.
- * @note Reads through mmgr_aequus_u64_t, which keeps uint64_t's alignment, unlike proxim_load64.
+ * @note Reads through mmgr_aequus_u64_t, which retains uint64_t's alignment, unlike proxim_load64.
  * @warning args->at must be readable for eight bytes and aligned for a uint64_t.
  */
 EMBED_INLINE uint64_t aequus_load64(const ProximLoadCtx *args)
@@ -215,7 +215,7 @@ EMBED_INLINE void proxim_put(const ProximPutCtx *args)
  * @brief Writes the low sizeof(embed_word) bytes of args->val to an aligned args->dst.
  *
  * @param[in] args Destination and value [BORROWS].
- * @note Writes through mmgr_aequus_word_t, which keeps embed_word's alignment, unlike proxim_put.
+ * @note Writes through mmgr_aequus_word_t, which retains embed_word's alignment, unlike proxim_put.
  * @warning args->dst must be writable for sizeof(embed_word) bytes and aligned for an embed_word.
  */
 EMBED_INLINE void aequus_put(const ProximPutCtx *args)
@@ -228,7 +228,7 @@ EMBED_INLINE void aequus_put(const ProximPutCtx *args)
  * @brief Writes all eight bytes of args->val to an aligned args->dst.
  *
  * @param[in] args Destination and value [BORROWS].
- * @note Writes through mmgr_aequus_u64_t, which keeps uint64_t's alignment, unlike proxim_put64.
+ * @note Writes through mmgr_aequus_u64_t, which retains uint64_t's alignment, unlike proxim_put64.
  * @note No cast is necessary here, since args->val is already a uint64_t.
  * @warning args->dst must be writable for eight bytes and aligned for a uint64_t.
  */

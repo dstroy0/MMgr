@@ -35,7 +35,7 @@ SPECIALS = {
 }
 
 # A table with a cell longer than this becomes records, one row at a time. A longtable breaks only
-# between rows. A cell this long in a column a third of the text wide fills most of a page.
+# between rows. A cell this long in a column a third of the text wide fills the majority of a page.
 RECORD_CELL = 600
 
 # The table sizes in order, each with its point size and its \tabcolsep. A column stays wide enough
@@ -82,7 +82,7 @@ def link_target(url, chapter):
             and target.stem in chapter.chapters
         ):
             return r"\hyperref[" + label(target.stem) + "]{", "}"
-    # A link out of the research paper, to code or to a file withheld, keeps its words and loses its target.
+    # A link out of the research paper, to code or to a file withheld, retains its words and loses its target.
     return "", ""
 
 
@@ -130,7 +130,7 @@ def inline(value, chapter):
     # run out of it. A star inside a symbol, such as v*_b, is not an emphasis mark.
     value = re.sub(r"(?<![\w*])\*\*(?=\S)(.+?)(?<=\S)\*\*(?![\w*])", r"\\textbf{\1}", value)
     value = re.sub(r"(?<![\w*])\*(?=[^\s*])(.+?)(?<=[^\s*])\*(?![\w*])", r"\\emph{\1}", value)
-    # The word test is the Unicode one, so an underscore after a Greek letter is not an opening mark.
+    # The word test is the Unicode one, so an underscore after a Greek character is not an opening mark.
     value = re.sub(r"(?<!\w)\\_(\S(?:(?!\\_).)*?)\\_(?![\w\\])", r"\\emph{\1}", value)
     # A name with underscores in text can break after an underscore, as a name in code can.
     value = value.replace(r"\_", r"\_\allowbreak{}")
@@ -269,7 +269,7 @@ def parse_list(lines, index, chapter):
                 body.append(line.strip())
             index += 1
         items.append(body)
-        # A blank line between two items at the same depth keeps them in one list.
+        # A blank line between two items at the same depth retains them in one list.
         ahead = index
         while ahead < len(lines) and not lines[ahead].strip():
             ahead += 1
@@ -468,10 +468,10 @@ def main():
         order = "\n".join(includes) + "\n"
         if write_if_changed(chapter_dir / "order.tex", order):
             written.append("order.tex")
-        keep = {f"chapter_{source.stem.lower()}.tex" for source in sources} | {"order.tex"}
+        retain = {f"chapter_{source.stem.lower()}.tex" for source in sources} | {"order.tex"}
         for stale in chapter_dir.glob("*.tex"):
             # This tool writes every chapter of a research paper. One with no source is stale.
-            if stale.name not in keep:
+            if stale.name not in retain:
                 stale.unlink()
                 written.append(f"removed {stale.name}")
         print(f"  {research_paper}: {len(sources)} chapters, {len(written)} files changed")

@@ -4,11 +4,11 @@
 """Generate the anchor cost profiles.
 
 Cost is "how common", and so the picker takes the minimum. A byte that cannot occur in the profile's
-grammar scores best. If a needle contains one, it is the most selective anchor available.
+grammar scores best. If a needle contains one, it is the max selective anchor available.
 
 Sources:
   english   practicalcryptography.com monograms, 4.5e9 characters from Wortschatz. Space is taken
-            at twice E per en.wikipedia.org/wiki/Letter_frequency.
+            at twice E per en.wikipedia.org/wiki/Character_frequency.
   uri       RFC 3986 character classes: unreserved, gen-delims, sub-delims, weighted by which parts
             of a URI they appear in.
   inet      RFC 4291 IPv6 text form and dotted-quad: the alphabet is 0-9 a-f A-F : . / % and
@@ -29,7 +29,7 @@ line cannot come to disagree with the data above it.
 
 FORMATTING
 
-clang-format lays the tables out, and it aligns each column to the widest entry in it. That
+clang-format positions the tables out, and it aligns each column to the widest entry in it. That
 alignment is not reproducible by hand in any way worth the effort. So the generator emits a plain
 sixteen-per-row table and then runs the formatter over it. Without that step the output differs
 from what is on disk until something else runs, and `harness.py generated` reads that as a dirty
@@ -96,7 +96,7 @@ def english():
     f = {}
     f[ord(" ")] = 24.0  # about twice E
     for c, p in MONO.items():
-        f[ord(c)] = p * 0.75  # letters share the stream with space and punctuation
+        f[ord(c)] = p * 0.75  # characters share the stream with space and punctuation
         f[ord(c.upper())] = p * 0.75 / 20.0
     for c, p in {
         "\n": 1.9,
@@ -237,7 +237,7 @@ PROFILES = [
         "generic",
         "Byte cost table with no floor at 1, where every byte value carries a cost.",
         [
-            "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
+            "Lower means rarer, and cellul_pick_rows retains the lowest cost it finds.",
             "255 marks the NUL and the space, and so neither is ever chosen as a sieve offset.",
             "Bytes 128 through 255 all carry 107, and so no high byte is preferred over another.",
             "The entries carry no U suffix. Each is within 0 to 255, and so the initializer stores it as a\n"
@@ -250,7 +250,7 @@ PROFILES = [
         "english",
         "Byte cost table weighted for English text.",
         [
-            "Lower means rarer in this corpus, and cellul_pick_rows keeps the lowest cost it finds.",
+            "Lower means rarer in this corpus, and cellul_pick_rows retains the lowest cost it finds.",
             "The floor is 1. The ceiling 255 sits on the NUL and the space, and so neither is ever chosen as a\n"
             " *       sieve offset.",
         ],
@@ -259,13 +259,13 @@ PROFILES = [
     ),
     (
         "uri",
-        "Byte cost table scoring letters, digits and URI punctuation.",
+        "Byte cost table scoring characters, digits and URI punctuation.",
         [
-            "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
+            "Lower means rarer, and cellul_pick_rows retains the lowest cost it finds.",
             "255 marks the NUL and the slash, and so neither is ever chosen as a sieve offset.",
             "The space sits at 1 here, where the two text tables give it 255.",
             "Every initializer is a plain int constant from 1 to 255, and so narrowing to the uint8_t element"
-            " keeps its value.",
+            " retains its value.",
         ],
         "The cost, %d through %d.",
         uri,
@@ -274,7 +274,7 @@ PROFILES = [
         "inet",
         "Byte cost table scoring only the characters an address is built from.",
         [
-            "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
+            "Lower means rarer, and cellul_pick_rows retains the lowest cost it finds.",
             "255 marks the NUL and the colon, and so neither is ever chosen as a sieve offset.",
             "Also above 1: the digits, 'a' to 'f', 'A' to 'F', and 37 '%', 46 '.', 47 '/', 91 '[', 93 ']'.",
         ],
@@ -283,11 +283,11 @@ PROFILES = [
     ),
     (
         "route",
-        "Byte cost table scoring letters, digits and path punctuation.",
+        "Byte cost table scoring characters, digits and path punctuation.",
         [
-            "Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.",
+            "Lower means rarer, and cellul_pick_rows retains the lowest cost it finds.",
             "255 marks the NUL and the slash, and so neither is ever chosen as a sieve offset.",
-            "The braces at 123 and 125 carry a cost, where most punctuation sits at 1.",
+            "The braces at 123 and 125 carry a cost, where max punctuation sits at 1.",
         ],
         "The cost, %d through %d.",
         route,
@@ -359,7 +359,7 @@ def formatter():
     if found:
         return found
     raise SystemExit(
-        "gen_ancorae_formae: clang-format is not on PATH. The cost tables are laid out by the "
+        "gen_ancorae_formae: clang-format is not on PATH. The cost tables are arranged by the "
         "formatter, so without it this writes files that differ from the ones on disk and "
         "`harness.py generated` reports a dirty tree. Install it or put it on PATH."
     )

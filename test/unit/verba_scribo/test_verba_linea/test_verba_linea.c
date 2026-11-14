@@ -6,8 +6,8 @@
 #include <stdint.h>
 
 static char s_out[300];
-static char s_handed[512];
-static size_t s_handed_size;
+static char s_passed[512];
+static size_t s_passed_size;
 
 void setUp(void)
 {
@@ -15,7 +15,7 @@ void setUp(void)
     {
         s_out[at] = 0x7F;
     }
-    s_handed_size = 0u;
+    s_passed_size = 0u;
 }
 
 void tearDown(void)
@@ -28,15 +28,15 @@ static VerbaLinea line_of(size_t capacity)
     return line;
 }
 
-// Takes every byte a line hands it, in order, and reports them taken
-static int line_handed(void *context, const char *bytes, size_t size)
+// Takes every byte a line passes it, in order, and reports them taken
+static int line_passed(void *context, const char *bytes, size_t size)
 {
     (void)context;
     for (size_t at = 0u; at < size; at++)
     {
-        s_handed[s_handed_size + at] = bytes[at];
+        s_passed[s_passed_size + at] = bytes[at];
     }
-    s_handed_size += size;
+    s_passed_size += size;
     return 1;
 }
 
@@ -101,12 +101,12 @@ void test_put_measures_a_terminated_text(void)
     TEST_ASSERT_EQUAL_STRING("hello, line", s_out);
 }
 
-void test_put_most_writes_at_most_its_count(void)
+void test_put_max_writes_at_max_its_count(void)
 {
     VerbaLinea line = line_of(32u);
 
-    mmgr_line_put_most(&line, "abcdefgh", 3u);
-    mmgr_line_put_most(&line, "xy", 10u);
+    mmgr_line_put_max(&line, "abcdefgh", 3u);
+    mmgr_line_put_max(&line, "xy", 10u);
     TEST_ASSERT_EQUAL_size_t(5u, mmgr_line_finish(&line));
     TEST_ASSERT_EQUAL_STRING("abcxy", s_out);
 }
@@ -252,58 +252,58 @@ void test_flush_on_a_line_with_no_flush_refuses(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(3u, line.at, "a refused flush leaves a line with no flush as it was");
 }
 
-void test_flush_hands_what_the_line_holds_and_empties_it(void)
+void test_flush_passes_what_the_line_holds_and_empties_it(void)
 {
-    VerbaLinea line = {s_out, 16u, 0u, line_handed, NULL, 0u};
+    VerbaLinea line = {s_out, 16u, 0u, line_passed, NULL, 0u};
 
     mmgr_line_put(&line, "abc");
     TEST_ASSERT_TRUE(mmgr_line_flush(&line));
     TEST_ASSERT_EQUAL_size_t(0u, line.at);
     TEST_ASSERT_EQUAL_size_t(3u, line.flushed);
-    TEST_ASSERT_EQUAL_size_t(3u, s_handed_size);
-    TEST_ASSERT_EQUAL_STRING_LEN("abc", s_handed, 3u);
+    TEST_ASSERT_EQUAL_size_t(3u, s_passed_size);
+    TEST_ASSERT_EQUAL_STRING_LEN("abc", s_passed, 3u);
 }
 
 void test_flush_on_a_full_line_refuses(void)
 {
-    VerbaLinea line = {s_out, 4u, 4u, line_handed, NULL, 0u};
+    VerbaLinea line = {s_out, 4u, 4u, line_passed, NULL, 0u};
 
     TEST_ASSERT_FALSE(mmgr_line_flush(&line));
-    TEST_ASSERT_EQUAL_size_t(0u, s_handed_size);
+    TEST_ASSERT_EQUAL_size_t(0u, s_passed_size);
 }
 
-void test_a_line_with_a_flush_hands_a_long_text_on_as_it_fills(void)
+void test_a_line_with_a_flush_passes_a_long_text_on_as_it_fills(void)
 {
-    VerbaLinea line = {s_out, 8u, 0u, line_handed, NULL, 0u};
+    VerbaLinea line = {s_out, 8u, 0u, line_passed, NULL, 0u};
     const char *const text = "a text far longer than the eight bytes the line holds";
 
     mmgr_line_put(&line, text);
     TEST_ASSERT_TRUE(mmgr_line_ok(&line));
     TEST_ASSERT_TRUE(mmgr_line_flush(&line));
-    TEST_ASSERT_EQUAL_size_t(53u, s_handed_size);
+    TEST_ASSERT_EQUAL_size_t(53u, s_passed_size);
     TEST_ASSERT_EQUAL_size_t(53u, line.flushed);
-    TEST_ASSERT_EQUAL_STRING_LEN(text, s_handed, 53u);
+    TEST_ASSERT_EQUAL_STRING_LEN(text, s_passed, 53u);
 }
 
 void test_numbers_and_padding_cross_a_flush(void)
 {
-    VerbaLinea line = {s_out, 4u, 0u, line_handed, NULL, 0u};
+    VerbaLinea line = {s_out, 4u, 0u, line_passed, NULL, 0u};
 
     mmgr_line_decimal(&line, 1234567u, 1u);
     mmgr_line_put_columns(&line, "x", 6u);
     mmgr_line_hex(&line, 0xABCDEFu, 8u);
     TEST_ASSERT_TRUE(mmgr_line_flush(&line));
-    TEST_ASSERT_EQUAL_size_t(21u, s_handed_size);
-    TEST_ASSERT_EQUAL_STRING_LEN("1234567x     00abcdef", s_handed, 21u);
+    TEST_ASSERT_EQUAL_size_t(21u, s_passed_size);
+    TEST_ASSERT_EQUAL_STRING_LEN("1234567x     00abcdef", s_passed, 21u);
 }
 
 void test_a_line_of_one_byte_with_a_flush_fills_rather_than_handing_nothing_on(void)
 {
-    VerbaLinea line = {s_out, 1u, 0u, line_handed, NULL, 0u};
+    VerbaLinea line = {s_out, 1u, 0u, line_passed, NULL, 0u};
 
     mmgr_line_put(&line, "a");
     TEST_ASSERT_FALSE(mmgr_line_ok(&line));
-    TEST_ASSERT_EQUAL_size_t(0u, s_handed_size);
+    TEST_ASSERT_EQUAL_size_t(0u, s_passed_size);
 }
 
 void test_a_refusing_flush_leaves_the_line_full(void)
@@ -321,7 +321,7 @@ void test_a_write_answers_the_bytes_the_line_took(void)
 
     TEST_ASSERT_EQUAL_size_t(2u, mmgr_line_put_n(&line, "ab", 2u));
     TEST_ASSERT_EQUAL_size_t(1u, mmgr_line_put(&line, "c"));
-    TEST_ASSERT_EQUAL_size_t(1u, mmgr_line_put_most(&line, "de", 1u));
+    TEST_ASSERT_EQUAL_size_t(1u, mmgr_line_put_max(&line, "de", 1u));
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_line_put(&line, ""));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(3u, mmgr_line_put_n(&line, "wxyz", 4u), "the three bytes left of the room");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_line_put(&line, "more"), "a full line takes none");
@@ -340,13 +340,13 @@ void test_a_caller_offsets_by_the_answer_and_rereads_a_chunk_into_the_same_room(
         done += mmgr_line_put_n(&line, text + done, length - done);
         for (size_t at = 0u; s_out[at] != '\0'; at++)
         {
-            s_handed[s_handed_size] = s_out[at];
-            s_handed_size += 1u;
+            s_passed[s_passed_size] = s_out[at];
+            s_passed_size += 1u;
         }
         line.at = 0u;
     }
-    TEST_ASSERT_EQUAL_size_t(length, s_handed_size);
-    TEST_ASSERT_EQUAL_STRING_LEN(text, s_handed, length);
+    TEST_ASSERT_EQUAL_size_t(length, s_passed_size);
+    TEST_ASSERT_EQUAL_STRING_LEN(text, s_passed, length);
 }
 
 void test_a_refused_flush_answers_the_bytes_the_line_holds(void)
@@ -359,7 +359,7 @@ void test_a_refused_flush_answers_the_bytes_the_line_holds(void)
 
 void test_a_flush_takes_the_whole_of_a_text_and_answers_all_of_it(void)
 {
-    VerbaLinea line = {s_out, 8u, 0u, line_handed, NULL, 0u};
+    VerbaLinea line = {s_out, 8u, 0u, line_passed, NULL, 0u};
 
     TEST_ASSERT_EQUAL_size_t(53u, mmgr_line_put(&line, "a text far longer than the eight bytes the line holds"));
     TEST_ASSERT_TRUE(mmgr_line_ok(&line));
@@ -385,7 +385,7 @@ void test_every_write_leaves_the_line_terminated(void)
     TEST_ASSERT_EQUAL_STRING("abcd5f-1x ", s_out);
     mmgr_line_decimal_columns(&line, 7u, 2u);
     TEST_ASSERT_EQUAL_STRING("abcd5f-1x  7", s_out);
-    mmgr_line_put_most(&line, "yz", 1u);
+    mmgr_line_put_max(&line, "yz", 1u);
     TEST_ASSERT_EQUAL_STRING("abcd5f-1x  7y", s_out);
 }
 
@@ -410,7 +410,7 @@ void test_a_text_that_fills_the_room_exactly_is_terminated_inside_the_line(void)
     TEST_ASSERT_EQUAL_CHAR(0x7F, s_out[8]);
 }
 
-void test_a_text_past_the_room_keeps_what_fits_terminated(void)
+void test_a_text_past_the_room_retains_what_fits_terminated(void)
 {
     VerbaLinea line = line_of(8u);
 
@@ -424,7 +424,7 @@ void test_a_text_past_the_room_keeps_what_fits_terminated(void)
     TEST_ASSERT_EQUAL_STRING_MESSAGE("abcdefg", s_out, "and its finish leaves it as it was");
 }
 
-void test_bytes_past_the_room_keep_what_fits_terminated(void)
+void test_bytes_past_the_room_retain_what_fits_terminated(void)
 {
     VerbaLinea line = line_of(8u);
 
@@ -434,7 +434,7 @@ void test_bytes_past_the_room_keep_what_fits_terminated(void)
     TEST_ASSERT_FALSE(mmgr_line_ok(&line));
 }
 
-void test_a_number_past_the_room_keeps_what_fits_terminated(void)
+void test_a_number_past_the_room_retains_what_fits_terminated(void)
 {
     VerbaLinea line = line_of(4u);
 
@@ -478,9 +478,9 @@ void test_a_line_of_no_bytes_stores_nothing(void)
     TEST_ASSERT_EQUAL_size_t(0u, line.at);
 }
 
-void test_a_line_with_a_flush_stays_terminated_as_it_hands_on(void)
+void test_a_line_with_a_flush_stays_terminated_as_it_passes_on(void)
 {
-    VerbaLinea line = {s_out, 8u, 0u, line_handed, NULL, 0u};
+    VerbaLinea line = {s_out, 8u, 0u, line_passed, NULL, 0u};
 
     mmgr_line_put(&line, "a text far longer than the eight bytes the line holds");
     TEST_ASSERT_TRUE(mmgr_line_ok(&line));
@@ -515,7 +515,7 @@ static int line_terminated_within(size_t capacity)
 // The entry of the place named written over the line, twice, with more than any line below holds
 static void line_entry_written(VerbaLinea *line, unsigned int place)
 {
-    static const char s_long[] = "a text longer than the most bytes any line below holds";
+    static const char s_long[] = "a text longer than the max bytes any line below holds";
 
     for (unsigned int round = 0u; round < 2u; round++)
     {
@@ -528,7 +528,7 @@ static void line_entry_written(VerbaLinea *line, unsigned int place)
             mmgr_line_put_n(line, s_long, sizeof s_long - 1u);
             break;
         case 2u:
-            mmgr_line_put_most(line, s_long, sizeof s_long);
+            mmgr_line_put_max(line, s_long, sizeof s_long);
             break;
         case 3u:
             mmgr_line_put_columns(line, s_long, 80u);

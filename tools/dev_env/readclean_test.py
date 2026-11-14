@@ -46,12 +46,12 @@ print()
 print("the shape's own grammar survives, or there is nothing left to check conformity against")
 check("an entry's width type survives", "mmgr_word *restrict" in b)
 check("the entry is named as an entry, not as a local", "(*const e1)" in b)
-check("the outcome member keeps its name", "mmgr_bool ok;" in b)
+check("the outcome member retains its name", "mmgr_bool ok;" in b)
 check("the attribute is not read as a call", "__attribute__((unused))" in b)
-check("an args record keeps its role suffix", "Args " in b)
+check("an args record retains its role suffix", "Args " in b)
 
 print()
-print("a region's cast and its offset take the same letter")
+print("a region's cast and its offset take the same character")
 b = blind(
     "#define SHA256_OFF_CTX 0u\n"
     "#define SHA256_OFF_STATE (SHA256_OFF_CTX + 64u)\n"
@@ -93,8 +93,8 @@ check("the header and the source agree on the name", ("%sV." % name) in c)
 print()
 print("what is not this project's to rename")
 b = blind("size_t n = strlen(s); memcpy(dst, src, n);\n")
-check("a standard function keeps its name", "strlen(" in b and "memcpy(" in b)
-check("a standard type keeps its name", "size_t " in b)
+check("a standard function retains its name", "strlen(" in b and "memcpy(" in b)
+check("a standard type retains its name", "size_t " in b)
 
 print()
 print("FAILURES: %d" % FAIL)

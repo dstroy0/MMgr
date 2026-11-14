@@ -55,6 +55,6 @@ over by people who would otherwise have used it and contributed back.
 Contributions are accepted under the same license. There is no CLA. Opening a pull request means you
 have the right to contribute the code and are doing so under AGPL-3.0-or-later.
 
-Keep the SPDX header on every new file. `check_stale_facts` in the docs tooling asserts that every
+Retain the SPDX header on every new file. `check_stale_facts` in the docs tooling asserts that every
 file under `src/` carries the project banner. A missing one fails a pull request and not
 being noticed a year later.

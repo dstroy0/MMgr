@@ -24,13 +24,13 @@
 
 static embed_u64 drawn_mant(FuzzInput *input)
 {
-    const uint8_t kind = fuzz_byte(input);
-    switch (kind & 3u)
+    const uint8_t type = fuzz_byte(input);
+    switch (type & 3u)
     {
     case 0:
-        return (embed_u64)(kind >> 2);
+        return (embed_u64)(type >> 2);
     case 1:
-        return MMGR_MUTO_MANT_MAX - 2u + (embed_u64)(kind >> 6);
+        return MMGR_MUTO_MANT_MAX - 2u + (embed_u64)(type >> 6);
     case 2:
         return fuzz_word(input) >> (fuzz_byte(input) % 64u);
     default:
@@ -53,7 +53,7 @@ static void taken(FuzzInput *input)
     const embed_bool appended = EMBED_CALL(muto.take, TransformoCfg, .mant = &mant, .digit = digit);
     if (before > MMGR_MUTO_MANT_MAX)
     {
-        fuzz_check(!appended && (mant == before), "a mantissa past the most refuses the digit and stands");
+        fuzz_check(!appended && (mant == before), "a mantissa past the max refuses the digit and is");
     }
     else
     {

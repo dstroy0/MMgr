@@ -3,7 +3,7 @@
 
 The state of a cellblock's two boundaries, the overruns and the two chains' ends, and the bumps as single
 atomic steps. A bump's read-modify-write on its own boundary and its read of the other boundary are one
-step. That is what one word with both boundaries is. Under that model the invariant stands through a
+step. That is what one word with both boundaries is. Under that model the invariant is through a
 round, refusal is final, taken bumps are contiguous and the settle restores rest.
 -/
 
@@ -37,7 +37,7 @@ def initial (S : Nat) : State := ⟨S, 0, S, 0, 0, 0, S⟩
 theorem rest_initial (S : Nat) : Rest (initial S) := by
   simp [Rest, Inv, initial]
 
-/-- A bump up of need `n`. One atomic step reads `E` and `T`, moves `E`, and either lays the cell at the old
+/-- A bump up of need `n`. One atomic step reads `E` and `T`, moves `E`, and either positions the cell at the old
 `E` or adds the need to the overrun. -/
 def bumpUp (n : Nat) (s : State) : State :=
   if s.E + n ≤ s.T then
@@ -127,7 +127,7 @@ inductive Round : State → State → Prop
   | down (s s' : State) (n : Nat) (hn : 0 < n) (hnT : n ≤ s'.T) (h : Round s s') :
       Round s (bumpDown n s')
 
-/-- Lemma 4: the invariant stands throughout a round. -/
+/-- Lemma 4: the invariant is throughout a round. -/
 theorem inv_round (s s' : State) (hI : Inv s) (h : Round s s') : Inv s' := by
   induction h with
   | refl => exact hI

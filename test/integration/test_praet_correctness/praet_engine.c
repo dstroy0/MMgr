@@ -16,7 +16,7 @@
  * @note One engine schedules every logical channel. A completion waits on the channel that
  *       earned it. It comes out when its cycle elapses and the arm lets it. So the order
  *       completions arrive in is the scenario's to choose and need not match the order submitted.
- * @note One hook call is one tick. Settle time and cycle time both count in them, which keeps the
+ * @note One hook call is one tick. Settle time and cycle time both count in them, which retains the
  *       whole fixture deterministic and free of a clock.
  * @warning Included by test_praet_correctness.c and never compiled on its own. mmgr_add_suite
  *          compiles the one suite source and the shared files under test/support. These hooks
@@ -51,7 +51,7 @@ static PraetEngineTally s_tally;
 /**
  * @brief Completion callback the last accepted open registered.
  *
- * @note Kept by pointer and never copied, as mmgr_praet_open documents. The case owns the binding and keeps
+ * @note Retained by pointer and never copied, as mmgr_praet_open documents. The case owns the binding and retains
  *       it alive for the whole scenario [BORROWS].
  */
 static const PraetCallbackCfg *s_binding;
@@ -79,7 +79,7 @@ static uint16_t s_due_at[PRAET_ENGINE_CHANNELS];
 /**
  * @brief Bytes each channel moved, as the engine last reported them.
  *
- * @note What a controller's rest count stands for here. A poll reaction with a progress
+ * @note What a controller's rest count is for here. A poll reaction with a progress
  *       figure writes it, and a completion writes the count it reported. A finished transfer reads
  *       as one that moved everything it said it did.
  */
@@ -217,7 +217,7 @@ static void praet_engine_report(uint8_t channel, uint16_t moved)
  * @brief Releases the completions deferred on one channel, where they are due.
  *
  * @param[in] channel Channel to release.
- * @note A channel whose cycle did not elapse keeps its completions. A busy timer reports this
+ * @note A channel whose cycle did not elapse retains its completions. A busy timer reports this
  *       while the transfer is still active.
  */
 static void praet_engine_release_one(uint8_t channel)

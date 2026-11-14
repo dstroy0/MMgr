@@ -101,7 +101,7 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  * @param[in] T Unaligned view n bytes wide.
  * @param[in] n Bytes this rung carries.
  * @note Named db, sb and rem from the scope around it, and so the cascade reads as widths alone.
- * @note One rung per bit of rem, and so each runs at most once. Together they carry every tail
+ * @note One rung per bit of rem, and so each runs at max once. Together they carry every tail
  *       exactly, with no access past the bytes the caller gave.
  */
 #define RING_TAIL(T, n)                                                                                                \
@@ -209,7 +209,7 @@ MMGR_INLINE void ring_move(uint8_t *dst, const uint8_t *src, size_t sz)
  */
 MMGR_INLINE mmgr_iword ring_trail(mmgr_word x)
 {
-    // Explicit cast keeps the two's complement negation at mmgr_word, which picks out the lowest set bit
+    // Explicit cast retains the two's complement negation at mmgr_word, which picks out the lowest set bit
     mmgr_word v = (mmgr_word)((x & (mmgr_word)(0u - x)) - (mmgr_word)1);
 
     // Explicit casts hold each fold at mmgr_word: pairs, then quads, then whole octets
@@ -238,7 +238,7 @@ MMGR_INLINE mmgr_iword ring_trail(mmgr_word x)
 #define MMGR_ATOMIC_STORE(p, v) atomic_store_explicit((p), (v), memory_order_release)
 
 /**
- * @brief The whole ring state, laid into the caller's mmgr_ring storage.
+ * @brief The whole ring state, positioned into the caller's mmgr_ring storage.
  *
  * @warning Reached by a cast of mmgr_ring::opaque; the assertion below checks it fits inside.
  */
@@ -255,12 +255,12 @@ typedef struct
     _Atomic mmgr_word gratis; /**< Bit i set while loculus i is free to take. */
     _Atomic mmgr_word pinned; /**< Bit i set while loculus i still owns bytes in flight. */
     /**
-     * @brief Region each pinned loculus keeps out, recorded at the hold.
+     * @brief Region each pinned loculus retains out, recorded at the hold.
      *
      * @note Sized to one entry when MMGR_RING_LOCULI is 0, since C has no zero-length array. That
      *       entry is unreachable: loculus_bit and infin_loculus_keepout both refuse every index then.
      */
-    mmgr_ring_span keep[(MMGR_RING_LOCULI > 0u) ? MMGR_RING_LOCULI : 1u];
+    mmgr_ring_span retain[(MMGR_RING_LOCULI > 0u) ? MMGR_RING_LOCULI : 1u];
 } RingState;
 
 MMGR_STATIC_ASSERT(sizeof(RingState) <= sizeof(mmgr_ring),
@@ -287,7 +287,7 @@ typedef struct
  * @brief Reads the ring state out of the caller's opaque storage.
  *
  * @param[in] r Ring storage the caller declared [BORROWS].
- * @return      The state laid into it [BORROWS].
+ * @return      The state positioned into it [BORROWS].
  * @note The cast goes through void *; mmgr_ring aligns opaque to size_t.
  * @warning The state is only valid after mmgr_infin_init returned MMGR_TRUE for this ring.
  */
@@ -302,7 +302,7 @@ MMGR_INLINE RingState *ring_of(mmgr_ring *r)
  * @param[in] idx Loculus index.
  * @return        The bit, or 0.
  * @note The bound is here and not at each call site. A shift past the word never happens.
- * @note An out-of-range loculus names nothing, and so it reads as pinned and is never handed out.
+ * @note An out-of-range loculus names nothing, and so it reads as pinned and is never passed out.
  */
 MMGR_INLINE mmgr_word ring_loculus_bit(size_t idx)
 {
@@ -363,7 +363,7 @@ MMGR_INLINE RingRun ring_run(const RingState *s, size_t at, size_t want)
 }
 
 /**
- * @brief Moves want bytes out of the ring from offset at, in at most two runs.
+ * @brief Moves want bytes out of the ring from offset at, in at max two runs.
  *
  * @param[in]  s    Ring state [BORROWS].
  * @param[in]  at   Ring offset to start from.
@@ -395,7 +395,7 @@ MMGR_INLINE size_t ring_move_out(RingState *s, size_t at, uint8_t *dst, size_t w
 }
 
 /**
- * @brief Moves want bytes into the ring at offset at, in at most two runs.
+ * @brief Moves want bytes into the ring at offset at, in at max two runs.
  *
  * @param[in,out] s    Ring state [BORROWS].
  * @param[in]     at   Ring offset to start at.
@@ -495,7 +495,7 @@ MMGR_INLINE mmgr_bool infin_read_byte(const InfinCtx *c)
 /**
  * @brief Takes up to c->bytes into c->dst and advances the tail once at the end.
  *
- * @param[in,out] c Ring, destination and the most to take [BORROWS].
+ * @param[in,out] c Ring, destination and the max to take [BORROWS].
  * @return          Bytes actually taken.
  * @note Publishes the tail once, after the move, and not per byte.
  */
@@ -563,14 +563,14 @@ MMGR_INLINE size_t infin_seg_inflight(const InfinCtx *c)
 }
 
 /**
- * @brief Hands back the segment a counter names, when its side says one is there.
+ * @brief Passes back the segment a counter names, when its side says one is there.
  *
  * @param[in,out] c      Ring, and where to write the index [BORROWS].
  * @param[in]     cursor Counter that names the segment.
  * @param[in]     ok     Whether the caller's side has a segment to give.
  * @return               ok, and c->out is only written when it holds.
  * @note Both ends reduce to this: the counter goes into range by mask and reports. Only the test for
- *       whether a segment exists differs, and so each end keeps its own and passes the answer down.
+ *       whether a segment exists differs, and so each end retains its own and passes the answer down.
  */
 MMGR_INLINE mmgr_bool ring_seg_pick(const InfinCtx *c, size_t cursor, mmgr_bool ok)
 {
@@ -678,7 +678,7 @@ MMGR_INLINE mmgr_iword infin_loculus_next(const InfinCtx *c)
 }
 
 /**
- * @brief Takes loculus c->idx and records the region it keeps out.
+ * @brief Takes loculus c->idx and records the region it retains out.
  *
  * @param[in,out] c Ring, the loculus, and the region to record [BORROWS].
  * @return          MMGR_TRUE when this caller took the loculus.
@@ -699,14 +699,14 @@ MMGR_INLINE mmgr_bool infin_loculus_hold(const InfinCtx *c)
         return MMGR_FALSE;
     }
     // Explicit cast drops the source qualifier: the span records a region it never writes through
-    c->s->keep[c->idx].buf = (uint8_t *)(uintptr_t)c->src;
-    c->s->keep[c->idx].cap = c->bytes;
-    c->s->keep[c->idx].pos = 0u;
+    c->s->retain[c->idx].buf = (uint8_t *)(uintptr_t)c->src;
+    c->s->retain[c->idx].cap = c->bytes;
+    c->s->retain[c->idx].pos = 0u;
     return MMGR_TRUE;
 }
 
 /**
- * @brief Returns the region loculus c->idx keeps out.
+ * @brief Returns the region loculus c->idx retains out.
  *
  * @param[in] c Ring and the loculus [BORROWS].
  * @return      The recorded span, or NULL when c->idx names none [BORROWS].
@@ -714,7 +714,7 @@ MMGR_INLINE mmgr_bool infin_loculus_hold(const InfinCtx *c)
 MMGR_INLINE const mmgr_ring_span *infin_loculus_keepout(const InfinCtx *c)
 {
 #if MMGR_RING_LOCULI == 0u
-    // A build with no loculi keeps nothing out, and so there is no span to hand back
+    // A build with no loculi retains nothing out, and so there is no span to hand back
     (void)c;
     return NULL;
 #else
@@ -722,7 +722,7 @@ MMGR_INLINE const mmgr_ring_span *infin_loculus_keepout(const InfinCtx *c)
     {
         return NULL;
     }
-    return &c->s->keep[c->idx];
+    return &c->s->retain[c->idx];
 #endif
 }
 
@@ -734,7 +734,7 @@ MMGR_INLINE const mmgr_ring_span *infin_loculus_keepout(const InfinCtx *c)
  */
 MMGR_INLINE void infin_loculus_drop(const InfinCtx *c)
 {
-    // Explicit cast keeps the complement at mmgr_word width, as the atomic it clears
+    // Explicit cast retains the complement at mmgr_word width, as the atomic it clears
     (void)atomic_fetch_and_explicit(&c->s->pinned, (mmgr_word)~ring_loculus_bit(c->idx), memory_order_release);
 }
 
@@ -782,9 +782,9 @@ mmgr_bool mmgr_infin_init(const InfinCfg *c)
 #if MMGR_RING_LOCULI > 0u
     for (size_t i = 0; i < (size_t)MMGR_RING_LOCULI; i++)
     {
-        s->keep[i].buf = NULL;
-        s->keep[i].cap = 0u;
-        s->keep[i].pos = 0u;
+        s->retain[i].buf = NULL;
+        s->retain[i].cap = 0u;
+        s->retain[i].pos = 0u;
     }
 #endif
     return MMGR_TRUE;

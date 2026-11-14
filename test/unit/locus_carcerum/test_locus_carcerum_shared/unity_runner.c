@@ -16,7 +16,7 @@ extern void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a
 extern void test_an_owner_shared_by_every_thread_is_counted_back_to_nothing(void);
 extern void test_an_owner_for_each_thread_is_counted_back_to_nothing(void);
 extern void test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing(void);
-extern void test_temporary_cells_kept_across_threads_count_to_their_owner(void);
+extern void test_temporary_cells_retained_across_threads_count_to_their_owner(void);
 
 
 /*=======Mock Management=====*/
@@ -85,7 +85,7 @@ int main(void)
   run_test(test_an_owner_shared_by_every_thread_is_counted_back_to_nothing, "test_an_owner_shared_by_every_thread_is_counted_back_to_nothing", 243);
   run_test(test_an_owner_for_each_thread_is_counted_back_to_nothing, "test_an_owner_for_each_thread_is_counted_back_to_nothing", 251);
   run_test(test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing, "test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing", 270);
-  run_test(test_temporary_cells_kept_across_threads_count_to_their_owner, "test_temporary_cells_kept_across_threads_count_to_their_owner", 283);
+  run_test(test_temporary_cells_retained_across_threads_count_to_their_owner, "test_temporary_cells_retained_across_threads_count_to_their_owner", 283);
 
   return UNITY_END();
 }

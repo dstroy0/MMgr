@@ -19,12 +19,12 @@
 
 #include <string.h>
 
-#define FUZZ_CAP_MOST 96u
+#define FUZZ_CAP_MAX 96u
 
 /** @brief The model of a fill span: the bytes it holds, its cap, its position and its overflow. */
 typedef struct
 {
-    uint8_t buf[FUZZ_CAP_MOST];
+    uint8_t buf[FUZZ_CAP_MAX];
     size_t cap;
     size_t pos;
     int overflow;
@@ -120,7 +120,7 @@ static void reads(FuzzInput *input, const uint8_t *bytes, size_t len)
                 {
                     expected = (expected << 8) | bytes[pos + step];
                 }
-                fuzz_check(out == expected, "take_be reads the value most significant byte first");
+                fuzz_check(out == expected, "take_be reads the value max significant byte first");
                 pos += width;
             }
             else
@@ -207,11 +207,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     FuzzInput input = fuzz_input(data, size);
     while (fuzz_left(&input))
     {
-        uint8_t buf[FUZZ_CAP_MOST];
+        uint8_t buf[FUZZ_CAP_MAX];
         SpanModel model;
         memset(&model, 0, sizeof model);
         memset(buf, 0, sizeof buf);
-        model.cap = 1u + fuzz_below(&input, FUZZ_CAP_MOST);
+        model.cap = 1u + fuzz_below(&input, FUZZ_CAP_MAX);
         mmgr_span span = {buf, model.cap, 0u, EMBED_FALSE};
 
         appends(&input, &span, &model);

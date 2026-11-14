@@ -19,9 +19,9 @@
 #include "unity.h"
 
 ParsMemoriaeInternae(minimum, 64);
-ParsMemoriaeInternae(maximum, 64);
+ParsMemoriaeInternae(max, 64);
 
-LocusCarcerum(umbrella, MMGR_MINIMUM_SECURITY(minimum), MMGR_MAXIMUM_SECURITY(maximum));
+LocusCarcerum(umbrella, MMGR_MINIMUM_SECURITY(minimum), MMGR_MAXIMUM_SECURITY(max));
 
 void test_umbrella_header_is_self_contained(void)
 {
@@ -39,7 +39,7 @@ void test_every_namespace_is_reachable(void)
     TEST_ASSERT_NOT_NULL(fract.sign);
     TEST_ASSERT_NOT_NULL(memor.cpy);
     TEST_ASSERT_NOT_NULL(numer.build);
-    TEST_ASSERT_NOT_NULL(umbrella.maximum.persistent_buf_release);
+    TEST_ASSERT_NOT_NULL(umbrella.max.persistent_buf_release);
     TEST_ASSERT_NOT_NULL(spat.from);
     TEST_ASSERT_NOT_NULL(proxim.put16);
     TEST_ASSERT_NOT_NULL(verba_textus.put_n);
@@ -55,5 +55,5 @@ void test_namespaces_are_their_own_types(void)
     TEST_ASSERT_EQUAL_size_t(sizeof(MemoriaOperorNs), sizeof memor);
     TEST_ASSERT_EQUAL_size_t(sizeof(ScrutLaneNs), sizeof lane);
     TEST_ASSERT_EQUAL_size_t(sizeof(MinimumSecurityGuard), sizeof umbrella.minimum);
-    TEST_ASSERT_EQUAL_size_t(sizeof(MaximumSecurityGuard), sizeof umbrella.maximum);
+    TEST_ASSERT_EQUAL_size_t(sizeof(MaxSecurityGuard), sizeof umbrella.max);
 }

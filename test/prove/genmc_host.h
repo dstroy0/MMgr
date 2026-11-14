@@ -6,7 +6,7 @@
  */
 /**
  * @file genmc_host.h
- * @brief The host a GenMC client runs on. No processor pause, a clock that stands still, and the address wait and
+ * @brief The host a GenMC client runs on. No processor pause, a clock that is stationary, and the address wait and
  *        wake as theory/locus_carcerum/LocusCarcerum/Futex.lean models them.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
@@ -41,7 +41,7 @@ int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value seen, embed
 {
     const embed_atomic_word_value epoch = embed_atomic_word_load(&s_genmc_wakes);
 
-    // Explicit casts keep the low 32 bits of each value, the bits the futex compares
+    // Explicit casts retain the low 32 bits of each value, the bits the futex compares
     if ((uint32_t)embed_atomic_word_load(word) != (uint32_t)seen)
     {
         return 1;

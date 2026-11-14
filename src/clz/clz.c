@@ -75,7 +75,7 @@ EMBED_INLINE embed_iword clz_lead(const ClzCtx *args)
     shift = (embed_u64)((remaining >> 62) == 0u) << 1;
     remaining <<= shift;
     zeros += (embed_iword)shift;
-    // Explicit cast keeps the last add in embed_iword after the comparison promotes to int
+    // Explicit cast retains the last add in embed_iword after the comparison promotes to int
     zeros = (embed_iword)(zeros + ((remaining >> 63) == 0u));
     return zeros;
 #endif
@@ -93,7 +93,7 @@ EMBED_INLINE embed_iword clz_lead(const ClzCtx *args)
  */
 EMBED_INLINE embed_iword clz_trail(const ClzCtx *args)
 {
-    // Explicit cast builds the top bit at embed_u64 width, which stands in for an absent lowest bit
+    // Explicit cast builds the top bit at embed_u64 width, which is in for an absent lowest bit
     const embed_u64 with_floor = args->val | ((embed_u64)1 << 63);
 
 #if EMBED_HAS_BUILTIN(__builtin_ctzll)
@@ -104,10 +104,10 @@ EMBED_INLINE embed_iword clz_trail(const ClzCtx *args)
     // result into the embed_iword the entry returns
     return (embed_iword)__builtin_ctzll((unsigned long long)with_floor);
 #else
-    // Explicit cast keeps the two's complement negation at embed_u64, which isolates the lowest set bit
+    // Explicit cast retains the two's complement negation at embed_u64, which isolates the lowest set bit
     const embed_u64 lowest_bit = with_floor & (embed_u64)(0u - with_floor);
 
-    // Explicit cast keeps the subtraction in embed_iword, as clz_lead reports in
+    // Explicit cast retains the subtraction in embed_iword, as clz_lead reports in
     return (embed_iword)(63 - EMBED_CALL(clz_lead, ClzCtx, .val = lowest_bit));
 #endif
 }

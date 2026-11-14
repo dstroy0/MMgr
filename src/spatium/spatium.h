@@ -20,8 +20,8 @@
  *       so one in the place of the other is a compile error.
  * @note The sticky flag is the reason to pass a span at all. A caller may walk one through several
  *       steps and test once at the end and not after each.
- * @note overflow and err do not mean the same kind of thing. A fill span overruns only when what a
- *       writer emits has the wrong size against its buffer. Both of those stand before the
+ * @note overflow and err do not mean the same type of thing. A fill span overruns only when what a
+ *       writer emits has the wrong size against its buffer. Both of those are before the
  *       build, and so overflow marks a wrong program. A read span runs out because whatever sent the
  *       bytes sent fewer, which is a runtime fact and nothing built wrong.
  */
@@ -38,7 +38,7 @@ EMBED_BEGIN_DECLS
 /**
  * @brief A buffer under fill: its bytes, how far the writer went, and whether it ran out.
  *
- * @note Returned by value. This module keeps no span of its own.
+ * @note Returned by value. This module retains no span of its own.
  * @note overflow is sticky. Once a write runs past cap it stays set, and only mmgr_spat_reset
  *       clears it.
  * @note To reach it at all is a build failure. So a read of it finds out that something is wrong
@@ -58,7 +58,7 @@ typedef struct
 /**
  * @brief A buffer under read: its bytes, how far the reader went, and whether it ran out.
  *
- * @note The read-only counterpart of mmgr_span. buf is const here. A span handed out for a read
+ * @note The read-only counterpart of mmgr_span. buf is const here. A span passed out for a read
  *       takes no write through it.
  * @note err is sticky, for the same reason overflow is.
  * @warning buf points at storage that must outlive every use of the span [BORROWS].
@@ -132,7 +132,7 @@ mmgr_span mmgr_spat_from(const SpatiumCfg *args);
  * @param[in] args Buffer cbuf and its extent cap [BORROWS].
  * @return         The span, by value.
  * @note cbuf and not buf. A buffer closed to writes cannot reach the fill constructor.
- * @note Takes cbuf and cap as handed over, with none of the asserts mmgr_spat_from makes. A null cbuf
+ * @note Takes cbuf and cap as passed over, with none of the asserts mmgr_spat_from makes. A null cbuf
  *       or a zero cap still builds, and mmgr_spat_cok is what reports the span unusable.
  * @warning The span carries args->cbuf away, so that buffer must outlive every use of the span [BORROWS].
  */
@@ -188,7 +188,7 @@ mmgr_span mmgr_spat_after(const SpatiumCfg *args);
 /**
  * @brief Returns the span that covers only the first args->count bytes of args->span.
  *
- * @param[in] args Span to narrow, as args->span, and the bytes to keep as args->count [BORROWS].
+ * @param[in] args Span to narrow, as args->span, and the bytes to retain as args->count [BORROWS].
  * @return         A span over those bytes, or a failed span when args->count is past cap.
  * @note The span that comes back starts on the same byte args->span starts on [BORROWS], with a
  *       shorter cap over the same storage. A fill through one shows in a read through the other.

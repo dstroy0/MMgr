@@ -59,7 +59,7 @@ typedef struct
  * @warning A write past the end is a build failure. What a writer emits and how big its buffer is are
  *          both fixed before the build. So the two are either compatible or the program is wrong.
  *          MMGR_ASSERT stops the program in the checks build. In a build without checks the latch is
- *          damage control that keeps a wrong program from a write past the end. It is not a path to
+ *          damage control that retains a wrong program from a write past the end. It is not a path to
  *          design for.
  */
 EMBED_INLINE uint8_t *byteio_claim(mmgr_span *write_span, size_t bytes)
@@ -88,7 +88,7 @@ EMBED_INLINE uint8_t *byteio_claim(mmgr_span *write_span, size_t bytes)
  * @note The cursor moves only when the bytes were there. A failed read leaves it where it was. A
  *       caller that continues still knows where it is.
  * @note No assert here, unlike byteio_claim, and the difference is not an oversight. A writer's
- *       output length stands before the build, and so a write past the end means the program is
+ *       output length is before the build, and so a write past the end means the program is
  *       wrong. A reader takes whatever arrives. A short read is a fact about the
  *       input and not a defect.
  * @note byteio_take_be and byteio_rd_str return a result, because a caller has to act on a short
@@ -145,11 +145,11 @@ EMBED_INLINE void byteio_raw(const ByteioCtx *args)
 }
 
 /**
- * @brief Appends the low args->bytes of args->value, most significant byte first.
+ * @brief Appends the low args->bytes of args->value, max significant byte first.
  *
  * @param[in,out] args Span, value and count [BORROWS].
  * @note magna_extremitas.rev right-aligns the reversed value into its low args->bytes. So a store of
- *       those in the target's own order lays the bytes out most significant first.
+ *       those in the target's own order positions the bytes out max significant first.
  * @note The count selects the stores: eight is one, seven is three, and only an odd final byte is
  *       ever written alone.
  * @note args->bytes must be 1 to 8: the cast to mmgr_endian_width below rests on it.
@@ -166,7 +166,7 @@ EMBED_INLINE void byteio_put_be(const ByteioCtx *args)
     }
 
     // Explicit cast narrows the count to the mmgr_endian_width the reversal takes. The 1 to 8 bound
-    // on args->bytes keeps it inside that type
+    // on args->bytes retains it inside that type
     uint64_t reversed =
         EMBED_CALL(magna_extremitas.rev, EndianCfg, .val = args->value, .width = (mmgr_endian_width)args->bytes);
 
@@ -251,7 +251,7 @@ EMBED_INLINE embed_bool byteio_take_be(const ByteioCtx *args)
     }
 
     // Explicit cast narrows the count to the mmgr_endian_width the reversal takes. The 1 to 8 bound
-    // on args->bytes keeps it inside that type
+    // on args->bytes retains it inside that type
     *args->out = EMBED_CALL(magna_extremitas.rev, EndianCfg, .val = gathered, .width = (mmgr_endian_width)args->bytes);
     return EMBED_TRUE;
 }
@@ -260,7 +260,7 @@ EMBED_INLINE embed_bool byteio_take_be(const ByteioCtx *args)
  * @brief Reads a length-prefixed run at the cursor and points args->blob at it.
  *
  * @param[in,out] args Span, and where to report the run [BORROWS].
- * @return             EMBED_TRUE when the length and its run both lay within the span.
+ * @return             EMBED_TRUE when the length and its run both position within the span.
  * @note The length ahead of the run is four bytes, big endian, as fixes the format.
  * @note The cursor goes back when the run does not fit. A length read with no payload after it is
  *       not a read at all. A cursor left between the two would give a caller a position that means

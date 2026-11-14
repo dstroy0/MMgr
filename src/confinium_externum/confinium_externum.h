@@ -40,7 +40,7 @@ typedef struct
 /**
  * @brief Arguments for every exter call; each reads only what it needs.
  *
- * @note The caller supplies free_dram and free_psram and they stand as given.
+ * @note The caller supplies free_dram and free_psram and they are as given.
  * @note place reads the six figures; the pingpong entries read pp alone.
  */
 typedef struct

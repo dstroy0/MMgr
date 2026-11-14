@@ -149,7 +149,7 @@ def enum_block():
 
 
 def mask_rows():
-    """One designated initializer per class, in enum order, laid out for clang-format to pack."""
+    """One designated initializer per class, in enum order, arranged for clang-format to pack."""
     out = []
     for name, pred, _doc in CLASSES:
         body = ", ".join("0x%02X" % one for one in bytes_of(pred))
@@ -173,7 +173,7 @@ HDR = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.c
  *       mask and one test answer any class, and the cost does not grow with how many ranges the
  *       class covers.
  * @note Covers code points 0 to 127 only. A byte of 0x80 or above is in no class here, and
- *       that keeps the table sixteen bytes and not thirty-two.
+ *       that retains the table sixteen bytes and not thirty-two.
  */
 #ifndef MMGR_ASCII_PERSONA_BITORUM_H
 #define MMGR_ASCII_PERSONA_BITORUM_H
@@ -218,7 +218,7 @@ typedef enum
  */
 typedef struct
 {
-    const MmgrAsciiClass kind; /**< Class to test against, below MMGR_ASCII_CLASSES. */
+    const MmgrAsciiClass type; /**< Class to test against, below MMGR_ASCII_CLASSES. */
     const uint8_t byte;        /**< Code point to look up; 0x80 and above are in no class. */
 } AsciiCfg;
 
@@ -234,12 +234,12 @@ typedef struct
 EMBED_TABLE_LAYOUT(AsciiPersonaBitorumNs, in);
 
 /**
- * @brief Returns whether args->byte has its bit set in the kind bitmap.
+ * @brief Returns whether args->byte has its bit set in the type bitmap.
  *
  * @param[in] args Class and byte to test [BORROWS].
  * @return         EMBED_TRUE when the bit is set, EMBED_FALSE otherwise.
  * @note Bytes 0x80 and above return EMBED_FALSE.
- * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
+ * @warning args->type must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
  *          MMGR_DEBUG_CHECKS build: the bitmap is indexed by it. A byte under 0x80 then reads
  *          past the table.
  */
@@ -298,24 +298,24 @@ static const MmgrAsciiMask s_class[MMGR_ASCII_CLASSES] = {
  */
 typedef struct
 {
-    MmgrAsciiClass kind; /**< Class whose bitmap is read. */
+    MmgrAsciiClass type; /**< Class whose bitmap is read. */
     uint8_t byte;        /**< Code point to look up. */
 } AsciiCtx;
 
 /**
- * @brief Returns whether args->byte has its bit set in s_class[args->kind].
+ * @brief Returns whether args->byte has its bit set in s_class[args->type].
  *
  * @param[in] args Class and byte to test [BORROWS].
  * @return         EMBED_TRUE when the bit is set, EMBED_FALSE otherwise.
  * @note Bytes 0x80 and above return EMBED_FALSE without reading s_class.
- * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
+ * @warning args->type must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
  *          MMGR_DEBUG_CHECKS build: a byte under 0x80 then reads past s_class.
  */
 EMBED_INLINE embed_bool ascii_in(const AsciiCtx *args)
 {
-    MMGR_ASSERT(args->kind < MMGR_ASCII_CLASSES, "no such character class");
+    MMGR_ASSERT(args->type < MMGR_ASCII_CLASSES, "no such character class");
 
-    const MmgrAsciiMask *const entry = &s_class[args->kind];
+    const MmgrAsciiMask *const entry = &s_class[args->type];
 
     // The byte test comes first and && stops there. A byte of 0x80 or above would index bits[16] or
     // past it, outside the sixteen the mask holds. Explicit cast narrows the int result of && to
@@ -340,7 +340,7 @@ EMBED_INLINE embed_bool ascii_in(const AsciiCtx *args)
  *
  * @note Each is documented at its declaration in ascii_persona_bitorum.h.
  */
-ASCII_ENTRY(embed_bool, in, .kind = args->kind, .byte = args->byte)
+ASCII_ENTRY(embed_bool, in, .type = args->type, .byte = args->byte)
 """
 
 CMAKE = """# MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
@@ -365,7 +365,7 @@ def formatter():
     if found:
         return found
     raise SystemExit(
-        "gen_ascii_persona_bitorum: clang-format is not on PATH. The mask table in the .c is laid "
+        "gen_ascii_persona_bitorum: clang-format is not on PATH. The mask table in the .c is positioned "
         "out by the formatter, so without it this writes a file that differs from the one on disk "
         "and `harness.py generated` reports a dirty tree. Install it or put it on PATH."
     )

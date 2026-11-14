@@ -5,7 +5,7 @@ the rules.
 
 ## The one rule
 
-**MMgr owns nothing.** Every byte it hands out is inside a buffer you gave it. Every "allocation" is
+**MMgr owns nothing.** Every byte it passes out is inside a buffer you gave it. Every "allocation" is
 a bump of a pointer into that buffer, and every "free" sets a cell's header free.
 
 So the question is never "has this been freed". It is "is the thing it points into still valid, and
@@ -40,8 +40,8 @@ one release serves both tiers, since the cell's offset says which tier it lies i
 are for: a temporary cell lives inside one call, a persistent cell lives on.
 
 Nothing is reallocated: `cell` dereferences without faulting after its release and returns whatever is there,
-which, after the next allocation, is somebody else's data. This is the single most likely way to
-misuse this library. On a maximum-security cellblock the release zeroes the cell first, and
+which, after the next allocation, is somebody else's data. This is the single max likely way to
+misuse this library. On a max-security cellblock the release zeroes the cell first, and
 what is read afterwards is zeros instead of the previous prisoner; on a minimum-security one nothing
 is scrubbed.
 
@@ -89,7 +89,7 @@ check. See @ref mod_confin_guide.
 The caller says who a cell is for. Every `persistent_buf_alloc`, `temporary_buf_alloc`,
 `persistent_buf_release` and `buf_grow` takes a `const CellOwner *` beside its size or its prisoner,
 and none takes `NULL`. The owner is the library's, and it is data: the program lists its owners once,
-`MMGR_OWNERS` lays the table of their records and defines each owner's const pointer into it, and the
+`MMGR_OWNERS` positions the table of their records and defines each owner's const pointer into it, and the
 linker resolves the pointer. Nothing registers at run time, and nothing runs before the first take:
 
 ```c
@@ -111,20 +111,20 @@ ways in the one translation unit that owns the program's memory: an enumeration 
 place, `mmgr_owner_table` holding one record for each in that order with `mmgr_owner_table_count`
 beside it, and `const CellOwner *const name_` for each, pointing at its record. A list longer than
 `MMGR_CARCER_OWNERS` fails the build. A take naming a pointer that is none of the table's is refused as
-a take the gap cannot meet is: one unsigned subtract puts the pointer inside the records laid, and one
+a take the gap cannot meet is: one unsigned subtract puts the pointer inside the records positioned, and one
 remainder puts it on a record's first byte; `mmgr_owner_listed` asks the same question. A reader walks
 the table by its count, and `mmgr_owner_in_use` and `mmgr_owner_hw` read a record's counts.
 
-A cell of either tier stands until its release.
+A cell of either tier is until its release.
 
 `mmgr_carcer_hw_clock_ms` and `mmgr_carcer_hw_misnamed` are weak. The default clock answers 0 every
 time; the default report does nothing. A port defines both names.
 
 The take adds the cell's payload, read off its header, to `reader.in_use` and raises `reader.hw` to
-it; the release takes the same bytes off. Every cell keeps its owner in the word behind its payload.
+it; the release takes the same bytes off. Every cell retains its owner in the word behind its payload.
 A release and a growth each count the cell's bytes off that owner. A release
 or a growth must name it: one naming another owner is refused, changes nothing, the payload of a
-maximum security cell included, and calls `mmgr_carcer_hw_misnamed` with the owner named, the owner
+max security cell included, and calls `mmgr_carcer_hw_misnamed` with the owner named, the owner
 the cell counts to and its bytes. The owner's record is the table's storage, written through the const
 pointer the caller holds as a movable entry is: the cellblock still does not ask which context reached
 it.
@@ -158,8 +158,8 @@ It is the only environment where an assert is evaluated, which means an expectat
 exercised under `checks` is one nothing has ever tested. A target with no `stderr` and no `abort`
 defines `MMGR_ASSERT` itself before including the header, and neither form is used.
 
-`locus_carcerum` reaches for `MMGR_FATAL` instead, which holds in every build: a release handed a
-prisoner from another cellblock has shown the caller does not know which memory it is holding, and
+`locus_carcerum` reaches for `MMGR_FATAL` instead, which holds in every build: a release passed a
+prisoner from another cellblock has displayed the caller does not know which memory it is holding, and
 continuing would move this cellblock's boundaries using a header read out of another's bytes.
 
 What no check catches, in any configuration, is a **stale pointer to a released cell**. Nothing can: the

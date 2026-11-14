@@ -58,24 +58,24 @@ static const MmgrAsciiMask s_class[MMGR_ASCII_CLASSES] = {
  */
 typedef struct
 {
-    MmgrAsciiClass kind; /**< Class whose bitmap the test reads. */
+    MmgrAsciiClass type; /**< Class whose bitmap the test reads. */
     uint8_t byte;        /**< Code point to look up. */
 } AsciiCtx;
 
 /**
- * @brief Returns whether args->byte has its bit set in s_class[args->kind].
+ * @brief Returns whether args->byte has its bit set in s_class[args->type].
  *
  * @param[in] args Class and byte to test [BORROWS].
  * @return         EMBED_TRUE when the bit holds, EMBED_FALSE otherwise.
  * @note Bytes 0x80 and above return EMBED_FALSE without reading s_class.
- * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
+ * @warning args->type must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
  *          MMGR_DEBUG_CHECKS build: a byte under 0x80 then reads past s_class.
  */
 EMBED_INLINE embed_bool ascii_in(const AsciiCtx *args)
 {
-    MMGR_ASSERT(args->kind < MMGR_ASCII_CLASSES, "no such character class");
+    MMGR_ASSERT(args->type < MMGR_ASCII_CLASSES, "no such character class");
 
-    const MmgrAsciiMask *const entry = &s_class[args->kind];
+    const MmgrAsciiMask *const entry = &s_class[args->type];
 
     // The byte test comes first and && stops there. A byte of 0x80 or above would index bits[16] or
     // past it, outside the sixteen the mask holds. Explicit cast narrows the int result of && to
@@ -100,4 +100,4 @@ EMBED_INLINE embed_bool ascii_in(const AsciiCtx *args)
  *
  * @note ascii_persona_bitorum.h describes each at its declaration.
  */
-ASCII_ENTRY(embed_bool, in, .kind = args->kind, .byte = args->byte)
+ASCII_ENTRY(embed_bool, in, .type = args->type, .byte = args->byte)

@@ -4,7 +4,7 @@
 /**
  * @file test_numeros_scribo_accuracy.c
  * @brief Checks the assembled output against the host's own snprintf, field by field and over specs
- *        that mix literals with every kind that has a printf equivalent.
+ *        that mix literals with every type that has a printf equivalent.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-31
  *
@@ -13,7 +13,7 @@
  *       place, or a field written in the wrong order, and every one of those produces a string that
  *       is well formed and wrong.
  * @note The reference is the C library's snprintf, which is a separate implementation of the same
- *       formatting and shares nothing with this tree. Nine of the thirteen kinds have an exact printf
+ *       formatting and shares nothing with this tree. Nine of the thirteen types have an exact printf
  *       equivalent, and those nine are what the sweeps below compare.
  * @note MMGR_FK_G and MMGR_FK_FIX are not compared against printf. Their rounding is the business of
  *       verba_scribo and its own suite, and a disagreement in the last digit would be reported here
@@ -115,21 +115,21 @@ void test_the_reference_formatting_this_suite_relies_on_behaves_as_assumed(void)
 
     (void)snprintf(reference, sizeof reference, "%lld", -9223372036854775807LL - 1LL);
     TEST_ASSERT_EQUAL_STRING_MESSAGE("-9223372036854775808", reference,
-                                     "the reference cannot carry the most negative value");
+                                     "the reference cannot carry the max negative value");
 }
 
 /**
- * @brief Checks each kind on its own against the same value formatted by snprintf.
+ * @brief Checks each type on its own against the same value formatted by snprintf.
  *
- * @note One field and one value at a time. A disagreement then names the kind instead of a position
- *       in a longer string, as pins each route from a kind to its verba call.
- * @note The values span each kind: zero, one, a value that fills the width, and the extremes of
- *       the type. The most negative signed value is in the set, since its magnitude is the single
+ * @note One field and one value at a time. A disagreement then names the type instead of a position
+ *       in a longer string, as pins each route from a type to its verba call.
+ * @note The values span each type: zero, one, a value that fills the width, and the extremes of
+ *       the type. The max negative signed value is in the set, since its magnitude is the single
  *       one input that has no positive counterpart.
  * @note Both entry points run on the same value. That shows build and emit agree
  *       wherever the width plays no part.
  */
-void test_each_kind_alone_matches_the_reference_formatting(void)
+void test_each_type_alone_matches_the_reference_formatting(void)
 {
     static const uint64_t unsigned_of[] = {0uLL,   1uLL,     9uLL,          10uLL,
                                            255uLL, 65535uLL, 4294967295uLL, 18446744073709551615uLL};
@@ -157,9 +157,9 @@ void test_each_kind_alone_matches_the_reference_formatting(void)
         TEST_ASSERT_EQUAL_STRING_MESSAGE(reference, produced, message);
         TEST_ASSERT_EQUAL_size_t_MESSAGE(strlen(reference), length, message);
 
-        // The 32-bit kind takes the same value narrowed, as its own union arm holds
+        // The 32-bit type takes the same value narrowed, as its own union arm holds
         const mmgr_field spec_u32[] = {MMGR_U32, MMGR_END};
-        // Explicit cast narrows the sweep value to the 32-bit arm this kind reads
+        // Explicit cast narrows the sweep value to the 32-bit arm this type reads
         const mmgr_fval vals_u32[] = {MMGR_VU32((uint32_t)unsigned_of[index])};
 
         accuracy_fill_guard(produced);
@@ -255,8 +255,8 @@ void test_a_spec_of_literals_and_values_comes_out_in_order(void)
  * @note The header states the two differ, and this is the case that separates them. The same value
  *       goes out twice with the two widths at different numbers. A module that reads one where it
  *       meant the other produces the other width's padding and fails there.
- * @note Only the kinds whose width reaches a minimum digit count take part. The plain unsigned and
- *       signed kinds fix their own minimum at one and ignore the width entirely, which the module
+ * @note Only the types whose width reaches a minimum digit count take part. The plain unsigned and
+ *       signed types fix their own minimum at one and ignore the width entirely, which the module
  *       documents.
  * @note The check holds the widths against snprintf zero padding at the same width. So the comparison
  *       covers the padded string and not merely its length.
@@ -293,15 +293,15 @@ void test_build_takes_the_width_from_the_field_and_emit_from_the_value(void)
 }
 
 /**
- * @brief Checks that the decimal kind pads to the width it receives.
+ * @brief Checks that the decimal type pads to the width it receives.
  *
- * @note MMGR_FK_DEC is the single one kind whose default width is zero, and so it formats at the width
+ * @note MMGR_FK_DEC is the single one type whose default width is zero, and so it formats at the width
  *       the caller states, alone. The case offers every width from none to past the value's own
  *       digit count.
  * @note A width narrower than the value has to widen the field and not cut the value. A minimum
- *       digit count requires that and a maximum would get it wrong.
+ *       digit count requires that and a max would get it wrong.
  */
-void test_the_decimal_kind_pads_to_the_width_it_is_given(void)
+void test_the_decimal_type_pads_to_the_width_it_is_given(void)
 {
     static const uint32_t value_of[] = {0uL, 7uL, 42uL, 999uL, 4294967295uL};
     // Explicit cast narrows the sizeof quotient to the unsigned the loop counts in
@@ -330,7 +330,7 @@ void test_the_decimal_kind_pads_to_the_width_it_is_given(void)
 }
 
 /**
- * @brief Checks that the fixed kind writes exactly the decimals its width names.
+ * @brief Checks that the fixed type writes exactly the decimals its width names.
  *
  * @note The claim is about the route and not about the digits. The width reaches verba as the digits
  *       after the point. The check is that the output carries a point with exactly that many digits
@@ -340,7 +340,7 @@ void test_the_decimal_kind_pads_to_the_width_it_is_given(void)
  * @note The values are exact in binary, and so the digits themselves are not in question and a failure
  *       here is a width gone astray.
  */
-void test_the_fixed_kind_writes_exactly_the_decimals_its_width_names(void)
+void test_the_fixed_type_writes_exactly_the_decimals_its_width_names(void)
 {
     static const double value_of[] = {0.0, 0.5, 1.25, 12.0625, 3.0};
     // Explicit cast narrows the sizeof quotient to the unsigned the loop counts in
@@ -380,22 +380,22 @@ void test_the_fixed_kind_writes_exactly_the_decimals_its_width_names(void)
 /**
  * @brief Checks that a mismatched spec abandons the write and leaves earlier text whole.
  *
- * @note The abandon is the most important accuracy claim for an append. A reader cannot tell a
+ * @note The abandon is the max important accuracy claim for an append. A reader cannot tell a
  *       partial record left in the buffer from a complete one. So the terminator has to go back
  *       where the write started.
  * @note The case covers three ways to mismatch, and the header names all three. A value absent, a
- *       value whose kind differs from its field, and values left over past the spec.
+ *       value whose type differs from its field, and values left over past the spec.
  * @note The buffer holds text before each attempt, and that text has to survive unchanged. A
  *       check of the return alone would pass a module that abandoned late.
  */
-void test_a_mismatched_spec_abandons_the_write_and_keeps_the_earlier_text(void)
+void test_a_mismatched_spec_abandons_the_write_and_retains_the_earlier_text(void)
 {
-    static const char existing[] = "kept";
+    static const char existing[] = "retained";
     const mmgr_field spec_two[] = {MMGR_U32, MMGR_U32, MMGR_END};
     const mmgr_field spec_one[] = {MMGR_U32, MMGR_END};
     const mmgr_fval vals_one[] = {MMGR_VU32(1u)};
     const mmgr_fval vals_two[] = {MMGR_VU32(1u), MMGR_VU32(2u)};
-    const mmgr_fval vals_wrong_kind[] = {MMGR_VSTR("text")};
+    const mmgr_fval vals_wrong_type[] = {MMGR_VSTR("text")};
     char produced[MMGR_ACCURACY_NUMER_BUFFER];
 
     accuracy_fill_guard(produced);
@@ -410,9 +410,9 @@ void test_a_mismatched_spec_abandons_the_write_and_keeps_the_earlier_text(void)
     (void)snprintf(produced, sizeof produced, "%s", existing);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u,
                                      EMBED_CALL(numer.append, NumerosCfg, .out = produced, .cap = sizeof produced,
-                                                .spec = spec_one, .vals = vals_wrong_kind, .nvals = 1u),
-                                     "a value of the wrong kind reported a length");
-    TEST_ASSERT_EQUAL_STRING_MESSAGE(existing, produced, "a value of the wrong kind damaged the earlier text");
+                                                .spec = spec_one, .vals = vals_wrong_type, .nvals = 1u),
+                                     "a value of the wrong type reported a length");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(existing, produced, "a value of the wrong type damaged the earlier text");
 
     accuracy_fill_guard(produced);
     (void)snprintf(produced, sizeof produced, "%s", existing);
@@ -432,7 +432,7 @@ void test_a_mismatched_spec_abandons_the_write_and_keeps_the_earlier_text(void)
  * @note The run passes the returned length along, the path the header describes as the one that
  *       measures nothing. A second run leaves the cursor unset so the call measures the length
  *       instead, and the two have to agree.
- * @note Both compare against snprintf, and so neither run stands against the other alone.
+ * @note Both compare against snprintf, and so neither run is against the other alone.
  */
 void test_a_run_of_appends_builds_the_same_string_as_one_spec(void)
 {
@@ -474,17 +474,17 @@ void test_a_run_of_appends_builds_the_same_string_as_one_spec(void)
 }
 
 /**
- * @brief Checks that the string kinds escape what their format requires and leave the rest alone.
+ * @brief Checks that the string types escape what their format requires and leave the rest alone.
  *
  * @note MMGR_FK_JSON and MMGR_FK_XML differ from MMGR_FK_STR in exactly which bytes they replace. A
  *       field sent to the wrong one of the three produces text that is still readable and wrong
  *       for its format.
  * @note The input carries one of every byte each format replaces, along with bytes neither replaces.
  *       That shows a route to the wrong call as a byte escaped in error.
- * @note The expected strings come by hand from the two formats' rules. That keeps
+ * @note The expected strings come by hand from the two formats' rules. That retains
  *       this independent of what either call happens to produce.
  */
-void test_the_string_kinds_escape_what_their_format_requires(void)
+void test_the_string_types_escape_what_their_format_requires(void)
 {
     const mmgr_field spec_plain[] = {MMGR_STR, MMGR_END};
     const mmgr_field spec_json[] = {MMGR_JSON, MMGR_END};
@@ -497,16 +497,16 @@ void test_the_string_kinds_escape_what_their_format_requires(void)
     accuracy_fill_guard(produced);
     (void)EMBED_CALL(numer.build, NumerosCfg, .out = produced, .cap = sizeof produced, .spec = spec_plain,
                      .vals = vals_plain, .nvals = 1u);
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("a<b>c&d\"e", produced, "the plain string kind changed a byte");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("a<b>c&d\"e", produced, "the plain string type changed a byte");
 
     accuracy_fill_guard(produced);
     (void)EMBED_CALL(numer.build, NumerosCfg, .out = produced, .cap = sizeof produced, .spec = spec_json,
                      .vals = vals_json, .nvals = 1u);
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("\"a\\\"b\\\\c\"", produced, "the JSON kind did not escape as JSON requires");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("\"a\\\"b\\\\c\"", produced, "the JSON type did not escape as JSON requires");
 
     accuracy_fill_guard(produced);
     (void)EMBED_CALL(numer.build, NumerosCfg, .out = produced, .cap = sizeof produced, .spec = spec_xml,
                      .vals = vals_xml, .nvals = 1u);
     TEST_ASSERT_EQUAL_STRING_MESSAGE("a&lt;b&gt;c&amp;d&quot;e", produced,
-                                     "the XML kind did not escape as XML requires");
+                                     "the XML type did not escape as XML requires");
 }

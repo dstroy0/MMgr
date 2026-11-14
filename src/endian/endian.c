@@ -12,7 +12,7 @@
  *
  * @note The le pair stores and loads straight through proximus_operor, which moves bytes in the host's
  *       order. The be pair adds endian_rev to that, before the store in endian_wr_be and after the load
- *       in endian_rd_be. Nothing here reads MMGR_HW_BIG_ENDIAN, and so which absolute order a table stands
+ *       in endian_rd_be. Nothing here reads MMGR_HW_BIG_ENDIAN, and so which absolute order a table is
  *       for follows from the host.
  * @note One reversal serves both tables: endian_rev reverses whatever it receives and carries no order
  *       of its own.
@@ -23,7 +23,7 @@
 /**
  * @brief Arguments for the endian backends.
  *
- * @note Mirrors EndianCfg with the top-level const dropped from every member. The src member keeps the const on
+ * @note Mirrors EndianCfg with the top-level const dropped from every member. The src member retains the const on
  *       what it points at, and so nothing here writes through it.
  * @note endian_put reads dst, val and width. endian_get reads src and width. endian_rev reads val and
  *       width. EMBED_CALL zeroes the members a call does not receive.
@@ -101,7 +101,7 @@ EMBED_INLINE uint64_t endian_rev(const EndianCtx *args)
 {
     uint64_t reversed = args->val;
 
-    // Suffixed constants keep each mask at uint64_t, as the swapped value
+    // Suffixed constants retain each mask at uint64_t, as the swapped value
     reversed = ((reversed & 0x00FF00FF00FF00FFULL) << 8) | ((reversed >> 8) & 0x00FF00FF00FF00FFULL);
     reversed = ((reversed & 0x0000FFFF0000FFFFULL) << 16) | ((reversed >> 16) & 0x0000FFFF0000FFFFULL);
     reversed = (reversed << 32) | (reversed >> 32);
@@ -114,7 +114,7 @@ EMBED_INLINE uint64_t endian_rev(const EndianCtx *args)
  * @param[in,out] args Destination, value and width [BORROWS].
  * @return             args->width.
  * @note Calls endian_put directly, where endian_wr_be reverses first.
- * @note Hands back args->width as it came, which is not what endian_put wrote when the width is
+ * @note Passes back args->width as it came, which is not what endian_put wrote when the width is
  *       outside the enumerators.
  */
 EMBED_INLINE size_t endian_wr_le(const EndianCtx *args)
@@ -130,7 +130,7 @@ EMBED_INLINE size_t endian_wr_le(const EndianCtx *args)
  * @return             args->width.
  * @note Builds a fresh EndianCtx with the reversed value, and leaves args untouched. EMBED_CALL names
  *       the initializers once, and so endian_rev runs once.
- * @note Hands back args->width as it came, which is not what endian_put wrote when the width is
+ * @note Passes back args->width as it came, which is not what endian_put wrote when the width is
  *       outside the enumerators.
  * @warning The width reaches endian_rev unchanged, and one above 8 wraps its shift count and one of 0
  *          shifts by 64, which has no definition.
@@ -197,9 +197,9 @@ EMBED_INLINE uint64_t endian_rd_be(const EndianCtx *args)
  * @brief The public surface, one line per entry point.
  *
  * @note endian.h describes each at its declaration.
- * @note args->width goes forward as it stands. EndianCfg and EndianCtx both declare it mmgr_endian_width,
+ * @note args->width goes forward as it is. EndianCfg and EndianCtx both declare it mmgr_endian_width,
  *       and there is no conversion to make.
- * @note The four wr and rd lines pass args->dst or args->src through as they stand [BORROWS]. EMBED_CALL
+ * @note The four wr and rd lines pass args->dst or args->src through as they are [BORROWS]. EMBED_CALL
  *       builds its literal inside the emitted function, and so the literal lives for that call alone and the
  *       buffer has to outlive it. Nothing here copies the buffer or frees it.
  * @warning No line tests what it forwards. A null dst or src reaches a backend that dereferences it with

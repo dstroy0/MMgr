@@ -22,7 +22,7 @@ extern void test_chr_of_a_byte_that_is_not_there_in_an_unterminated_run(void);
 extern void test_chr_finds_a_byte_in_every_lane(void);
 extern void test_chr_of_the_terminator_itself(void);
 extern void test_a_run_of_high_bytes_measures_and_searches_like_libc(void);
-extern void test_folding_never_touches_a_byte_outside_the_letters(void);
+extern void test_folding_never_touches_a_byte_outside_the_characters(void);
 extern void test_a_case_insensitive_search_through_high_bytes(void);
 extern void test_find_where_every_lane_is_a_candidate(void);
 extern void test_find_a_needle_that_is_only_the_last_bytes(void);
@@ -112,7 +112,7 @@ int main(void)
   run_test(test_chr_finds_a_byte_in_every_lane, "test_chr_finds_a_byte_in_every_lane", 114);
   run_test(test_chr_of_the_terminator_itself, "test_chr_of_the_terminator_itself", 130);
   run_test(test_a_run_of_high_bytes_measures_and_searches_like_libc, "test_a_run_of_high_bytes_measures_and_searches_like_libc", 141);
-  run_test(test_folding_never_touches_a_byte_outside_the_letters, "test_folding_never_touches_a_byte_outside_the_letters", 157);
+  run_test(test_folding_never_touches_a_byte_outside_the_characters, "test_folding_never_touches_a_byte_outside_the_characters", 157);
   run_test(test_a_case_insensitive_search_through_high_bytes, "test_a_case_insensitive_search_through_high_bytes", 179);
   run_test(test_find_where_every_lane_is_a_candidate, "test_find_where_every_lane_is_a_candidate", 192);
   run_test(test_find_a_needle_that_is_only_the_last_bytes, "test_find_a_needle_that_is_only_the_last_bytes", 204);

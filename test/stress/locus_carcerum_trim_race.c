@@ -50,7 +50,7 @@ static void reached(embed_atomic_u32 *word, uint32_t want)
     }
 }
 
-/** @brief One round's gives: the cell this thread names given once both threads stand at the round's start. */
+/** @brief One round's gives: the cell this thread names given once both threads are at the round's start. */
 static void raced(unsigned int index)
 {
     for (unsigned int round = 0u; round < s_rounds; round += 1u)

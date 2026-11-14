@@ -50,7 +50,7 @@
  */
 typedef struct
 {
-    MmgrAsciiClass kind; /**< Class this row describes. */
+    MmgrAsciiClass type; /**< Class this row describes. */
     const char *name;    /**< Enumerator name, printed when a case fails. */
     unsigned population; /**< Code points the class holds, counted from the header's runs. */
 } AccuracyClassRow;
@@ -59,7 +59,7 @@ typedef struct
  * @brief Every class, in enumerator order, with the population each one has to hold.
  *
  * @note MMGR_ASCII_CLASSES is absent. It counts the enumerators and is not a class.
- * @note The populations are the run lengths added up: 10 digits, 26 letters a case, 15 + 7 + 6 + 4
+ * @note The populations are the run lengths added up: 10 digits, 26 characters a case, 15 + 7 + 6 + 4
  *       punctuation, 5 + 1 whitespace, 32 + 1 control, and 126 - 32 + 1 printable.
  */
 static const AccuracyClassRow accuracy_class_of[] = {
@@ -105,25 +105,25 @@ static int accuracy_range_holds_code(unsigned code, unsigned first, unsigned las
 /**
  * @brief Returns whether a code point belongs to a class, from the runs the header names.
  *
- * @param[in] kind Class to test against.
+ * @param[in] type Class to test against.
  * @param[in] code Code point to look up, 0 through 255.
  * @return         1 when the class covers the code point, 0 when it does not.
  * @note This is the whole reference. Each arm is the header's run list written as ASCII numbers, and
  *       no arm consults another. MMGR_ASCII_ALNUM lists its three runs out in full and does not
- *       reach for the digit and letter arms. So one wrong bitmap cannot hide behind another.
+ *       reach for the digit and character arms. So one wrong bitmap cannot hide behind another.
  * @note Code points at or above MMGR_ACCURACY_ASCII_LIMIT return 0 for every class, the
  *       coverage the header states.
- * @warning A kind of MMGR_ASCII_CLASSES returns 0. Nothing here passes it, and the module documents
+ * @warning A type of MMGR_ASCII_CLASSES returns 0. Nothing here passes it, and the module documents
  *          it as out of range.
  */
-static int accuracy_class_holds_code(MmgrAsciiClass kind, unsigned code)
+static int accuracy_class_holds_code(MmgrAsciiClass type, unsigned code)
 {
     if (code >= MMGR_ACCURACY_ASCII_LIMIT)
     {
         return 0;
     }
 
-    switch (kind)
+    switch (type)
     {
     case MMGR_ASCII_NUM:
         return accuracy_range_holds_code(code, 48u, 57u);
@@ -158,17 +158,17 @@ static int accuracy_class_holds_code(MmgrAsciiClass kind, unsigned code)
 /**
  * @brief Returns what the module reports for a class and a byte, as a 0 or a 1.
  *
- * @param[in] kind Class to test against.
+ * @param[in] type Class to test against.
  * @param[in] code Code point to look up, 0 through 255.
  * @return         1 when ascii.in reported membership, 0 when it did not.
  * @note Flattens the embed_bool to the same 0 or 1 accuracy_class_holds_code returns. The comparison is then
  *       between two memberships and not between two containers.
  */
-static int accuracy_module_membership(MmgrAsciiClass kind, unsigned code)
+static int accuracy_module_membership(MmgrAsciiClass type, unsigned code)
 {
     // Explicit cast narrows the sweep counter to the byte the entry takes. Every caller holds it
     // below MMGR_ACCURACY_ASCII_BYTES
-    return (EMBED_CALL(ascii.in, AsciiCfg, .kind = kind, .byte = (uint8_t)code) != EMBED_FALSE) ? 1 : 0;
+    return (EMBED_CALL(ascii.in, AsciiCfg, .type = type, .byte = (uint8_t)code) != EMBED_FALSE) ? 1 : 0;
 }
 
 /**
@@ -199,10 +199,10 @@ void tearDown(void)
  *       a number, and the header describes the same runs as characters. On a host whose
  *       execution character set is not ASCII those two descriptions part company. Every case
  *       below would then compare the module against ranges nobody meant.
- * @note Each run has a pin at both ends. A character set that moved a range and kept its size fails
+ * @note Each run has a pin at both ends. A character set that moved a range and retained its size fails
  *       here as well as one that changed the size.
- * @note The count of letters has a check against the endpoints. A set that spaced the letters out
- *       would keep 'A' at 65 and 'Z' somewhere above 90.
+ * @note The count of characters has a check against the endpoints. A set that spaced the characters out
+ *       would retain 'A' at 65 and 'Z' somewhere above 90.
  */
 void test_the_code_points_this_suite_tests_with_are_the_characters_the_header_names(void)
 {
@@ -243,8 +243,8 @@ void test_every_class_holds_exactly_the_code_points_its_declaration_names(void)
 
             (void)snprintf(message, sizeof message, "%s disagrees with its declared ranges at code point %u",
                            accuracy_class_of[row].name, code);
-            TEST_ASSERT_EQUAL_INT_MESSAGE(accuracy_class_holds_code(accuracy_class_of[row].kind, code),
-                                          accuracy_module_membership(accuracy_class_of[row].kind, code), message);
+            TEST_ASSERT_EQUAL_INT_MESSAGE(accuracy_class_holds_code(accuracy_class_of[row].type, code),
+                                          accuracy_module_membership(accuracy_class_of[row].type, code), message);
         }
     }
 }
@@ -268,7 +268,7 @@ void test_no_byte_at_or_above_the_ascii_limit_belongs_to_any_class(void)
 
             (void)snprintf(message, sizeof message, "%s claimed code point %u, which is past its coverage",
                            accuracy_class_of[row].name, code);
-            TEST_ASSERT_EQUAL_INT_MESSAGE(0, accuracy_module_membership(accuracy_class_of[row].kind, code), message);
+            TEST_ASSERT_EQUAL_INT_MESSAGE(0, accuracy_module_membership(accuracy_class_of[row].type, code), message);
         }
     }
 }
@@ -276,7 +276,7 @@ void test_no_byte_at_or_above_the_ascii_limit_belongs_to_any_class(void)
 /**
  * @brief Checks that each class holds the number of code points its runs total.
  *
- * @note A second statement about the same bitmap, and one a reader can check by hand: 26 letters in
+ * @note A second statement about the same bitmap, and one a reader can check by hand: 26 characters in
  *       a case, 10 digits, 95 printable characters. The range sweep and this count fail on different
  *       defects. A bit set at a code point the class never mentions passes every range compare
  *       written for the runs it does mention.
@@ -292,7 +292,7 @@ void test_each_class_holds_the_number_of_code_points_its_runs_add_up_to(void)
         {
             // Explicit cast takes the 0 or 1 membership up to the running total. Nothing else goes
             // in here, and so the total is the population
-            counted += (unsigned)accuracy_module_membership(accuracy_class_of[row].kind, code);
+            counted += (unsigned)accuracy_module_membership(accuracy_class_of[row].type, code);
         }
 
         char message[96];
@@ -310,10 +310,10 @@ void test_each_class_holds_the_number_of_code_points_its_runs_add_up_to(void)
  *       end is the defect a hand-built bitmap actually acquires. A case that names the character
  *       reports it as itself and not as one code point out of 2560.
  * @note Each pair is the last character outside a run and the first inside it, or the reverse at the
- *       far end. The pair '/' and '0' brackets the digits, '@' and 'A' the upper case letters, and
+ *       far end. The pair '/' and '0' brackets the digits, '@' and 'A' the upper case characters, and
  *       '`' and 'a' the lower case ones. Those are the three joins where the runs sit next to each other.
- * @note The pairs 'F' and 'G' and 'f' and 'g' bracket the hexadecimal letters. That is the one run
- *       that stops partway through a letter range and the single place a bitmap copied from its
+ * @note The pairs 'F' and 'G' and 'f' and 'g' bracket the hexadecimal characters. That is the one run
+ *       that stops partway through a character range and the single place a bitmap copied from its
  *       neighbor shows up.
  */
 void test_the_byte_on_each_side_of_every_run_falls_on_the_right_side_of_it(void)
@@ -326,22 +326,22 @@ void test_the_byte_on_each_side_of_every_run_falls_on_the_right_side_of_it(void)
     TEST_ASSERT_EQUAL_INT_MESSAGE(0, accuracy_module_membership(MMGR_ASCII_NUM, (unsigned)':'), "':' is not a digit");
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(0, accuracy_module_membership(MMGR_ASCII_UPPER, (unsigned)'@'),
-                                  "'@' is not an upper case letter");
+                                  "'@' is not an upper case character");
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, accuracy_module_membership(MMGR_ASCII_UPPER, (unsigned)'A'),
-                                  "'A' is an upper case letter");
+                                  "'A' is an upper case character");
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, accuracy_module_membership(MMGR_ASCII_UPPER, (unsigned)'Z'),
-                                  "'Z' is an upper case letter");
+                                  "'Z' is an upper case character");
     TEST_ASSERT_EQUAL_INT_MESSAGE(0, accuracy_module_membership(MMGR_ASCII_UPPER, (unsigned)'['),
-                                  "'[' is not an upper case letter");
+                                  "'[' is not an upper case character");
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(0, accuracy_module_membership(MMGR_ASCII_LOWER, (unsigned)'`'),
-                                  "'`' is not a lower case letter");
+                                  "'`' is not a lower case character");
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, accuracy_module_membership(MMGR_ASCII_LOWER, (unsigned)'a'),
-                                  "'a' is a lower case letter");
+                                  "'a' is a lower case character");
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, accuracy_module_membership(MMGR_ASCII_LOWER, (unsigned)'z'),
-                                  "'z' is a lower case letter");
+                                  "'z' is a lower case character");
     TEST_ASSERT_EQUAL_INT_MESSAGE(0, accuracy_module_membership(MMGR_ASCII_LOWER, (unsigned)'{'),
-                                  "'{' is not a lower case letter");
+                                  "'{' is not a lower case character");
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(1, accuracy_module_membership(MMGR_ASCII_HEX, (unsigned)'F'),
                                   "'F' is a hexadecimal digit");

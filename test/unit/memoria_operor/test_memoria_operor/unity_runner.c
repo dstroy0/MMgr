@@ -32,7 +32,7 @@ extern void test_chr_of_nothing_finds_nothing(void);
 extern void test_chr_finds_a_zero_byte(void);
 extern void test_set_matches_memset_at_every_length(void);
 extern void test_set_matches_memset_at_every_offset(void);
-extern void test_set_keeps_only_the_low_byte_of_its_value(void);
+extern void test_set_retains_only_the_low_byte_of_its_value(void);
 extern void test_zero_is_set_of_zero(void);
 
 
@@ -118,7 +118,7 @@ int main(void)
   run_test(test_chr_finds_a_zero_byte, "test_chr_finds_a_zero_byte", 272);
   run_test(test_set_matches_memset_at_every_length, "test_set_matches_memset_at_every_length", 279);
   run_test(test_set_matches_memset_at_every_offset, "test_set_matches_memset_at_every_offset", 290);
-  run_test(test_set_keeps_only_the_low_byte_of_its_value, "test_set_keeps_only_the_low_byte_of_its_value", 301);
+  run_test(test_set_retains_only_the_low_byte_of_its_value, "test_set_retains_only_the_low_byte_of_its_value", 301);
   run_test(test_zero_is_set_of_zero, "test_zero_is_set_of_zero", 308);
 
   return UNITY_END();

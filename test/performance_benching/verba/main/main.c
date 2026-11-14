@@ -930,7 +930,7 @@ static void bench_seat(BenchWide *w, uint64_t mant, int32_t e2, uint32_t dropped
     bench_norm(w);
 }
 
-// muto_to_u64's tie test as it stands. Round up on a half only when something remains below it or
+// muto_to_u64's tie test as it is. Round up on a half only when something remains below it or
 // the low bit says so, with above exclusive-ored in. That is ties to even at above 0.
 static uint64_t bench_to_u64_even(const BenchWide *w, uint32_t above)
 {
@@ -1745,7 +1745,7 @@ static void bench_round_report(void)
                       (unsigned)decimals, (unsigned long long)live, (unsigned long long)local_even,
                       (unsigned long long)local_up, (unsigned long long)half_up);
     }
-    // live_wrong is the shipped entry against the rule. even_wrong is the rule it replaced, kept as
+    // live_wrong is the shipped entry against the rule. even_wrong is the rule it replaced, retained as
     // the local copy so the two stay comparable. copy_disagrees is the up copy against the shipped
     // entry, and that leaves the cost rows below a comparison of the same two functions.
     DBENCH_PRINTF("DB round_check     live_wrong=%u even_wrong=%u copy_disagrees=%u\n", live_wrong, even_wrong,
@@ -1773,23 +1773,23 @@ void dbench_run(void)
             const unsigned d = wid[vi];
             const uint32_t iters = 20000u;
 
-            DBENCH_AB("count", iters, d, DBENCH_KEEP(dc_scan(v)), DBENCH_KEEP(dc_clz(v)));
+            DBENCH_AB("count", iters, d, DBENCH_RETAIN(dc_scan(v)), DBENCH_RETAIN(dc_clz(v)));
 
-            DBENCH_AB("pair", iters, d, (emit_one(g_out, v, d), DBENCH_KEEP(g_out)),
-                      (emit_pair(g_out, v, d), DBENCH_KEEP(g_out)));
+            DBENCH_AB("pair", iters, d, (emit_one(g_out, v, d), DBENCH_RETAIN(g_out)),
+                      (emit_pair(g_out, v, d), DBENCH_RETAIN(g_out)));
 
-            DBENCH_AB("recip", iters, d, (emit_one(g_out, v, d), DBENCH_KEEP(g_out)),
-                      (emit_recip(g_out, v, d), DBENCH_KEEP(g_out)));
+            DBENCH_AB("recip", iters, d, (emit_one(g_out, v, d), DBENCH_RETAIN(g_out)),
+                      (emit_recip(g_out, v, d), DBENCH_RETAIN(g_out)));
 
-            DBENCH_AB("jeaiii", iters, d, (emit_one(g_out, v, d), DBENCH_KEEP(g_out)),
-                      (emit_jeaiii(g_out, v, d), DBENCH_KEEP(g_out)));
+            DBENCH_AB("jeaiii", iters, d, (emit_one(g_out, v, d), DBENCH_RETAIN(g_out)),
+                      (emit_jeaiii(g_out, v, d), DBENCH_RETAIN(g_out)));
 
             DBENCH_AB("call", iters, d,
-                      DBENCH_KEEP(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_out, .cap = sizeof g_out,
+                      DBENCH_RETAIN(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_out, .cap = sizeof g_out,
                                              .at = 0u, .val = v, .base = 10u, .min = 1u)),
-                      DBENCH_KEEP(verba_uint_flat(g_out, v)));
+                      DBENCH_RETAIN(verba_uint_flat(g_out, v)));
 
-            DBENCH_AB("arith", iters, d, DBENCH_KEEP(was(g_out, v)), DBENCH_KEEP(verba_uint_flat(g_out, v)));
+            DBENCH_AB("arith", iters, d, DBENCH_RETAIN(was(g_out, v)), DBENCH_RETAIN(verba_uint_flat(g_out, v)));
         }
 
         {
@@ -1799,8 +1799,8 @@ void dbench_run(void)
             for (unsigned which = 0; which < 4u; which++)
             {
                 DBENCH_AB("digits", 20000u, widths[which],
-                          (digits_descending(g_out, mantissas[which], widths[which]), DBENCH_KEEP(g_out)),
-                          (digits_split(g_out, mantissas[which], widths[which]), DBENCH_KEEP(g_out)));
+                          (digits_descending(g_out, mantissas[which], widths[which]), DBENCH_RETAIN(g_out)),
+                          (digits_split(g_out, mantissas[which], widths[which]), DBENCH_RETAIN(g_out)));
             }
         }
 
@@ -1809,20 +1809,20 @@ void dbench_run(void)
             const uint32_t iters = 5000u;
 
             DBENCH_AB("s:put", iters, sizeof text - 1u,
-                      DBENCH_KEEP(EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .text = text)),
-                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%s", text)));
+                      DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%s", text)));
 
             DBENCH_AB("s:put_n", iters, sizeof text - 1u,
-                      DBENCH_KEEP(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .text = text, .text_len = sizeof text - 1u)),
-                      (memcpy(g_wide, text, sizeof text - 1u), DBENCH_KEEP(g_wide)));
+                      (memcpy(g_wide, text, sizeof text - 1u), DBENCH_RETAIN(g_wide)));
 
-            DBENCH_AB("s:uint32", iters, 10u, DBENCH_KEEP(uint_test_inside(g_wide, 4294967295ull)),
-                      DBENCH_KEEP(uint_test_outside(g_wide, 4294967295ull)));
+            DBENCH_AB("s:uint32", iters, 10u, DBENCH_RETAIN(uint_test_inside(g_wide, 4294967295ull)),
+                      DBENCH_RETAIN(uint_test_outside(g_wide, 4294967295ull)));
 
-            DBENCH_AB("s:uint64", iters, 20u, DBENCH_KEEP(uint_test_inside(g_wide, 18446744073709551615ull)),
-                      DBENCH_KEEP(uint_test_outside(g_wide, 18446744073709551615ull)));
+            DBENCH_AB("s:uint64", iters, 20u, DBENCH_RETAIN(uint_test_inside(g_wide, 18446744073709551615ull)),
+                      DBENCH_RETAIN(uint_test_outside(g_wide, 18446744073709551615ull)));
 
             {
                 BenchCopyCtx one = {.dst = (uint8_t *)g_wide, .src = (const uint8_t *)text, .bytes = g_len};
@@ -1830,272 +1830,272 @@ void dbench_run(void)
 
                 DBENCH_AB("s:words", iters, sizeof text - 1u,
                           (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len, copy_words_args(&one),
-                           DBENCH_KEEP(g_check_dst)),
+                           DBENCH_RETAIN(g_check_dst)),
                           (two.dst = g_check_dst + 64u, two.src = g_check_src + 64u, two.bytes = g_len,
-                           copy_words_locals(&two), DBENCH_KEEP(g_check_dst)));
+                           copy_words_locals(&two), DBENCH_RETAIN(g_check_dst)));
 
                 DBENCH_AB("s:counted", iters, sizeof text - 1u,
                           (one.dst = (uint8_t *)g_wide, one.src = (const uint8_t *)text, one.bytes = g_len,
-                           copy_words_args(&one), DBENCH_KEEP(g_wide)),
+                           copy_words_args(&one), DBENCH_RETAIN(g_wide)),
                           (two.dst = (uint8_t *)g_wide, two.src = (const uint8_t *)text, two.bytes = g_len,
-                           copy_words_counted(&two), DBENCH_KEEP(g_wide)));
+                           copy_words_counted(&two), DBENCH_RETAIN(g_wide)));
 
                 DBENCH_AB("s:wordsvlibc", iters, sizeof text - 1u,
                           (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len, copy_words_args(&one),
-                           DBENCH_KEEP(g_check_dst)),
-                          (memcpy(g_check_dst + 64u, g_check_src + 64u, g_len), DBENCH_KEEP(g_check_dst)));
+                           DBENCH_RETAIN(g_check_dst)),
+                          (memcpy(g_check_dst + 64u, g_check_src + 64u, g_len), DBENCH_RETAIN(g_check_dst)));
 
                 DBENCH_AB("s:words2", iters, sizeof text - 1u,
                           (one.dst = g_check_dst, one.src = g_check_src, one.bytes = g_len, copy_words_args(&one),
-                           DBENCH_KEEP(g_check_dst)),
+                           DBENCH_RETAIN(g_check_dst)),
                           (two.dst = g_check_dst + 64u, two.src = g_check_src + 64u, two.bytes = g_len,
-                           copy_words_two(&two), DBENCH_KEEP(g_check_dst)));
+                           copy_words_two(&two), DBENCH_RETAIN(g_check_dst)));
             }
 
             DBENCH_AB(
                 "s:dispatch", iters, sizeof text - 1u,
                 (EMBED_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = (const char *)g_check_src, .size = g_len),
-                 DBENCH_KEEP(g_wide)),
-                (copy_read_dispatch((uint8_t *)g_wide, g_check_src, g_len), DBENCH_KEEP(g_wide)));
+                 DBENCH_RETAIN(g_wide)),
+                (copy_read_dispatch((uint8_t *)g_wide, g_check_src, g_len), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB(
                 "s:overlap", iters, sizeof text - 1u,
-                (EMBED_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len), DBENCH_KEEP(g_wide)),
-                (copy_read_overlap((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_KEEP(g_wide)));
+                (EMBED_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len), DBENCH_RETAIN(g_wide)),
+                (copy_read_overlap((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB(
                 "s:fastpath", iters, sizeof text - 1u,
-                (EMBED_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len), DBENCH_KEEP(g_wide)),
-                (copy_read_fastpath((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_KEEP(g_wide)));
+                (EMBED_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len), DBENCH_RETAIN(g_wide)),
+                (copy_read_fastpath((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:flat", iters, sizeof text - 1u,
-                      (copy_read_flat((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_KEEP(g_wide)),
-                      (memcpy(g_wide, text, g_len), DBENCH_KEEP(g_wide)));
+                      (copy_read_flat((uint8_t *)g_wide, (const uint8_t *)text, g_len), DBENCH_RETAIN(g_wide)),
+                      (memcpy(g_wide, text, g_len), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:copy32", iters, 32u,
                       (EMBED_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len_whole),
-                       DBENCH_KEEP(g_wide)),
-                      (memcpy(g_wide, text, g_len_whole), DBENCH_KEEP(g_wide)));
+                       DBENCH_RETAIN(g_wide)),
+                      (memcpy(g_wide, text, g_len_whole), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:copy_call", iters, 32u,
                       (EMBED_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = g_len_whole),
-                       DBENCH_KEEP(g_wide)),
-                      (proxim_read_flat((uint8_t *)g_wide, (const uint8_t *)text, g_len_whole), DBENCH_KEEP(g_wide)));
+                       DBENCH_RETAIN(g_wide)),
+                      (proxim_read_flat((uint8_t *)g_wide, (const uint8_t *)text, g_len_whole), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:copy", iters, sizeof text - 1u,
                       (EMBED_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = sizeof text - 1u),
-                       DBENCH_KEEP(g_wide)),
-                      (memcpy(g_wide, text, sizeof text - 1u), DBENCH_KEEP(g_wide)));
+                       DBENCH_RETAIN(g_wide)),
+                      (memcpy(g_wide, text, sizeof text - 1u), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:put_flat", iters, sizeof text - 1u,
-                      DBENCH_KEEP(verba_put_n_flat(g_wide, text, sizeof text - 1u)),
-                      (memcpy(g_wide, text, sizeof text - 1u), DBENCH_KEEP(g_wide)));
+                      DBENCH_RETAIN(verba_put_n_flat(g_wide, text, sizeof text - 1u)),
+                      (memcpy(g_wide, text, sizeof text - 1u), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB(
                 "s:copy1", iters, 1u,
-                (EMBED_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = 1u), DBENCH_KEEP(g_wide)),
-                (memcpy(g_wide, text, 1u), DBENCH_KEEP(g_wide)));
+                (EMBED_CALL(proxim.read, ProximusCfg, .dst = g_wide, .at = text, .size = 1u), DBENCH_RETAIN(g_wide)),
+                (memcpy(g_wide, text, 1u), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:put_n1", iters, 1u,
-                      DBENCH_KEEP(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .text = text, .text_len = 1u)),
-                      (memcpy(g_wide, text, 1u), DBENCH_KEEP(g_wide)));
+                      (memcpy(g_wide, text, 1u), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:put_safe", iters, sizeof text - 1u,
-                      DBENCH_KEEP(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .text = text, .text_len = g_len)),
-                      DBENCH_KEEP(libc_put_n(g_wide, sizeof g_wide, 0u, text, g_len)));
+                      DBENCH_RETAIN(libc_put_n(g_wide, sizeof g_wide, 0u, text, g_len)));
 
             DBENCH_AB("s:put_meas", iters, sizeof text - 1u,
-                      DBENCH_KEEP(EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .text = g_text)),
-                      (memcpy(g_wide, g_text, strlen(g_text)), DBENCH_KEEP(g_wide)));
+                      (memcpy(g_wide, g_text, strlen(g_text)), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:put_run", iters, sizeof text - 1u,
-                      DBENCH_KEEP(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .text = text, .text_len = g_len)),
-                      (memcpy(g_wide, text, g_len), DBENCH_KEEP(g_wide)));
+                      (memcpy(g_wide, text, g_len), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:ch", iters, 1u,
-                      DBENCH_KEEP(EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .ch = 'x')),
-                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%c", 'x')));
+                      DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%c", 'x')));
 
             DBENCH_AB("s:u32", iters, 10u,
-                      DBENCH_KEEP(EMBED_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .val = 4294967295u)),
-                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%u", 4294967295u)));
+                      DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%u", 4294967295u)));
 
             DBENCH_AB(
                 "s:u64clip", iters, 20u,
-                DBENCH_KEEP(EMBED_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                DBENCH_RETAIN(EMBED_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
                                        .at = 0u, .val = 18446744073709551615ull, .columns = 24u)),
-                DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%24llu", 18446744073709551615ull)));
+                DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%24llu", 18446744073709551615ull)));
 
             DBENCH_AB("s:u64", iters, 20u,
-                      DBENCH_KEEP(EMBED_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .val = 18446744073709551615ull)),
-                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%llu", 18446744073709551615ull)));
+                      DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%llu", 18446744073709551615ull)));
 
             DBENCH_AB("s:i64", iters, 19u,
-                      DBENCH_KEEP(EMBED_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .sval = -9223372036854775807ll)),
-                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%lld", -9223372036854775807ll)));
+                      DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%lld", -9223372036854775807ll)));
 
             DBENCH_AB("s:hex", iters, 8u,
-                      DBENCH_KEEP(EMBED_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .val = 0xDEADBEEFu)),
-                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%x", 0xDEADBEEFu)));
+                      DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%x", 0xDEADBEEFu)));
 
             DBENCH_AB("s:g", iters, 17u,
-                      DBENCH_KEEP(EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .real = 3.14159265358979, .sig = 17u)),
-                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%.*g", 17, 3.14159265358979)));
+                      DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%.*g", 17, 3.14159265358979)));
 
             DBENCH_AB("s:fixed", iters, 6u,
-                      DBENCH_KEEP(EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .real = 3.14159265358979, .decimals = 6u)),
-                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "%.*f", 6, 3.14159265358979)));
+                      DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%.*f", 6, 3.14159265358979)));
 
             DBENCH_OP("f:whole", iters,
-                      DBENCH_KEEP(EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .real = g_rec_real2, .decimals = 6u)));
 
             DBENCH_OP("f:ip", iters,
-                      DBENCH_KEEP(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .val = g_fix_ip, .base = 10u, .min = 1u)));
 
             DBENCH_OP("f:frac", iters,
-                      DBENCH_KEEP(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .val = g_fix_frac, .base = 10u, .min = 6u)));
 
             DBENCH_OP("f:point", iters,
-                      DBENCH_KEEP(EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .ch = '.')));
 
             DBENCH_OP(
                 "f:scale", iters,
-                DBENCH_KEEP(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 6)));
+                DBENCH_RETAIN(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 6)));
 
             DBENCH_OP("g:whole", iters,
-                      DBENCH_KEEP(EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .real = g_rec_real2, .sig = 17u)));
 
-            DBENCH_OP("g:strip", iters, DBENCH_KEEP((g_g_mant % 10u) == 0u));
+            DBENCH_OP("g:strip", iters, DBENCH_RETAIN((g_g_mant % 10u) == 0u));
 
-            DBENCH_AB("g:strip_pi", iters, 17u, DBENCH_KEEP(strip_loop(g_g_mant, 17u)),
-                      DBENCH_KEEP(strip_pow(g_g_mant, 17u)));
+            DBENCH_AB("g:strip_pi", iters, 17u, DBENCH_RETAIN(strip_loop(g_g_mant, 17u)),
+                      DBENCH_RETAIN(strip_pow(g_g_mant, 17u)));
 
-            DBENCH_AB("g:strip_rnd", iters, 17u, DBENCH_KEEP(strip_loop(g_g_round, 17u)),
-                      DBENCH_KEEP(strip_pow(g_g_round, 17u)));
+            DBENCH_AB("g:strip_rnd", iters, 17u, DBENCH_RETAIN(strip_loop(g_g_round, 17u)),
+                      DBENCH_RETAIN(strip_pow(g_g_round, 17u)));
 
-            DBENCH_AB("g:strip_one_pi", iters, 17u, DBENCH_KEEP(strip_loop(g_g_mant, 17u)),
-                      DBENCH_KEEP(strip_once(g_g_mant, 17u)));
+            DBENCH_AB("g:strip_one_pi", iters, 17u, DBENCH_RETAIN(strip_loop(g_g_mant, 17u)),
+                      DBENCH_RETAIN(strip_once(g_g_mant, 17u)));
 
-            DBENCH_AB("g:strip_one_rnd", iters, 17u, DBENCH_KEEP(strip_loop(g_g_round, 17u)),
-                      DBENCH_KEEP(strip_once(g_g_round, 17u)));
+            DBENCH_AB("g:strip_one_rnd", iters, 17u, DBENCH_RETAIN(strip_loop(g_g_round, 17u)),
+                      DBENCH_RETAIN(strip_once(g_g_round, 17u)));
 
-            DBENCH_AB("g:strip_rec_pi", iters, 17u, DBENCH_KEEP(strip_loop(g_g_mant, 17u)),
-                      DBENCH_KEEP(strip_recip(g_g_mant, 17u)));
+            DBENCH_AB("g:strip_rec_pi", iters, 17u, DBENCH_RETAIN(strip_loop(g_g_mant, 17u)),
+                      DBENCH_RETAIN(strip_recip(g_g_mant, 17u)));
 
-            DBENCH_AB("g:strip_rec_rnd", iters, 17u, DBENCH_KEEP(strip_loop(g_g_round, 17u)),
-                      DBENCH_KEEP(strip_recip(g_g_round, 17u)));
+            DBENCH_AB("g:strip_rec_rnd", iters, 17u, DBENCH_RETAIN(strip_loop(g_g_round, 17u)),
+                      DBENCH_RETAIN(strip_recip(g_g_round, 17u)));
 
             DBENCH_OP("g:small", iters,
-                      DBENCH_KEEP(EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .real = g_rec_small, .sig = 17u)));
 
             DBENCH_OP("g:digits", iters,
-                      DBENCH_KEEP(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .at = 0u, .val = g_g_mant, .base = 10u, .min = 17u)));
 
-            DBENCH_OP("g:emit", iters, (emit20(g_wide, g_g_mant, 17u), DBENCH_KEEP(g_wide)));
+            DBENCH_OP("g:emit", iters, (emit20(g_wide, g_g_mant, 17u), DBENCH_RETAIN(g_wide)));
 
-            DBENCH_OP("g:cut", iters, DBENCH_KEEP(g_g_mant / POW10_64[8]));
+            DBENCH_OP("g:cut", iters, DBENCH_RETAIN(g_g_mant / POW10_64[8]));
 
-            DBENCH_AB("g:cut_magic", iters, 8u, DBENCH_KEEP(g_g_mant / POW10_64[8]), DBENCH_KEEP(cut_magic(g_g_mant)));
+            DBENCH_AB("g:cut_magic", iters, 8u, DBENCH_RETAIN(g_g_mant / POW10_64[8]), DBENCH_RETAIN(cut_magic(g_g_mant)));
 
             DBENCH_OP(
                 "f:pow_zero", iters,
-                DBENCH_KEEP(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_zero, .e2 = -51, .ex = 6)));
+                DBENCH_RETAIN(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_zero, .e2 = -51, .ex = 6)));
 
             DBENCH_OP(
                 "f:pow0", iters,
-                DBENCH_KEEP(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 0)));
+                DBENCH_RETAIN(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 0)));
 
             DBENCH_OP(
                 "f:pow1", iters,
-                DBENCH_KEEP(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 1)));
+                DBENCH_RETAIN(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 1)));
 
             DBENCH_OP(
                 "f:pow3", iters,
-                DBENCH_KEEP(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 3)));
+                DBENCH_RETAIN(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 3)));
 
             DBENCH_OP(
                 "f:pow7", iters,
-                DBENCH_KEEP(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 7)));
+                DBENCH_RETAIN(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 7)));
 
             DBENCH_OP(
                 "f:scale_neg", iters,
-                DBENCH_KEEP(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = -4)));
+                DBENCH_RETAIN(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = -4)));
 
             DBENCH_OP(
                 "f:scale20", iters,
-                DBENCH_KEEP(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 20)));
+                DBENCH_RETAIN(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = 20)));
 
             DBENCH_OP(
                 "f:scale_neg13", iters,
-                DBENCH_KEEP(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = -13)));
+                DBENCH_RETAIN(EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = &g_fix_rem, .e2 = -51, .ex = -13)));
 
             bench_tie_load(g_tie_half, 0u);
-            DBENCH_AB("f:tie0", iters, 8u, DBENCH_KEEP(bench_tie_even()), DBENCH_KEEP(bench_tie_up()));
+            DBENCH_AB("f:tie0", iters, 8u, DBENCH_RETAIN(bench_tie_even()), DBENCH_RETAIN(bench_tie_up()));
 
             bench_tie_load(g_tie_eighth, 2u);
-            DBENCH_AB("f:tie2", iters, 8u, DBENCH_KEEP(bench_tie_even()), DBENCH_KEEP(bench_tie_up()));
+            DBENCH_AB("f:tie2", iters, 8u, DBENCH_RETAIN(bench_tie_even()), DBENCH_RETAIN(bench_tie_up()));
 
             bench_tie_load(g_tie_pi, 6u);
-            DBENCH_AB("f:tie6", iters, 8u, DBENCH_KEEP(bench_tie_even()), DBENCH_KEEP(bench_tie_up()));
+            DBENCH_AB("f:tie6", iters, 8u, DBENCH_RETAIN(bench_tie_even()), DBENCH_RETAIN(bench_tie_up()));
 
-            DBENCH_AB("f:mul", iters, 8u, (bench_mul_wide(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)),
-                      (bench_mul_narrow(g_mul_a, g_mul_b, &g_mul_out), DBENCH_KEEP(g_mul_out.hi)));
+            DBENCH_AB("f:mul", iters, 8u, (bench_mul_wide(g_mul_a, g_mul_b, &g_mul_out), DBENCH_RETAIN(g_mul_out.hi)),
+                      (bench_mul_narrow(g_mul_a, g_mul_b, &g_mul_out), DBENCH_RETAIN(g_mul_out.hi)));
 
             DBENCH_AB("f:walk20", iters, 8u,
                       (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
-                       bench_walk_fixed(&g_wide_a, 20), DBENCH_KEEP(g_wide_a.hi)),
+                       bench_walk_fixed(&g_wide_a, 20), DBENCH_RETAIN(g_wide_a.hi)),
                       (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
-                       bench_walk_exact(&g_wide_b, 20), DBENCH_KEEP(g_wide_b.hi)));
+                       bench_walk_exact(&g_wide_b, 20), DBENCH_RETAIN(g_wide_b.hi)));
 
             DBENCH_AB("f:walk40", iters, 8u,
                       (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
-                       bench_walk_fixed(&g_wide_a, 40), DBENCH_KEEP(g_wide_a.hi)),
+                       bench_walk_fixed(&g_wide_a, 40), DBENCH_RETAIN(g_wide_a.hi)),
                       (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
-                       bench_walk_exact(&g_wide_b, 40), DBENCH_KEEP(g_wide_b.hi)));
+                       bench_walk_exact(&g_wide_b, 40), DBENCH_RETAIN(g_wide_b.hi)));
 
             DBENCH_AB("f:walk0", iters, 8u,
                       (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
-                       bench_walk_fixed(&g_wide_a, 0), DBENCH_KEEP(g_wide_a.hi)),
+                       bench_walk_fixed(&g_wide_a, 0), DBENCH_RETAIN(g_wide_a.hi)),
                       (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
-                       bench_walk_early(&g_wide_b, 0), DBENCH_KEEP(g_wide_b.hi)));
+                       bench_walk_early(&g_wide_b, 0), DBENCH_RETAIN(g_wide_b.hi)));
 
             DBENCH_AB("f:walkneg1", iters, 8u,
                       (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
-                       bench_walk_fixed(&g_wide_a, -1), DBENCH_KEEP(g_wide_a.hi)),
+                       bench_walk_fixed(&g_wide_a, -1), DBENCH_RETAIN(g_wide_a.hi)),
                       (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
-                       bench_walk_early(&g_wide_b, -1), DBENCH_KEEP(g_wide_b.hi)));
+                       bench_walk_early(&g_wide_b, -1), DBENCH_RETAIN(g_wide_b.hi)));
 
             DBENCH_AB("f:walkneg7", iters, 8u,
                       (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
-                       bench_walk_fixed(&g_wide_a, -7), DBENCH_KEEP(g_wide_a.hi)),
+                       bench_walk_fixed(&g_wide_a, -7), DBENCH_RETAIN(g_wide_a.hi)),
                       (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
-                       bench_walk_early(&g_wide_b, -7), DBENCH_KEEP(g_wide_b.hi)));
+                       bench_walk_early(&g_wide_b, -7), DBENCH_RETAIN(g_wide_b.hi)));
 
             DBENCH_AB("f:pow_shape", iters, 8u,
                       (g_wide_a.hi = g_mul_a, g_wide_a.lo = 0u, g_wide_a.fe2 = -51, g_wide_a.rest = 0u,
                        bench_pow_128(&g_wide_a, mmgr_pow5_up[1].hi, mmgr_pow5_up[1].lo, (int32_t)mmgr_pow5_up[1].e2),
                        bench_pow_128(&g_wide_a, mmgr_pow5_up[2].hi, mmgr_pow5_up[2].lo, (int32_t)mmgr_pow5_up[2].e2),
-                       DBENCH_KEEP(g_wide_a.hi)),
+                       DBENCH_RETAIN(g_wide_a.hi)),
                       (g_wide_b.hi = g_mul_a, g_wide_b.lo = 0u, g_wide_b.fe2 = -51, g_wide_b.rest = 0u,
-                       bench_pow_64(&g_wide_b, g_pow_ten), DBENCH_KEEP(g_wide_b.hi)));
+                       bench_pow_64(&g_wide_b, g_pow_ten), DBENCH_RETAIN(g_wide_b.hi)));
         }
 
         {
@@ -2103,9 +2103,9 @@ void dbench_run(void)
                                         MMGR_VHEXW(g_rec_hex, 8), MMGR_VSTR(" f="),     MMGR_VFIXW(g_rec_real, 4)};
 
             DBENCH_AB("s:record", 2000u, 34u,
-                      DBENCH_KEEP(EMBED_CALL(numer.emit, NumerosCfg, .out = g_wide, .cap = sizeof g_wide,
+                      DBENCH_RETAIN(EMBED_CALL(numer.emit, NumerosCfg, .out = g_wide, .cap = sizeof g_wide,
                                              .vals = fields, .nvals = sizeof fields / sizeof fields[0])),
-                      DBENCH_KEEP(snprintf(g_wide, sizeof g_wide, "id=%llu x=%08lx f=%.4f",
+                      DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "id=%llu x=%08lx f=%.4f",
                                            (unsigned long long)g_rec_u64, (unsigned long)g_rec_hex, g_rec_real)));
         }
 
@@ -2119,80 +2119,80 @@ void dbench_run(void)
                 g_zero_n = runs[which];
 
                 DBENCH_AB("s:z_fill", iters, (unsigned)runs[which],
-                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
-                          DBENCH_KEEP(zeros_one_test(g_wide, sizeof g_wide, 0u, g_zero_n)));
+                          DBENCH_RETAIN(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_RETAIN(zeros_one_test(g_wide, sizeof g_wide, 0u, g_zero_n)));
 
                 DBENCH_AB("s:z_test", iters, (unsigned)runs[which],
-                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
-                          DBENCH_KEEP(zeros_one_test_noopt(g_wide, sizeof g_wide, 0u, g_zero_n)));
+                          DBENCH_RETAIN(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_RETAIN(zeros_one_test_noopt(g_wide, sizeof g_wide, 0u, g_zero_n)));
 
                 DBENCH_AB("s:z_memor", iters, (unsigned)runs[which],
-                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
-                          DBENCH_KEEP(zeros_memor_set(g_wide, sizeof g_wide, 0u, g_zero_n)));
+                          DBENCH_RETAIN(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_RETAIN(zeros_memor_set(g_wide, sizeof g_wide, 0u, g_zero_n)));
 
                 DBENCH_AB("s:z_hybrid", iters, (unsigned)runs[which],
-                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
-                          DBENCH_KEEP(zeros_hybrid(g_wide, sizeof g_wide, 0u, g_zero_n)));
+                          DBENCH_RETAIN(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_RETAIN(zeros_hybrid(g_wide, sizeof g_wide, 0u, g_zero_n)));
 
                 DBENCH_AB("s:z_built", iters, (unsigned)runs[which],
-                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
-                          DBENCH_KEEP(zeros_built(g_wide, sizeof g_wide, 0u, g_zero_n)));
+                          DBENCH_RETAIN(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_RETAIN(zeros_built(g_wide, sizeof g_wide, 0u, g_zero_n)));
 
                 DBENCH_AB("s:z_proxim", iters, (unsigned)runs[which],
-                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
-                          DBENCH_KEEP(zeros_proxim(g_wide, sizeof g_wide, 0u, g_zero_n)));
+                          DBENCH_RETAIN(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_RETAIN(zeros_proxim(g_wide, sizeof g_wide, 0u, g_zero_n)));
 
                 DBENCH_AB("s:z_align", iters, (unsigned)runs[which],
-                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
-                          DBENCH_KEEP(zeros_aligned_fill(g_wide, sizeof g_wide, 0u, g_zero_n)));
+                          DBENCH_RETAIN(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_RETAIN(zeros_aligned_fill(g_wide, sizeof g_wide, 0u, g_zero_n)));
 
                 DBENCH_AB("s:z_plain", iters, (unsigned)runs[which],
-                          DBENCH_KEEP(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
-                          DBENCH_KEEP(zeros_plain(g_wide, sizeof g_wide, 0u, g_zero_n)));
+                          DBENCH_RETAIN(zeros_per_byte(g_wide, sizeof g_wide, 0u, g_zero_n)),
+                          DBENCH_RETAIN(zeros_plain(g_wide, sizeof g_wide, 0u, g_zero_n)));
             }
 
             {
-                static const char laid[24] = "31415926535897932384";
+                static const char positioned[24] = "31415926535897932384";
 
                 DBENCH_AB("s:d_point", iters, 17u,
-                          DBENCH_KEEP(digits_per_char(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)),
-                          DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)));
+                          DBENCH_RETAIN(digits_per_char(g_wide, sizeof g_wide, 0u, positioned, 17u, 1u)),
+                          DBENCH_RETAIN(digits_one_test(g_wide, sizeof g_wide, 0u, positioned, 17u, 1u)));
 
-                DBENCH_AB("s:d_plain", iters, 6u, DBENCH_KEEP(digits_per_char(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)),
-                          DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)));
+                DBENCH_AB("s:d_plain", iters, 6u, DBENCH_RETAIN(digits_per_char(g_wide, sizeof g_wide, 0u, positioned, 6u, 0u)),
+                          DBENCH_RETAIN(digits_one_test(g_wide, sizeof g_wide, 0u, positioned, 6u, 0u)));
 
                 DBENCH_AB("s:d_runs", iters, 17u,
-                          DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)),
-                          DBENCH_KEEP(digits_two_runs(g_wide, sizeof g_wide, 0u, laid, 17u, 1u)));
+                          DBENCH_RETAIN(digits_one_test(g_wide, sizeof g_wide, 0u, positioned, 17u, 1u)),
+                          DBENCH_RETAIN(digits_two_runs(g_wide, sizeof g_wide, 0u, positioned, 17u, 1u)));
 
-                DBENCH_AB("s:d_runs6", iters, 6u, DBENCH_KEEP(digits_one_test(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)),
-                          DBENCH_KEEP(digits_two_runs(g_wide, sizeof g_wide, 0u, laid, 6u, 0u)));
+                DBENCH_AB("s:d_runs6", iters, 6u, DBENCH_RETAIN(digits_one_test(g_wide, sizeof g_wide, 0u, positioned, 6u, 0u)),
+                          DBENCH_RETAIN(digits_two_runs(g_wide, sizeof g_wide, 0u, positioned, 6u, 0u)));
 
                 DBENCH_AB("s:d_ip_exp", iters, 17u,
-                          DBENCH_KEEP(digits_scratch(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 1u)),
-                          DBENCH_KEEP(digits_inplace(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 1u)));
+                          DBENCH_RETAIN(digits_scratch(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 1u)),
+                          DBENCH_RETAIN(digits_inplace(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 1u)));
 
                 DBENCH_AB("s:d_ip_mid", iters, 17u,
-                          DBENCH_KEEP(digits_scratch(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 9u)),
-                          DBENCH_KEEP(digits_inplace(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 9u)));
+                          DBENCH_RETAIN(digits_scratch(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 9u)),
+                          DBENCH_RETAIN(digits_inplace(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 9u)));
 
                 DBENCH_AB("s:d_ip_none", iters, 17u,
-                          DBENCH_KEEP(digits_scratch(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 0u)),
-                          DBENCH_KEEP(digits_inplace(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 0u)));
+                          DBENCH_RETAIN(digits_scratch(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 0u)),
+                          DBENCH_RETAIN(digits_inplace(g_wide, sizeof g_wide, 0u, g_g_mant, 17u, 0u)));
             }
 
             DBENCH_AB("s:sign", iters, 8u,
-                      DBENCH_KEEP(EMBED_CALL(fract.sign, FractioCfg, .bits = (embed_u64)g_rec_bits)),
-                      DBENCH_KEEP(signbit(g_rec_real) ? 1 : 0));
+                      DBENCH_RETAIN(EMBED_CALL(fract.sign, FractioCfg, .bits = (embed_u64)g_rec_bits)),
+                      DBENCH_RETAIN(signbit(g_rec_real) ? 1 : 0));
 
-            DBENCH_AB("s:exp", iters, 8u, DBENCH_KEEP(EMBED_CALL(fract.exp, FractioCfg, .bits = (embed_u64)g_rec_bits)),
-                      DBENCH_KEEP(frexp_exponent(g_rec_real)));
+            DBENCH_AB("s:exp", iters, 8u, DBENCH_RETAIN(EMBED_CALL(fract.exp, FractioCfg, .bits = (embed_u64)g_rec_bits)),
+                      DBENCH_RETAIN(frexp_exponent(g_rec_real)));
 
-            DBENCH_AB("s:to_bits", iters, 8u, DBENCH_KEEP(EMBED_CALL(fract.to_bits, FractioCfg, .val = g_rec_real)),
-                      DBENCH_KEEP(bits_via_memcpy(g_rec_real)));
+            DBENCH_AB("s:to_bits", iters, 8u, DBENCH_RETAIN(EMBED_CALL(fract.to_bits, FractioCfg, .val = g_rec_real)),
+                      DBENCH_RETAIN(bits_via_memcpy(g_rec_real)));
         }
 
-        DBENCH_OP("floor_loop", 20000u, DBENCH_KEEP(g_out));
+        DBENCH_OP("floor_loop", 20000u, DBENCH_RETAIN(g_out));
 
         DBENCH_DONE();
     }

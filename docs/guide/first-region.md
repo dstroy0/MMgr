@@ -21,7 +21,7 @@ initialized data, nothing runs at startup, and a cellblock's first byte is the a
 it was declared over, which the linker resolves.
 
 A cellblock is reached by the name of its pool, and `prison.work` is the cellblock over `work`. Pool
-names stand for one region each, and no two cellblocks anywhere in a translation unit can
+names are for one region each, and no two cellblocks anywhere in a translation unit can
 share a name.
 
 `MMGR_MINIMUM_SECURITY` and `MMGR_MAXIMUM_SECURITY` pick which guards hold a cellblock, and the

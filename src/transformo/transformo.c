@@ -114,7 +114,7 @@ EMBED_INLINE void muto_mul(MutoCtx *args)
     const embed_u64 p11 = (embed_u64)left_hi * right_hi;
     // Explicit casts take the low half of the two middle partial products, the part this column
     // holds. Their high halves go into phi below. The leading embed_u64 term carries the sum at 64
-    // bits, and so mid keeps its own carry and does not drop it
+    // bits, and so mid retains its own carry and does not drop it
     const embed_u64 mid = (p00 >> 32) + (uint32_t)p01 + (uint32_t)p10;
 
     args->plo = (embed_u64)(uint32_t)p00 | (mid << 32);
@@ -154,7 +154,7 @@ EMBED_INLINE void muto_norm(MutoCtx *args)
 }
 
 /**
- * @brief Multiplies the 128-bit significand by args->pow, keeps the top 128 bits, then renormalizes.
+ * @brief Multiplies the 128-bit significand by args->pow, retains the top 128 bits, then renormalizes.
  *
  * @param[in,out] args The significand, its exponent, and the pow5 entry to apply [BORROWS].
  * @note Builds the 256-bit product from four 64-bit multiplies, then adds the columns with their carries.
@@ -341,7 +341,7 @@ EMBED_INLINE void muto_apply_pow10(MutoCtx *args)
 
     embed_iword step = 0;
 
-    // Two bounds. The step count keeps an exponent past the tables from a read off the end. The
+    // Two bounds. The step count retains an exponent past the tables from a read off the end. The
     // emptied magnitude ends the walk once no bits remain to apply
     while ((step < MMGR_POW5_STEPS) && (magnitude != 0))
     {

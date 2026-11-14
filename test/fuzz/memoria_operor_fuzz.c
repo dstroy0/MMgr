@@ -43,8 +43,8 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         const uint8_t op = fuzz_byte(&input);
         const size_t from = fuzz_below(&input, FUZZ_BYTES);
         const size_t to = fuzz_below(&input, FUZZ_BYTES);
-        const size_t most = FUZZ_BYTES - ((from > to) ? from : to);
-        const size_t bytes = fuzz_below(&input, most + 1u);
+        const size_t max = FUZZ_BYTES - ((from > to) ? from : to);
+        const size_t bytes = fuzz_below(&input, max + 1u);
         const uint8_t val = fuzz_byte(&input);
 
         filled(&input, s_area);

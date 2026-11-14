@@ -6,13 +6,13 @@
 
 #if defined(__GNUC__) || defined(__clang__)
 
-#define BENCH_KEEP(v) __asm__ __volatile__("" : : "r,m"(v) : "memory")
+#define BENCH_RETAIN(v) __asm__ __volatile__("" : : "r,m"(v) : "memory")
 
 #define BENCH_CLOBBER() __asm__ __volatile__("" : : : "memory")
 #else
 
 extern volatile uint64_t mmgr_bench_sink;
-#define BENCH_KEEP(v) (mmgr_bench_sink = (uint64_t)(v))
+#define BENCH_RETAIN(v) (mmgr_bench_sink = (uint64_t)(v))
 #define BENCH_CLOBBER() ((void)0)
 #endif
 

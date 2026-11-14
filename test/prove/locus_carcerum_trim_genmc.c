@@ -7,7 +7,7 @@
 /**
  * @file locus_carcerum_trim_genmc.c
  * @brief The two cells at the temporary top given by two threads at once, every execution the memory model allows.
- *        Once both threads join, the top stands at the cellblock's end and nothing remains owed.
+ *        Once both threads join, the top is at the cellblock's end and nothing remains owed.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
  *

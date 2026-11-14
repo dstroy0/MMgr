@@ -1,7 +1,7 @@
 # How failure is reported {#ref_error_handling}
 
 There are no error codes anywhere in this library. There are four mechanisms, and which one applies
-is decided by what kind of thing failed.
+is decided by what type of thing failed.
 
 ## 1. NULL, from a take that will not fit
 
@@ -28,7 +28,7 @@ you. Those are policed by `MMGR_ASSERT`, which **compiles to nothing by default*
 #define MMGR_ASSERT(cond, msg) ((void)sizeof((cond) ? 1 : 0), (void)0)
 ```
 
-The `sizeof` keeps the expression type-checked so it cannot rot, and then discards it. A shipping
+The `sizeof` retains the expression type-checked so it cannot rot, and then discards it. A shipping
 build pays nothing.
 
 Set `MMGR_DEBUG_CHECKS=1` and `test/support/mmgr_host_traps.h` supplies the other form instead: a
@@ -46,13 +46,13 @@ Define `MMGR_ASSERT` yourself before including the header and neither form is us
 
 ### Where a span's flags fit
 
-A span does carry an `overflow` and a read span an `err`, and the two do not mean the same kind of
+A span does carry an `overflow` and a read span an `err`, and the two do not mean the same type of
 thing.
 
 `overflow` belongs to mechanism 4. What a writer emits and how big its buffer is are both settled
 before the build. A correct writer cannot overrun a correctly sized span: the append asserts. The
 flag settles what a **shipping** build does with a wrong program: the first bad append stores
-nothing, latches, and every append after it is a no-op. A writer that was built wrong is kept off the
+nothing, latches, and every append after it is a no-op. A writer that was built wrong is retained off the
 end of the buffer and never walks down it. Read it to find out something is broken, never to decide
 what to do next.
 

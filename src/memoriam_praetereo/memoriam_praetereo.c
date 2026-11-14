@@ -105,7 +105,7 @@ EMBED_WEAK void EMBED_WEAK_NAME(mmgr_praet_hw_poll)(const PraetCfg *args)
 }
 
 /**
- * @brief Checks the channel and the callback, then hands the request to the port layer.
+ * @brief Checks the channel and the callback, then passes the request to the port layer.
  *
  * @param[in] args Channel, peripheral, loopback flag and completion callback [BORROWS].
  * @return         Whatever mmgr_praet_hw_open returns.
@@ -121,7 +121,7 @@ EMBED_INLINE embed_bool praet_open(const PraetOpenCtx *args)
 }
 
 /**
- * @brief Checks the channel, then hands the transfer to the port layer.
+ * @brief Checks the channel, then passes the transfer to the port layer.
  *
  * @param[in] args Channel, buffer and byte count [BORROWS].
  * @return         Whatever mmgr_praet_hw_tx_submit returns.
@@ -194,7 +194,7 @@ PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = args->channe
  * @brief Calls the port layer's poll hook.
  *
  * @param[in] args Channel to poll [BORROWS].
- * @note Hand-rolled, as mmgr_anular_init is, with no entry line. It hands args to the weak hook
+ * @note Hand-rolled, as mmgr_anular_init is, with no entry line. It passes args to the weak hook
  *       unchanged, with no check call in between. So there is no argument pack to build and no
  *       praet_ backend for EMBED_ENTRY to name.
  * @note Documented at the declaration in memoriam_praetereo.h.

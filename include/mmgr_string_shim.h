@@ -169,7 +169,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces memcmp with mmgr_shim_cmp.
  *
- * @note Keeps the ordering the standard requires. The sign follows the first byte pair that differs.
+ * @note Retains the ordering the standard requires. The sign follows the first byte pair that differs.
  */
 #define memcmp(left, right, bytes) mmgr_shim_cmp((left), (right), (bytes))
 
@@ -184,7 +184,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces strlen with a scan bounded at MMGR_STR_MAX.
  *
- * @return Bytes before the terminator, at most MMGR_STR_MAX.
+ * @return Bytes before the terminator, at max MMGR_STR_MAX.
  * @warning Returns MMGR_STR_MAX when no terminator appears within it, and scans no further.
  * @warning text must be readable until its terminator, or for MMGR_STR_MAX bytes when it has none,
  *          with the tail word read whole as mmgr_cellul_len describes.
@@ -194,7 +194,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
 /**
  * @brief Replaces strnlen with a scan bounded at limit.
  *
- * @return Bytes before the terminator, at most limit.
+ * @return Bytes before the terminator, at max limit.
  * @note Returns limit when no terminator appears within it, as strnlen does.
  * @warning text must be readable until its terminator, or for limit bytes when it has none, with the
  *          tail word read whole as mmgr_cellul_len describes.
@@ -249,7 +249,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
     (!EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = (left), .other = (right), .cap = MMGR_STR_MAX, .ci = EMBED_TRUE))
 
 /**
- * @brief Replaces strncmp with an equality test over at most limit bytes.
+ * @brief Replaces strncmp with an equality test over at max limit bytes.
  *
  * @return 0 when left and right agree through limit bytes, 1 when they differ before it.
  * @warning Never negative and never above 1: it cannot order strings.
@@ -262,7 +262,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
      (limit))
 
 /**
- * @brief Replaces strncasecmp with a case-folded equality test over at most limit bytes.
+ * @brief Replaces strncasecmp with a case-folded equality test over at max limit bytes.
  *
  * @return 0 when left and right agree through limit bytes whatever the case, 1 when they differ before it.
  * @warning Never negative and never above 1: it cannot order strings.

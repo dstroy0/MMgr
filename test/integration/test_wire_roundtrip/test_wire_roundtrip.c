@@ -187,7 +187,7 @@ void test_a_length_prefixed_string_round_trips(void)
     TEST_ASSERT_EQUAL_size_t(5u, slen);
     TEST_ASSERT_EQUAL_INT(0, EMBED_CALL(memor.cmp, MemoriaCfg, .src = s, .other = "hello", .bytes = (size_t)5));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(9u, (size_t)(s - mem) + slen,
-                                     "the address handed back is the position: base plus offset, plus the run");
+                                     "the address passed back is the position: base plus offset, plus the run");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(9u, r.pos, "the cursor moved past the length and its run together");
 }
 

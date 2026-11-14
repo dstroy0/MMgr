@@ -41,7 +41,7 @@ EMBED_BEGIN_DECLS
  * @note The expansion is a plain int constant expression, which widens to the embed_iword that carries
  *       an exponent wherever the two compare.
  * @warning muto_scale bounds against this and returns infinity above it and zero below its negative;
- *          muto_scale_to_u64 does not. What keeps either off the end of the tables is the walk itself,
+ *          muto_scale_to_u64 does not. What retains either off the end of the tables is the walk itself,
  *          which takes only MMGR_POW5_STEPS steps. An exponent past this loses its higher bits.
  */
 #define MMGR_POW5_MAX ((1 << MMGR_POW5_STEPS) - 1)
@@ -67,7 +67,7 @@ typedef struct
  *       come truncated toward zero and read a little low.
  * @note Every significand literal carries ULL to match the embed_u64 that holds it. Each e2 is a bare int
  *       that converts to embed_iword.
- * @note static const at header scope, and each translation unit gets its own copy. EMBED_UNUSED keeps a unit
+ * @note static const at header scope, and each translation unit gets its own copy. EMBED_UNUSED retains a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
  * @warning transformo settles a positive exponent from its exact powers of ten and returns before the walk.
  *          The only exponent that reaches this table there is zero, which sets no bit.
@@ -90,7 +90,7 @@ static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
  *       the C repeated, not the 0xCCCD... that a round to nearest would give.
  * @note Every significand literal carries ULL to match the embed_u64 that holds it. Each e2 is a bare int
  *       that converts to embed_iword.
- * @note static const at header scope, and each translation unit gets its own copy. EMBED_UNUSED keeps a unit
+ * @note static const at header scope, and each translation unit gets its own copy. EMBED_UNUSED retains a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
  */
 static const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {

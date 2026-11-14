@@ -18,12 +18,12 @@
 static volatile uint8_t g_scrut_threshold = 0x7Au;
 
 /**
- * @brief Word the letter test arms take, read out of a volatile.
+ * @brief Word the character test arms take, read out of a volatile.
  *
  * @note Volatile so the optimizer cannot lift the whole test out of the timing loop. Both arms take the word
  *      , alone, and a loop invariant one would let the optimizer compute each result once
  *       and measure an empty loop.
- * @note The lanes alternate a letter with a byte at or above 0x80, the shape the two arms
+ * @note The lanes alternate a character with a byte at or above 0x80, the shape the two arms
  *       disagree about.
  */
 static volatile embed_word g_scrut_word = (embed_word)0xFF7AFF7Aul;
@@ -101,10 +101,10 @@ static inline embed_word bench_le_mask_high(embed_word word, uint8_t byte)
 }
 
 /**
- * @brief The letter test the module ships.
+ * @brief The character test the module ships.
  *
  * @param[in] word Lanes to test.
- * @return         A lane mask with the lanes that carry an ASCII letter.
+ * @return         A lane mask with the lanes that carry an ASCII character.
  * @note The same operations scrut_alpha performs, copied so both arms sit in this translation unit.
  */
 static inline embed_word bench_alpha_current(embed_word word)
@@ -115,14 +115,14 @@ static inline embed_word bench_alpha_current(embed_word word)
 }
 
 /**
- * @brief The same letter test with the lanes narrowed to seven bits before the range compares.
+ * @brief The same character test with the lanes narrowed to seven bits before the range compares.
  *
  * @param[in] word Lanes to test.
- * @return         A lane mask with the lanes that carry an ASCII letter.
+ * @return         A lane mask with the lanes that carry an ASCII character.
  * @note One and more than bench_alpha_current. It puts the lanes in the quadrant where the comparison
  *       the module ships is exact, which the accuracy suite measures at 0 wrong out of 16384 pairs.
  * @note The final and is against the unmasked word. A lane that carried the high bit is still
- *       thrown out and no byte at 0x80 or above can pass as a letter.
+ *       thrown out and no byte at 0x80 or above can pass as a character.
  */
 static inline embed_word bench_alpha_narrowed(embed_word word)
 {
@@ -136,7 +136,7 @@ static inline embed_word bench_alpha_narrowed(embed_word word)
  * @brief The same test again, with the narrow mask from MMGR_SWAR_LOW7.
  *
  * @param[in] word Lanes to test.
- * @return         A lane mask with the lanes that carry an ASCII letter.
+ * @return         A lane mask with the lanes that carry an ASCII character.
  * @note The header names MMGR_SWAR_LOW7 the complement of MMGR_VERBUM_SCRUTOR_HIGH, and so this is the
  *       same mask as bench_alpha_narrowed reaches through a complement. What differs is the width of
  *       the complement. LOW7 comes from MMGR_SWAR_ONES and stays an embed_word, where
@@ -153,10 +153,10 @@ static inline embed_word bench_alpha_low7(embed_word word)
 }
 
 /**
- * @brief The same test again, with the complement kept and the narrow width stated with a cast.
+ * @brief The same test again, with the complement retained and the narrow width stated with a cast.
  *
  * @param[in] word Lanes to test.
- * @return         A lane mask with the lanes that carry an ASCII letter.
+ * @return         A lane mask with the lanes that carry an ASCII character.
  * @note The third form the two above price against. It leaves the expression exactly as the
  *       module writes it and only names the width of the result. bench_alpha_low7
  *       reaches the same mask through a different constant.
@@ -712,11 +712,11 @@ static embed_bool arm_all_inline(const char *a, const char *b, size_t cap)
 
     if (rest != 0u)
     {
-        const embed_word keep = EMBED_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest);
+        const embed_word retain = EMBED_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest);
         const embed_word wa = EMBED_CALL(word.load, ScrutWordCfg, .at = a + at);
         const embed_word wb = EMBED_CALL(word.load, ScrutWordCfg, .at = b + at);
-        const embed_word z = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) & keep;
-        const embed_word x = arm_diff_lanes(wa ^ wb) & keep;
+        const embed_word z = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) & retain;
+        const embed_word x = arm_diff_lanes(wa ^ wb) & retain;
 
         if ((x | z) != 0u)
         {
@@ -750,11 +750,11 @@ static embed_bool arm_slow(const char *a, const char *b, size_t at, size_t full,
 
     if (rest != 0u)
     {
-        const embed_word keep = EMBED_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest);
+        const embed_word retain = EMBED_CALL(mask.lanes_below, ScrutMaskCfg, .bytes = rest);
         const embed_word wa = EMBED_CALL(word.load, ScrutWordCfg, .at = a + at);
         const embed_word wb = EMBED_CALL(word.load, ScrutWordCfg, .at = b + at);
-        const embed_word z = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) & keep;
-        const embed_word x = arm_diff_lanes(wa ^ wb) & keep;
+        const embed_word z = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = wa) & retain;
+        const embed_word x = arm_diff_lanes(wa ^ wb) & retain;
 
         if ((x | z) != 0u)
         {
@@ -1022,14 +1022,14 @@ static uint32_t digit_span_libc(size_t n)
     return found;
 }
 
-static uint32_t ascii_span_mmgr(MmgrAsciiClass kind)
+static uint32_t ascii_span_mmgr(MmgrAsciiClass type)
 {
     uint32_t found = 0u;
 
     for (unsigned byte = 0; byte < 256u; byte++)
     {
 
-        found += EMBED_CALL(ascii.in, AsciiCfg, .kind = kind, .byte = (uint8_t)(byte ^ g_byte_bias)) ? 1u : 0u;
+        found += EMBED_CALL(ascii.in, AsciiCfg, .type = type, .byte = (uint8_t)(byte ^ g_byte_bias)) ? 1u : 0u;
     }
     return found;
 }
@@ -1116,148 +1116,148 @@ void dbench_run(void)
 
             fill(n);
 
-            DBENCH_AB("len", iters, n, DBENCH_KEEP(EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = n + 1u)),
-                      DBENCH_KEEP(strnlen(g_a, n + 1u)));
+            DBENCH_AB("len", iters, n, DBENCH_RETAIN(EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = n + 1u)),
+                      DBENCH_RETAIN(strnlen(g_a, n + 1u)));
 
             DBENCH_AB(
                 "chr", iters, n,
-                DBENCH_KEEP(EMBED_CALL(cellul.chr, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .byte = (uint8_t)'z')),
-                DBENCH_KEEP(strchr(g_a, 'z')));
+                DBENCH_RETAIN(EMBED_CALL(cellul.chr, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .byte = (uint8_t)'z')),
+                DBENCH_RETAIN(strchr(g_a, 'z')));
 
             DBENCH_AB("cmp", iters, n,
-                      DBENCH_KEEP(EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n)),
-                      DBENCH_KEEP(memcmp(g_a, g_b, n)));
+                      DBENCH_RETAIN(EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n)),
+                      DBENCH_RETAIN(memcmp(g_a, g_b, n)));
 
             DBENCH_AB("find", iters, n,
-                      DBENCH_KEEP(EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_needle,
+                      DBENCH_RETAIN(EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_needle,
                                              .other_cap = NLEN + 1u, .other_len = NLEN)),
-                      DBENCH_KEEP(strstr(g_a, g_needle)));
+                      DBENCH_RETAIN(strstr(g_a, g_needle)));
 
             DBENCH_AB("find_hot", iters, n,
-                      DBENCH_KEEP(EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_hot,
+                      DBENCH_RETAIN(EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_hot,
                                              .other_cap = NLEN + 1u, .other_len = NLEN)),
-                      DBENCH_KEEP(strstr(g_a, g_hot)));
+                      DBENCH_RETAIN(strstr(g_a, g_hot)));
 
             DBENCH_AB("eq", iters, n,
-                      DBENCH_KEEP(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
-                      DBENCH_KEEP(strcmp(g_a, g_b) == 0));
+                      DBENCH_RETAIN(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
+                      DBENCH_RETAIN(strcmp(g_a, g_b) == 0));
 
             DBENCH_AB("starts", iters, n,
-                      DBENCH_KEEP(EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u,
+                      DBENCH_RETAIN(EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u,
                                              .other_cap = n + 1u)),
-                      DBENCH_KEEP(strncmp(g_a, g_b, n) == 0));
+                      DBENCH_RETAIN(strncmp(g_a, g_b, n) == 0));
 
             DBENCH_AB("copy", iters, n,
-                      DBENCH_KEEP(EMBED_CALL(cellul.copy, CatenaFinitaCfg, .dst = g_c, .src = g_a, .cap = n + 1u)),
-                      DBENCH_KEEP((strncpy(g_c, g_a, n), g_c[n] = '\0', (uintptr_t)g_c)));
+                      DBENCH_RETAIN(EMBED_CALL(cellul.copy, CatenaFinitaCfg, .dst = g_c, .src = g_a, .cap = n + 1u)),
+                      DBENCH_RETAIN((strncpy(g_c, g_a, n), g_c[n] = '\0', (uintptr_t)g_c)));
 
             g_cp_dst = g_c;
             g_cp_src = g_a;
             DBENCH_AB("copy_one", iters, n,
-                      DBENCH_KEEP(EMBED_CALL(cellul.copy, CatenaFinitaCfg, .dst = g_c, .src = g_a, .cap = n + 1u)),
-                      DBENCH_KEEP(copy_single(g_cp_dst, g_cp_src, n + 1u)));
+                      DBENCH_RETAIN(EMBED_CALL(cellul.copy, CatenaFinitaCfg, .dst = g_c, .src = g_a, .cap = n + 1u)),
+                      DBENCH_RETAIN(copy_single(g_cp_dst, g_cp_src, n + 1u)));
 
             DBENCH_AB("has", iters, n,
-                      DBENCH_KEEP(EMBED_CALL(cellul.has, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_needle,
+                      DBENCH_RETAIN(EMBED_CALL(cellul.has, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_needle,
                                              .other_cap = NLEN + 1u, .other_len = NLEN)),
-                      DBENCH_KEEP(strstr(g_a, g_needle) != NULL));
+                      DBENCH_RETAIN(strstr(g_a, g_needle) != NULL));
 
-            DBENCH_AB("ws_scan", iters, n, DBENCH_KEEP(ws_span_mmgr(n)), DBENCH_KEEP(ws_span_libc(n)));
+            DBENCH_AB("ws_scan", iters, n, DBENCH_RETAIN(ws_span_mmgr(n)), DBENCH_RETAIN(ws_span_libc(n)));
 
-            DBENCH_AB("ws_range", iters, n, DBENCH_KEEP(ws_span_chain(n)), DBENCH_KEEP(ws_span_range(n)));
+            DBENCH_AB("ws_range", iters, n, DBENCH_RETAIN(ws_span_chain(n)), DBENCH_RETAIN(ws_span_range(n)));
 
-            DBENCH_AB("digit_scan", iters, n, DBENCH_KEEP(digit_span_mmgr(n)), DBENCH_KEEP(digit_span_libc(n)));
+            DBENCH_AB("digit_scan", iters, n, DBENCH_RETAIN(digit_span_mmgr(n)), DBENCH_RETAIN(digit_span_libc(n)));
 
-            DBENCH_AB("eq_align", iters, n, DBENCH_KEEP(eq_unaligned(g_a, g_b, n + 1u)),
-                      DBENCH_KEEP(eq_aligned(g_a, g_b, n + 1u)));
+            DBENCH_AB("eq_align", iters, n, DBENCH_RETAIN(eq_unaligned(g_a, g_b, n + 1u)),
+                      DBENCH_RETAIN(eq_aligned(g_a, g_b, n + 1u)));
 
             g_cp_src = g_a;
             g_cp_dst = (char *)g_b;
-            DBENCH_AB("eq_zero", iters, n, DBENCH_KEEP(agree_entry_zero(g_cp_src, g_cp_dst, n + 1u)),
-                      DBENCH_KEEP(agree_inline_zero(g_cp_src, g_cp_dst, n + 1u)));
+            DBENCH_AB("eq_zero", iters, n, DBENCH_RETAIN(agree_entry_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_RETAIN(agree_inline_zero(g_cp_src, g_cp_dst, n + 1u)));
 
-            DBENCH_AB("eq_order", iters, n, DBENCH_KEEP(agree_inline_zero(g_cp_src, g_cp_dst, n + 1u)),
-                      DBENCH_KEEP(agree_reordered(g_cp_src, g_cp_dst, n + 1u)));
+            DBENCH_AB("eq_order", iters, n, DBENCH_RETAIN(agree_inline_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_RETAIN(agree_reordered(g_cp_src, g_cp_dst, n + 1u)));
 
-            DBENCH_AB("eq_filter", iters, n, DBENCH_KEEP(agree_reordered(g_cp_src, g_cp_dst, n + 1u)),
-                      DBENCH_KEEP(agree_filter_zero(g_cp_src, g_cp_dst, n + 1u)));
+            DBENCH_AB("eq_filter", iters, n, DBENCH_RETAIN(agree_reordered(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_RETAIN(agree_filter_zero(g_cp_src, g_cp_dst, n + 1u)));
 
-            DBENCH_AB("eq_cold", iters, n, DBENCH_KEEP(arm_all_inline(g_cp_src, g_cp_dst, n + 1u)),
-                      DBENCH_KEEP(arm_slow_out(g_cp_src, g_cp_dst, n + 1u)));
+            DBENCH_AB("eq_cold", iters, n, DBENCH_RETAIN(arm_all_inline(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_RETAIN(arm_slow_out(g_cp_src, g_cp_dst, n + 1u)));
 
-            DBENCH_AB("part_cmp", iters, n, DBENCH_KEEP(part_loads(g_cp_src, g_cp_dst, n + 1u)),
-                      DBENCH_KEEP(part_compare(g_cp_src, g_cp_dst, n + 1u)));
+            DBENCH_AB("part_cmp", iters, n, DBENCH_RETAIN(part_loads(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_RETAIN(part_compare(g_cp_src, g_cp_dst, n + 1u)));
 
-            DBENCH_AB("part_zero", iters, n, DBENCH_KEEP(part_compare(g_cp_src, g_cp_dst, n + 1u)),
-                      DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)));
+            DBENCH_AB("part_zero", iters, n, DBENCH_RETAIN(part_compare(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_RETAIN(part_zero(g_cp_src, g_cp_dst, n + 1u)));
 
-            DBENCH_AB("part_mark", iters, n, DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)),
-                      DBENCH_KEEP(part_marked(g_cp_src, g_cp_dst, n + 1u)));
+            DBENCH_AB("part_mark", iters, n, DBENCH_RETAIN(part_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_RETAIN(part_marked(g_cp_src, g_cp_dst, n + 1u)));
 
-            DBENCH_AB("part_one", iters, n, DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)),
-                      DBENCH_KEEP(part_onetest(g_cp_src, g_cp_dst, n + 1u)));
+            DBENCH_AB("part_one", iters, n, DBENCH_RETAIN(part_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_RETAIN(part_onetest(g_cp_src, g_cp_dst, n + 1u)));
 
-            DBENCH_AB("part_pipe", iters, n, DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)),
-                      DBENCH_KEEP(part_pipelined(g_cp_src, g_cp_dst, n + 1u)));
+            DBENCH_AB("part_pipe", iters, n, DBENCH_RETAIN(part_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_RETAIN(part_pipelined(g_cp_src, g_cp_dst, n + 1u)));
 
-            DBENCH_AB("part_two", iters, n, DBENCH_KEEP(part_zero(g_cp_src, g_cp_dst, n + 1u)),
-                      DBENCH_KEEP(part_two_pass(g_cp_src, g_cp_dst, n + 1u)));
+            DBENCH_AB("part_two", iters, n, DBENCH_RETAIN(part_zero(g_cp_src, g_cp_dst, n + 1u)),
+                      DBENCH_RETAIN(part_two_pass(g_cp_src, g_cp_dst, n + 1u)));
 
             DBENCH_AB("eq_entry", iters, n,
-                      DBENCH_KEEP(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
-                      DBENCH_KEEP(eq_unaligned(g_a, g_b, n + 1u)));
+                      DBENCH_RETAIN(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
+                      DBENCH_RETAIN(eq_unaligned(g_a, g_b, n + 1u)));
 
             {
                 const BenchEqCtx ctx = {.src = g_a, .other = g_b, .cap = n + 1u};
 
-                DBENCH_AB("eq_ctx", iters, n, DBENCH_KEEP(eq_via_ctx(&ctx)),
-                          DBENCH_KEEP(eq_unaligned(g_a, g_b, n + 1u)));
+                DBENCH_AB("eq_ctx", iters, n, DBENCH_RETAIN(eq_via_ctx(&ctx)),
+                          DBENCH_RETAIN(eq_unaligned(g_a, g_b, n + 1u)));
 
                 DBENCH_AB("eq_hoist", iters, n,
-                          DBENCH_KEEP(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
-                          DBENCH_KEEP(eq_via_ctx_hoisted(&ctx)));
+                          DBENCH_RETAIN(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
+                          DBENCH_RETAIN(eq_via_ctx_hoisted(&ctx)));
             }
         }
 
         {
             const uint32_t iters = 5000u;
 
-            DBENCH_AB("to_long", iters, 7u, DBENCH_KEEP(EMBED_CALL(cellul.to_long, TransfiguroCfg, .src = g_int)),
-                      DBENCH_KEEP(strtol(g_int, NULL, 10)));
+            DBENCH_AB("to_long", iters, 7u, DBENCH_RETAIN(EMBED_CALL(cellul.to_long, TransfiguroCfg, .src = g_int)),
+                      DBENCH_RETAIN(strtol(g_int, NULL, 10)));
 
             DBENCH_AB("to_ulong", iters, 19u,
-                      DBENCH_KEEP(EMBED_CALL(cellul.to_ulong, TransfiguroCfg, .src = g_int_wide)),
-                      DBENCH_KEEP(strtoul(g_int_wide, NULL, 10)));
+                      DBENCH_RETAIN(EMBED_CALL(cellul.to_ulong, TransfiguroCfg, .src = g_int_wide)),
+                      DBENCH_RETAIN(strtoul(g_int_wide, NULL, 10)));
 
-            DBENCH_AB("to_double", iters, 16u, DBENCH_KEEP(EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = g_real)),
-                      DBENCH_KEEP(strtod(g_real, NULL)));
+            DBENCH_AB("to_double", iters, 16u, DBENCH_RETAIN(EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = g_real)),
+                      DBENCH_RETAIN(strtod(g_real, NULL)));
 
             DBENCH_AB("to_double_exp", iters, 23u,
-                      DBENCH_KEEP(EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = g_real_exp)),
-                      DBENCH_KEEP(strtod(g_real_exp, NULL)));
+                      DBENCH_RETAIN(EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = g_real_exp)),
+                      DBENCH_RETAIN(strtod(g_real_exp, NULL)));
 
-            DBENCH_AB("to_float", iters, 16u, DBENCH_KEEP(EMBED_CALL(cellul.to_float, TransfiguroCfg, .src = g_real)),
-                      DBENCH_KEEP(strtof(g_real, NULL)));
+            DBENCH_AB("to_float", iters, 16u, DBENCH_RETAIN(EMBED_CALL(cellul.to_float, TransfiguroCfg, .src = g_real)),
+                      DBENCH_RETAIN(strtof(g_real, NULL)));
         }
 
         {
             const uint32_t iters = 2000u;
 
             g_class = (int)MMGR_ASCII_NUM;
-            DBENCH_AB("ascii_num", iters, 256u, DBENCH_KEEP(ascii_span_mmgr((MmgrAsciiClass)g_class)),
-                      DBENCH_KEEP(ascii_span_libc_digit()));
+            DBENCH_AB("ascii_num", iters, 256u, DBENCH_RETAIN(ascii_span_mmgr((MmgrAsciiClass)g_class)),
+                      DBENCH_RETAIN(ascii_span_libc_digit()));
 
             g_class = (int)MMGR_ASCII_ALPHA;
-            DBENCH_AB("ascii_alpha", iters, 256u, DBENCH_KEEP(ascii_span_mmgr((MmgrAsciiClass)g_class)),
-                      DBENCH_KEEP(ascii_span_libc_alpha()));
+            DBENCH_AB("ascii_alpha", iters, 256u, DBENCH_RETAIN(ascii_span_mmgr((MmgrAsciiClass)g_class)),
+                      DBENCH_RETAIN(ascii_span_libc_alpha()));
 
             g_class = (int)MMGR_ASCII_SPACE;
-            DBENCH_AB("ascii_space", iters, 256u, DBENCH_KEEP(ascii_span_mmgr((MmgrAsciiClass)g_class)),
-                      DBENCH_KEEP(ascii_span_libc_space()));
+            DBENCH_AB("ascii_space", iters, 256u, DBENCH_RETAIN(ascii_span_mmgr((MmgrAsciiClass)g_class)),
+                      DBENCH_RETAIN(ascii_span_libc_space()));
 
             g_class = (int)MMGR_ASCII_PRINT;
-            DBENCH_AB("ascii_print", iters, 256u, DBENCH_KEEP(ascii_span_mmgr((MmgrAsciiClass)g_class)),
-                      DBENCH_KEEP(ascii_span_libc_print()));
+            DBENCH_AB("ascii_print", iters, 256u, DBENCH_RETAIN(ascii_span_mmgr((MmgrAsciiClass)g_class)),
+                      DBENCH_RETAIN(ascii_span_libc_print()));
         }
 
         {
@@ -1270,7 +1270,7 @@ void dbench_run(void)
                 for (unsigned pick = 0; pick < 13u; pick++)
                 {
                     g_scrut_pick = pick;
-                    DBENCH_OP(named[pick], 2000u, DBENCH_KEEP(scrut_span(g_scrut_pick)));
+                    DBENCH_OP(named[pick], 2000u, DBENCH_RETAIN(scrut_span(g_scrut_pick)));
                 }
             }
 
@@ -1284,7 +1284,7 @@ void dbench_run(void)
                                   acc ^= (embed_word)EMBED_CALL(lane.first, ScrutLaneCfg,
                                                                 .mask = (g_word ^ (embed_word)s) & g_mask);
                               }
-                              DBENCH_KEEP(acc);
+                              DBENCH_RETAIN(acc);
                           }),
                           ({
                               acc = 0u;
@@ -1292,7 +1292,7 @@ void dbench_run(void)
                               {
                                   acc ^= (embed_word)lane_first_trail((g_word ^ (embed_word)s) & g_mask);
                               }
-                              DBENCH_KEEP(acc);
+                              DBENCH_RETAIN(acc);
                           }));
 
                 DBENCH_AB("lane_first3", 2000u, 64u, ({
@@ -1302,7 +1302,7 @@ void dbench_run(void)
                                   acc ^= (embed_word)EMBED_CALL(lane.first, ScrutLaneCfg,
                                                                 .mask = (g_word ^ (embed_word)s) & g_mask);
                               }
-                              DBENCH_KEEP(acc);
+                              DBENCH_RETAIN(acc);
                           }),
                           ({
                               acc = 0u;
@@ -1310,79 +1310,79 @@ void dbench_run(void)
                               {
                                   acc ^= (embed_word)lane_first_builtin((g_word ^ (embed_word)s) & g_mask);
                               }
-                              DBENCH_KEEP(acc);
+                              DBENCH_RETAIN(acc);
                           }));
             }
 
-            DBENCH_AB("clz_lead", iters, 8u, DBENCH_KEEP(EMBED_CALL(clz.lead, ClzCfg, .val = (embed_u64)g_bits)),
-                      DBENCH_KEEP(__builtin_clzll(g_bits)));
+            DBENCH_AB("clz_lead", iters, 8u, DBENCH_RETAIN(EMBED_CALL(clz.lead, ClzCfg, .val = (embed_u64)g_bits)),
+                      DBENCH_RETAIN(__builtin_clzll(g_bits)));
 
-            DBENCH_AB("clz_trail", iters, 8u, DBENCH_KEEP(EMBED_CALL(clz.trail, ClzCfg, .val = (embed_u64)g_bits)),
-                      DBENCH_KEEP(__builtin_ctzll(g_bits)));
+            DBENCH_AB("clz_trail", iters, 8u, DBENCH_RETAIN(EMBED_CALL(clz.trail, ClzCfg, .val = (embed_u64)g_bits)),
+                      DBENCH_RETAIN(__builtin_ctzll(g_bits)));
 
-            DBENCH_AB("lane_count", iters, 8u, DBENCH_KEEP(EMBED_CALL(lane.count, ScrutLaneCfg, .mask = g_mask)),
-                      DBENCH_KEEP(__builtin_popcountll((unsigned long long)g_mask)));
+            DBENCH_AB("lane_count", iters, 8u, DBENCH_RETAIN(EMBED_CALL(lane.count, ScrutLaneCfg, .mask = g_mask)),
+                      DBENCH_RETAIN(__builtin_popcountll((unsigned long long)g_mask)));
 
             DBENCH_AB(
-                "lane_first", iters, 8u, DBENCH_KEEP(EMBED_CALL(lane.first, ScrutLaneCfg, .mask = g_mask)),
-                DBENCH_KEEP((g_mask == 0u) ? MMGR_SWAR_BYTES : (__builtin_ctzll((unsigned long long)g_mask) / 8u)));
+                "lane_first", iters, 8u, DBENCH_RETAIN(EMBED_CALL(lane.first, ScrutLaneCfg, .mask = g_mask)),
+                DBENCH_RETAIN((g_mask == 0u) ? MMGR_SWAR_BYTES : (__builtin_ctzll((unsigned long long)g_mask) / 8u)));
 
-            DBENCH_AB("word_load", iters, 8u, DBENCH_KEEP(EMBED_CALL(word.load, ScrutWordCfg, .at = g_a + 1)),
-                      DBENCH_KEEP(EMBED_CALL(word.load_al, ScrutWordCfg, .at = g_a)));
+            DBENCH_AB("word_load", iters, 8u, DBENCH_RETAIN(EMBED_CALL(word.load, ScrutWordCfg, .at = g_a + 1)),
+                      DBENCH_RETAIN(EMBED_CALL(word.load_al, ScrutWordCfg, .at = g_a)));
 
-            DBENCH_AB("lane_zero", iters, 8u, DBENCH_KEEP(EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = g_word)),
-                      DBENCH_KEEP((g_word - (embed_word)0x0101010101010101ull) & ~g_word &
+            DBENCH_AB("lane_zero", iters, 8u, DBENCH_RETAIN(EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = g_word)),
+                      DBENCH_RETAIN((g_word - (embed_word)0x0101010101010101ull) & ~g_word &
                                   (embed_word)0x8080808080808080ull));
         }
 
         {
             const uint32_t iters = 5000u;
 
-            DBENCH_AB("soft_divmul", iters, 8u, DBENCH_KEEP((double)g_scale_mant / 1e14),
-                      DBENCH_KEEP((double)g_scale_mant * 1e-14));
+            DBENCH_AB("soft_divmul", iters, 8u, DBENCH_RETAIN((double)g_scale_mant / 1e14),
+                      DBENCH_RETAIN((double)g_scale_mant * 1e-14));
         }
 
-        // The letter test the module ships against the same test with its lanes narrowed first. Both
+        // The character test the module ships against the same test with its lanes narrowed first. Both
         // arms are static inline in this translation unit over the same volatile word. So neither
         // pays a call the other avoids or gets an inline the other does not. Neither can leave the
         // loop.
-        DBENCH_AB("alpha_now_vs_narrow", 20000u, 4u, DBENCH_KEEP(bench_alpha_current(g_scrut_word)),
-                  DBENCH_KEEP(bench_alpha_narrowed(g_scrut_word)));
+        DBENCH_AB("alpha_now_vs_narrow", 20000u, 4u, DBENCH_RETAIN(bench_alpha_current(g_scrut_word)),
+                  DBENCH_RETAIN(bench_alpha_narrowed(g_scrut_word)));
 
         // The narrow form the module ships against the same mask from MMGR_SWAR_LOW7. The two are the
         // same value, and so this row prices the width of the complement, alone.
         DBENCH_PRINTF("DB alpha_mask_check disagreements=%u\n", (unsigned)alpha_masks_agree());
 
-        DBENCH_AB("alpha_notHIGH_vs_LOW7", 20000u, 4u, DBENCH_KEEP(bench_alpha_narrowed(g_scrut_word)),
-                  DBENCH_KEEP(bench_alpha_low7(g_scrut_word)));
+        DBENCH_AB("alpha_notHIGH_vs_LOW7", 20000u, 4u, DBENCH_RETAIN(bench_alpha_narrowed(g_scrut_word)),
+                  DBENCH_RETAIN(bench_alpha_low7(g_scrut_word)));
 
-        DBENCH_AB("alpha_notHIGH_vs_cast", 20000u, 4u, DBENCH_KEEP(bench_alpha_narrowed(g_scrut_word)),
-                  DBENCH_KEEP(bench_alpha_cast(g_scrut_word)));
+        DBENCH_AB("alpha_notHIGH_vs_cast", 20000u, 4u, DBENCH_RETAIN(bench_alpha_narrowed(g_scrut_word)),
+                  DBENCH_RETAIN(bench_alpha_cast(g_scrut_word)));
 
         // The two candidates against each other. So the pair prices with no module form in between.
         // A one cycle move on one part reads against a second row and not alone
-        DBENCH_AB("alpha_LOW7_vs_cast", 20000u, 4u, DBENCH_KEEP(bench_alpha_low7(g_scrut_word)),
-                  DBENCH_KEEP(bench_alpha_cast(g_scrut_word)));
+        DBENCH_AB("alpha_LOW7_vs_cast", 20000u, 4u, DBENCH_RETAIN(bench_alpha_low7(g_scrut_word)),
+                  DBENCH_RETAIN(bench_alpha_cast(g_scrut_word)));
 
         // The comparisons the module ships against the two candidates that answer over the whole byte range.
         // Same shape as the row above: both arms static inline here, both operands out of volatiles
-        DBENCH_AB("ge_now_vs_or_high", 20000u, 4u, DBENCH_KEEP(bench_ge_seven_bit(g_scrut_word, g_scrut_threshold)),
-                  DBENCH_KEEP(bench_ge_or_high(g_scrut_word, g_scrut_threshold)));
+        DBENCH_AB("ge_now_vs_or_high", 20000u, 4u, DBENCH_RETAIN(bench_ge_seven_bit(g_scrut_word, g_scrut_threshold)),
+                  DBENCH_RETAIN(bench_ge_or_high(g_scrut_word, g_scrut_threshold)));
 
-        DBENCH_AB("le_now_vs_mask_high", 20000u, 4u, DBENCH_KEEP(bench_le_seven_bit(g_scrut_word, g_scrut_threshold)),
-                  DBENCH_KEEP(bench_le_mask_high(g_scrut_word, g_scrut_threshold)));
+        DBENCH_AB("le_now_vs_mask_high", 20000u, 4u, DBENCH_RETAIN(bench_le_seven_bit(g_scrut_word, g_scrut_threshold)),
+                  DBENCH_RETAIN(bench_le_mask_high(g_scrut_word, g_scrut_threshold)));
 
         fill(8u);
-        DBENCH_OP("floor_loop", 20000u, DBENCH_KEEP(g_a));
+        DBENCH_OP("floor_loop", 20000u, DBENCH_RETAIN(g_a));
 
-        DBENCH_OP("floor_call", 20000u, DBENCH_KEEP(strnlen(g_a, 1u)));
+        DBENCH_OP("floor_call", 20000u, DBENCH_RETAIN(strnlen(g_a, 1u)));
 
-        DBENCH_OP("dispatch_len8", 20000u, DBENCH_KEEP(EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = 9u)));
-        DBENCH_OP("direct_len8", 20000u, DBENCH_KEEP(mmgr_cellul_len(&(CatenaFinitaCfg){.src = g_a, .cap = 9u})));
+        DBENCH_OP("dispatch_len8", 20000u, DBENCH_RETAIN(EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = 9u)));
+        DBENCH_OP("direct_len8", 20000u, DBENCH_RETAIN(mmgr_cellul_len(&(CatenaFinitaCfg){.src = g_a, .cap = 9u})));
 
-        DBENCH_OP("flat_len8", 20000u, DBENCH_KEEP(len_flat(g_a, 9u)));
+        DBENCH_OP("flat_len8", 20000u, DBENCH_RETAIN(len_flat(g_a, 9u)));
         fill(64u);
-        DBENCH_OP("flat_len64", 20000u, DBENCH_KEEP(len_flat(g_a, 65u)));
+        DBENCH_OP("flat_len64", 20000u, DBENCH_RETAIN(len_flat(g_a, 65u)));
 
         DBENCH_DONE();
     }

@@ -80,8 +80,8 @@
  */
 static uint8_t accuracy_source_byte(size_t position)
 {
-    // Explicit cast narrows the mixed position to the byte a region holds. The or with 1 keeps it
-    // away from zero and the test below keeps it off the guard
+    // Explicit cast narrows the mixed position to the byte a region holds. The or with 1 retains it
+    // away from zero and the test below retains it off the guard
     const uint8_t value = (uint8_t)(((position * 7u) + 3u) | 1u);
 
     return (value == MMGR_ACCURACY_MEMOR_GUARD) ? (uint8_t)(MMGR_ACCURACY_MEMOR_GUARD ^ 1u) : value;
@@ -185,7 +185,7 @@ void test_the_helpers_this_suite_relies_on_are_themselves_right(void)
         expected[index] = accuracy_source_byte(index);
         buffer[4u + index] = expected[index];
     }
-    accuracy_expect_run(buffer, 4u, expected, 8u, "a run laid down by hand");
+    accuracy_expect_run(buffer, 4u, expected, 8u, "a run positioned down by hand");
 }
 
 /**
@@ -284,7 +284,7 @@ void test_the_fill_writes_every_byte_at_every_alignment(void)
  * @note The case offers every overlap distance from one byte to past a word at every length. That
  *       reaches the case where the two regions share their first word and the case where they share
  *       only the tail.
- * @note The reference copies through a scratch region first, and so it reads the source as it stood
+ * @note The reference copies through a scratch region first, and so it reads the source as it was
  *       before any of it was overwritten.
  */
 void test_the_upward_move_carries_overlapping_bytes(void)

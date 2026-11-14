@@ -11,7 +11,7 @@ down from the top, and the free middle between them is what both take from.
 
 ## What it composes with
 
-Everything sits on top of it. @ref mod_spat_guide views what a region hands out; @ref mod_anular_guide
+Everything sits on top of it. @ref mod_spat_guide views what a region passes out; @ref mod_anular_guide
 moves those views between a producer and a consumer.
 
 ## Declaring one
@@ -43,18 +43,18 @@ Three cellblocks is as legal as four, and the sizes need not relate to each othe
 over its own pool: nothing divides and nothing is rounded. The count is bounded only by how many
 `MMGR_CARCER_W` lines the header carries; another count is another line.
 
-A cellblock is reached by the name of its pool, and a pool name stands for one region. Declaring one
+A cellblock is reached by the name of its pool, and a pool name is for one region. Declaring one
 name twice fails the build: two sites cannot hold cellblocks of the same name and a program never
 has two meanings for one symbol.
 
-The alignment is a power of two, and that keeps the arithmetic free: an offset inside a
+The alignment is a power of two, and that retains the arithmetic free: an offset inside a
 cellblock is rounded by a mask instead of divided, which holds only for a power of two. A pool's size
 is any count that holds one cell, which `MMGR_CARCER_BODY` asserts at the declaration, against the
-pool's own `sizeof` and not against the count it was handed.
+pool's own `sizeof` and not against the count it was passed.
 
 ## The two ends
 
-Both ends are the same block allocator. Each keeps a chain of blocks, each block behind its own
+Both ends are the same block allocator. Each retains a chain of blocks, each block behind its own
 header, and each carves from the free middle. All that differs is which way the boundary moves,
 and what that buys you:
 
@@ -68,7 +68,7 @@ and what that buys you:
 The persistent end holds what outlives a call: key material, a runtime seed, a constant a run works
 out once. The interim end holds what a call needs while it runs. The two ends are one algorithm with the base at
 opposite sides of the pool. A take at either end is one pass through the cellblock's turnstiles and one fetch-add
-on the boundary. A release sets the block's header free and, where the block stood at the boundary, trims the
+on the boundary. A release sets the block's header free and, where the block was at the boundary, trims the
 boundary back over the free blocks there. A take the middle cannot meet closes the cellblock, waits out the passes
 under way, and walks its own end alone: every run of free blocks merged into one, the fitting run farthest from the
 middle taken and split where its rest holds a block, the free run at the boundary returned to the middle, and the
@@ -78,13 +78,13 @@ boundary bumped where no run fits. Only then is the take refused.
 
 Movable cells are an option a program assigns once, through its guard's `movable_init`. A cellblock with no
 option takes and gives as it always does, each entry testing one word, and its `movable_buf_alloc` answers
-`NULL`. The call hands over storage for the option, the sizes, and the calls of the thread the mover runs on.
+`NULL`. The call passes over storage for the option, the sizes, and the calls of the thread the mover runs on.
 The storage lies outside the prison, and nothing of the option pins a tier, and a pool declared at compile time
 gives it a link-time address. `MMGR_MOVABLE_STORAGE_BYTES` states what it takes.
 
 `movable_buf_alloc` answers a const pointer to the cell's entry in the translation table. The entry is the mutable
-word: it names where the cell stands now, and it is MMgr's alone. The pointer is the caller's identity for the
-cell, and it stands for the cell's life however often the cell moves. Nothing hands out the cell's address.
+word: it names where the cell is now, and it is MMgr's alone. The pointer is the caller's identity for the
+cell, and it is for the cell's life however often the cell moves. Nothing passes out the cell's address.
 `movable_buf_read`, `movable_buf_write`, `movable_buf_compare` and `movable_buf_measure` take the identity and
 an offset, check the span against the cell, and do the work themselves, and so every touch of the cell passes
 through MMgr. A span past the cell's end is refused. An entry is claimed by one fetch-or on the table's claim bits,
@@ -112,7 +112,7 @@ not run again until the reading rises past what it left or falls under the thres
 
 `mmgr_movable_buf_move` is the mover's step, for a caller with no thread to give.
 
-A cellblock keeps its own running total in `in_use`, counted where each owner's is. An owner's counts span every
+A cellblock retains its own running total in `in_use`, counted where each owner's is. An owner's counts span every
 cellblock it takes from, and bytes that lie in no cellblock, a ring's among them, reach an owner's through
 `mmgr_owner_bytes_taken`. A lane's touches are a telemetry row, counted as passes go through the lane with the
 last badge's id beside them and read with `mmgr_movable_touches`; nothing decides on them.
@@ -147,7 +147,7 @@ One call gives a persistent tenancy back, and what it does depends on which pool
 
 ```c
 prison.work.persistent_buf_release(table, reader);   /* minimum security: the bytes are left as they are */
-prison.keys.persistent_buf_release(secret, reader);  /* maximum security: they are cleared first */
+prison.keys.persistent_buf_release(secret, reader);  /* max security: they are cleared first */
 ```
 
 The guarantee is in the declaration, never in a flag or a second call. A caller cannot ask
@@ -159,9 +159,9 @@ by naming fewer bytes than it holds.
 is finished with but the storage is not.
 
 Bytes are cleared on release, never on hand-out. That means `persistent_buf_alloc` does **not**
-return zeroed storage: a block released from a minimum-security pool and handed out again still
+return zeroed storage: a block released from a minimum-security pool and passed out again still
 carries what the last occupant left. Anything whose bytes are worth clearing is declared under
-`MMGR_MAXIMUM_SECURITY`, whose release zeroes the cell first and keeps the next
+`MMGR_MAXIMUM_SECURITY`, whose release zeroes the cell first and retains the next
 occupant from reading it.
 
 @note The clear uses `volatile` machine-width stores: it survives however dead the bytes look to
@@ -198,7 +198,7 @@ A pool's peaks are its own state, read as members. The two boundaries share one 
 The persistent end bounds the block chain and counts nothing of what is busy: a freed block inside the
 chain merges with its free neighbors and stays in it for a take the middle cannot meet.
 
-The peaks are `persistent_hw` and `temporary_hw`, one per end so that neither is a maximum over the other,
+The peaks are `persistent_hw` and `temporary_hw`, one per end so that neither is a max over the other,
 and they are only maintained when `MMGR_ENABLE_HW_MEM_CAPACITY_CB` is on, off by default. A run
 without it leaves both at zero and a reading from that run means nothing. @ref guide_first_region has
 the procedure.

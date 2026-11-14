@@ -57,7 +57,7 @@ computes offsets from those structs.
 So `EMBED_ENUM_BYTE` declares every such enum with one byte on every compiler. Clang on the MSVC ABI
 and C++ take the fixed underlying type `: unsigned char`, every other compiler with the packed
 attribute takes `__attribute__((packed))`, and MSVC's C, which has neither, gets the enumerators as
-constants and the name as an `unsigned char`. A struct holding one is laid out the same whichever
+constants and the name as an `unsigned char`. A struct holding one is arranged the same whichever
 compiler reads it.
 
 There is a probe, in `embed_types.h`:
@@ -66,7 +66,7 @@ There is a probe, in `embed_types.h`:
 EMBED_ENUM_BYTE(EmbedEnumProbe, EMBED_ENUM_PROBE_MIN = 0, EMBED_ENUM_PROBE_MAX = 255);
 
 EMBED_STATIC_ASSERT(sizeof(EmbedEnumProbe) == 1,
-    "EMBED_ENUM_BYTE gave an enum more than one byte here, so no enum keeps its declared width ...");
+    "EMBED_ENUM_BYTE gave an enum more than one byte here, so no enum retains its declared width ...");
 ```
 
 If a compiler accepted the attribute and ignored it, the build stops at the source of the problem with

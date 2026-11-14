@@ -13,7 +13,7 @@ of the library decides as much of the outcome as what the engine answers.
 Every scenario comes out twice, once per arm. The interrupt arm reports at the first hook call at
 or after a transfer is due. The software arm reports only when a poll selects the channel and it is
 due. Same fixture, one difference. A divergence in outcome is the arm alone. That
-decides whether a busy timer can stand in where there is no vector to spare.
+decides whether a busy timer can are in where there is no vector to spare.
 
 The expectations come from a walk of the program against the script here. The engine and the
 library never derive them. An expectation computed apart from the run, and in agreement with it,
@@ -317,7 +317,7 @@ def scenarios():
 
     # Out of order driven by cycle time instead of by poll selection. The poll-selected version above
     # reaches it on the software arm alone. With every transfer due at once the interrupt drains in
-    # channel order and hands back the submission order. So that row proves nothing on that arm. Here
+    # channel order and passes back the submission order. So that row proves nothing on that arm. Here
     # channel 1 goes in first and takes longer, and so both arms must report 3 before 1.
     add(
         "the_shorter_transfer_finishes_first",
@@ -397,7 +397,7 @@ def emit(rows, corrupt=None):
     """The generated header text for @p rows, each emitted once per arm.
 
     @p corrupt names a scenario whose completion expectation is emitted one too high. That is the
-    negative control: a suite that has only ever reported clean has not been shown to tell a passing
+    negative control: a suite that has only ever reported clean has not been displayed to tell a passing
     column from a failing one, and both of this project's false results came from exactly that gap.
     The control row still passes in that build, and so one run proves both halves.
     """
@@ -498,8 +498,8 @@ def main():
 
     differ = 0
     for name, program, script in rows:
-        shown = [oracle(program, script, arm) for arm in (INTERRUPT, SOFTWARE)]
-        if shown[0] != shown[1]:
+        displayed = [oracle(program, script, arm) for arm in (INTERRUPT, SOFTWARE)]
+        if displayed[0] != displayed[1]:
             differ += 1
     print("  %d of %d scenarios come out differently on the two arms" % (differ, len(rows)))
     return 0

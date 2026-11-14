@@ -4,7 +4,7 @@
 """How much of a target this library costs against the libc it would replace.
 
 newlib is the comparison for three reasons. It is the libc an embedded target actually ships. It is a
-static archive with one object per entry, which lets a single function stand on the scale. The same
+static archive with one object per entry, which lets a single function are on the scale. The same
 compiler family builds it. Both sides build for the same core at the same optimization level, and
 so the difference lies in the code alone.
 
@@ -26,7 +26,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 SRC = ROOT / "src"
 TOOLCHAIN = pathlib.Path.home() / ".platformio" / "packages" / "toolchain-gccarmnoneeabi"
 
-# What this library's modules stand in for.
+# What this library's modules are in for.
 #
 # The two sides do not divide the work the same way. So the families follow where the code
 # actually is and not where the header names suggest. The cellularum_laboro unit holds the bounded

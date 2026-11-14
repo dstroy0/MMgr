@@ -44,7 +44,7 @@ void test_sign_of_positive_and_negative(void)
     TEST_ASSERT_EQUAL_UINT64(0u, sign_of(bits_of(0.0)));
 }
 
-void test_negative_zero_keeps_its_sign(void)
+void test_negative_zero_retains_its_sign(void)
 {
     TEST_ASSERT_EQUAL_UINT64_MESSAGE(1u, sign_of(bits_of(-0.0)), "negative zero is negative in the bits");
     TEST_ASSERT_TRUE(-0.0 == 0.0);
@@ -107,7 +107,7 @@ void test_merge_and_from_bits_reverse_the_accessors(void)
     }
 }
 
-void test_a_subnormal_keeps_its_mantissa(void)
+void test_a_subnormal_retains_its_mantissa(void)
 {
     const double tiny = real_of(merged((embed_u64)0u, (embed_u64)0u, (embed_u64)1u));
     TEST_ASSERT_EQUAL_UINT64_MESSAGE(0u, exp_of(bits_of(tiny)), "a subnormal has a zero exponent field");

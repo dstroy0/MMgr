@@ -26,12 +26,12 @@
 
 #include "mmgr.h"
 
-// PRAET_CHANNELS, PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS and PRAET_RECOVERY come from here. None
+// PRAET_CHANNELS, PRAET_SETTLE_MICROS, PRAET_RETAINALIVE_MICROS and PRAET_RECOVERY come from here. None
 // has a value that is right for every part. An unset one takes a default and raises a warning
 // that names itself. What stops the build is praet_iudex.h, below, once every one of them has its say
 #include "memoriam_praetereo/praet_praefinitum.h"
 
-// Every bit of the flag word, and the assertions that keep the map from drift. Kept apart from the
+// Every bit of the flag word, and the assertions that retain the map from drift. Retained apart from the
 // entries because the map is one thing and it is the same on every build. A status a build never
 // sets still owns its bit
 #include "memoriam_praetereo/praet_tabula_vexillorum.h"
@@ -150,7 +150,7 @@ typedef PRAET_DENUNTIATIO_ATTR(
 #define PRAET_CRC_RESPONSUM(token_) PRAET_CRC_RESPONSUM_IN_LOCO_FIGERE(token_)
 
 /**
- * @brief The value the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE token stands for.
+ * @brief The value the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE token is for.
  *
  * @note Pasted onto, and so the declarator gets the answer before the compiler proper runs and can
  *       assert on it.
@@ -158,7 +158,7 @@ typedef PRAET_DENUNTIATIO_ATTR(
 #define PRAET_CRC_VALUE_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_DISABLE 0
 
 /**
- * @brief The value the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE token stands for.
+ * @brief The value the AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE token is for.
  */
 #define PRAET_CRC_VALUE_AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE 1
 
@@ -171,7 +171,7 @@ typedef PRAET_DENUNTIATIO_ATTR(
 #define PRAET_CRC_VALUE_IN_LOCO_FIGERE(token_) PRAET_CRC_VALUE_##token_
 
 /**
- * @brief The value @p token_ stands for, after its expansion.
+ * @brief The value @p token_ is for, after its expansion.
  *
  * @param[in] token_ One of the two AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC tokens, or a macro that holds one.
  * @return           1 for the ENABLE token, 0 for the DISABLE token.
@@ -296,7 +296,7 @@ typedef struct
  *       controller this library targets exposes a count of bytes left. The orchestrator needs it to
  *       feed a watchdog with something a caller can act on.
  * @note Reached only from praet_ordo_poll. Nothing above it sees a byte count that did not go
- *       through the flag word first. That keeps how the module tracks progress out of a caller's
+ *       through the flag word first. That retains how the module tracks progress out of a caller's
  *       business.
  * @note Carries a weak default that refuses, the same as the four hooks in memoriam_praetereo.c. It
  *       returns zero, and praet_ordo_take_progress treats zero as no movement. A build that supplies
@@ -333,7 +333,7 @@ void praet_ordo_reset(PraetOrdo *context);
  * @note Reach this through PraetAttach, which takes the pool by name. A direct call means an address
  *       and an extent stated apart, and nothing here can tell whether the two go together.
  * @note An attach does not claim the pool. A cellblock and a ring both write their own records into
- *       the bytes they dress. So MMGR_PARS_CLAIMED_ONCE exists to keep two of those off one pool.
+ *       the bytes they dress. So MMGR_PARS_CLAIMED_ONCE exists to retain two of those off one pool.
  *       This writes no records into the bytes. An engine that fills ring segments while a
  *       consumer drains them is the arrangement the module is for.
  * @warning Fails closed. A channel in any state but detached stays exactly as it is.
@@ -355,7 +355,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
  *       makes the address and the extent come from one place. mmgr_pars_storage_##pool_ and
  *       pool_##_bytes both come out of the declaration, and neither exists for anything that is
  *       not a declared pool.
- * @note Not a question of who owns the bytes. The test is whether whoever hands them over has every
+ * @note Not a question of who owns the bytes. The test is whether whoever passes them over has every
  *       answer about them: the address, the extent, and which channel is over them. A caller with
  *       all three said everything this needs, and where the bytes came from is their business.
  * @note Both names have internal linkage. A translation unit that did not declare the pool cannot
@@ -463,7 +463,7 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word
  * @note At -O0 and at -O2 alike, a span that fits reports nothing and one that does not fails.
  *       Nothing here needs the optimizer, unlike a check that rides on a call the optimizer has to
  *       fold away.
- * @warning Reads pool_##_bytes, and so it holds for a span whose offset and length stand at compile
+ * @warning Reads pool_##_bytes, and so it holds for a span whose offset and length are at compile
  *          time. A length computed at run time has no bound from this and no bound anywhere else
  *          either.
  */
@@ -502,7 +502,7 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel, embed_word posi
 embed_word praet_ordo_situs(const PraetOrdo *context, embed_word channel);
 
 /**
- * @brief Returns the most bytes a stalled transfer wrote, rounded up to a whole word.
+ * @brief Returns the max bytes a stalled transfer wrote, rounded up to a whole word.
  *
  * @param[in] context Context the channel belongs to [BORROWS].
  * @param[in] channel Channel to read.
@@ -660,7 +660,7 @@ void praet_ordo_advance(PraetOrdo *context, embed_word micros);
 void praet_ordo_advance_ticks(PraetOrdo *context, embed_word ticks);
 
 /**
- * @brief Stands in for the interrupt that raises the set volatile.
+ * @brief Is in for the interrupt that raises the set volatile.
  *
  * @param[in,out] context Context the interrupt belongs to [BORROWS].
  * @note All an interrupt does. It may run any number of times and the raises collapse. There is
@@ -682,7 +682,7 @@ void praet_ordo_raise(PraetOrdo *context);
  *       would eventually disagree.
  * @note Also the reader/setter, and the first call on interrupt exit. It reads set, takes busy, does
  *       the above, then unsets both volatiles. With busy taken it ignores the interrupt for that
- *       span. The interrupt may keep set raised throughout and nothing gets lost, because this
+ *       span. The interrupt may retain set raised throughout and nothing gets lost, because this
  *       recomputes every channel from what it can see and consumes no event.
  * @note Does nothing where set was clear, and where busy was already up. A nested call while the
  *       lock is out is the re-entry case, and it declines and leaves the outer call's half-done

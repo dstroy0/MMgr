@@ -18,7 +18,7 @@ largest region the configuration allows, that the word is at least as wide as th
 fixed-width types are the widths they claim. They fire at compile time, in the build that got it
 wrong, naming the pairing.
 
-## Enums must keep their declared width
+## Enums must retain their declared width
 
 An enum that silently becomes an `int` moves every field after it in every struct containing one,
 and this library addresses borrows by offset. Every offset computed from such a struct is then
@@ -31,7 +31,7 @@ MSVC's C. A probe at the source asserts the width:
 
 ```c
 EMBED_STATIC_ASSERT(sizeof(EmbedEnumProbe) == 1,
-    "EMBED_ENUM_BYTE gave an enum more than one byte here, so no enum keeps its declared width ...");
+    "EMBED_ENUM_BYTE gave an enum more than one byte here, so no enum retains its declared width ...");
 ```
 
 It fails only where a compiler accepts the packed attribute and ignores it. On TI toolchains, pass
@@ -51,7 +51,7 @@ Merging them is a miscompile the compiler cannot report. An aligned load emitted
 is not aligned is a fault on some machines and a silently wrong value on others; a load without the
 may-alias marking lets the optimizer reorder it against a store it genuinely conflicts with.
 
-This is also why `tools/dev_env/names.tsv` keeps three infixes for one module and does not collapse
+This is also why `tools/dev_env/names.tsv` retains three infixes for one module and does not collapse
 them onto the stem: collapsing `rawmemcpy`'s three onto one merged seven symbol pairs, including the
 aligned and unaligned load.
 

@@ -115,7 +115,7 @@ typedef enum MMGR_ENUM_PACKED
     MMGR_ENUM_PROBE_MAX = 255, /**< High end, the largest value one byte holds. */
 } MmgrEnumProbe;
 MMGR_STATIC_ASSERT(sizeof(MmgrEnumProbe) == 1,
-                   "MMGR_ENUM_PACKED is not honored here, so no enum keeps its declared width and every "
+                   "MMGR_ENUM_PACKED is not honored here, so no enum retains its declared width and every "
                    "borrow offset computed from a struct containing one is wrong (TI: pass --small_enum)");
 
 /** @} */

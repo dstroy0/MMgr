@@ -62,7 +62,7 @@
 #define MMGR_ACCURACY_RING_GUARD 0xA5u
 
 /**
- * @brief A byte queue that holds its contents in order, with no wrap of any kind.
+ * @brief A byte queue that holds its contents in order, with no wrap of any type.
  *
  * @note The whole reference. Bytes go on at the end and come off the front, and a pop shifts the
  *       rest down. That shift is what a ring exists to avoid, and for that reason it is the right
@@ -80,7 +80,7 @@ typedef struct
  * @param[in,out] queue Queue to append to [BORROWS].
  * @param[in]     src   Bytes to append [BORROWS].
  * @param[in]     bytes How many to append.
- * @warning The caller keeps the total at or below one less than the capacity, the most the
+ * @warning The caller retains the total at or below one less than the capacity, the max the
  *          ring holds. Nothing here bounds it.
  */
 static void accuracy_queue_push(AccuracyQueue *queue, const uint8_t *src, size_t bytes)
@@ -100,7 +100,7 @@ static void accuracy_queue_push(AccuracyQueue *queue, const uint8_t *src, size_t
  * @param[in]     bytes How many to remove.
  * @note Shifts the rest down one position at a time. The cost is beside the point here. The property under test
  *       is that the order the bytes come off in is a property of the array and of nothing else.
- * @warning The caller keeps bytes at or below the count stored. Nothing here bounds it.
+ * @warning The caller retains bytes at or below the count stored. Nothing here bounds it.
  */
 static void accuracy_queue_pop(AccuracyQueue *queue, uint8_t *dst, size_t bytes)
 {
@@ -126,7 +126,7 @@ static void accuracy_queue_pop(AccuracyQueue *queue, uint8_t *dst, size_t bytes)
  * @param[in]  offset How far past the front to start.
  * @param[in]  bytes  How many to copy.
  * @note The mirror of what the contract says peek does, built as a plain array read.
- * @warning The caller keeps offset plus bytes at or below the count stored. Nothing here bounds it.
+ * @warning The caller retains offset plus bytes at or below the count stored. Nothing here bounds it.
  */
 static void accuracy_queue_peek(const AccuracyQueue *queue, uint8_t *dst, size_t offset, size_t bytes)
 {
@@ -178,7 +178,7 @@ static int accuracy_lowest_set_bit(embed_word mask)
  * @brief Runs before each Unity test case.
  *
  * @note Unity calls this around every case, and so the symbol has to exist even when it does nothing.
- * @note Every case lays a fresh ring down with mmgr_anular_init, as puts the cursors and
+ * @note Every case positions a fresh ring down with mmgr_anular_init, as puts the cursors and
  *       the loculus masks back to a known state.
  */
 void setUp(void)
@@ -297,7 +297,7 @@ void test_a_long_run_of_writes_and_reads_delivers_every_byte_in_order(void)
 
             TEST_ASSERT_EQUAL_size_t_MESSAGE(should_take, took, label);
 
-            // Unity refuses a comparison over no elements, and an empty ring legitimately hands back
+            // Unity refuses a comparison over no elements, and an empty ring legitimately passes back
             // none. The count above is what covers that case
             if (should_take != 0u)
             {
@@ -596,21 +596,21 @@ void test_the_producer_is_refused_once_every_segment_is_in_flight(void)
     EMBED_CALL(anularis.seg_release, AnularisCfg, .ring = &ring);
     TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(anularis.seg_next, AnularisCfg, .ring = &ring, .out_index = &index_out),
                              "one release did not let one claim through");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, index_out, "the segment freed first was not the one handed out next");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, index_out, "the segment freed first was not the one passed out next");
 }
 
 /**
- * @brief Checks the loculus masks against a bitset this file keeps for itself.
+ * @brief Checks the loculus masks against a bitset this file retains for itself.
  *
  * @note A loculus is takeable only while it is free and not pinned, and the ready mask is that pair of
- *       conditions as one word. The reference keeps the two conditions as separate arrays and builds
+ *       conditions as one word. The reference retains the two conditions as separate arrays and builds
  *       the mask a bit at a time. So it shares no mask arithmetic with the module.
  * @note The case pins and drops every loculus in turn, and compares the mask after each step. A hold
  *       that set the wrong bit shows up as two loculi in disagreement at once.
- * @note A second hold of a loculus already pinned must fail, which keeps two callers from
+ * @note A second hold of a loculus already pinned must fail, which retains two callers from
  *       keepouts over each other.
  */
-void test_the_loculus_masks_match_a_bitset_kept_alongside(void)
+void test_the_loculus_masks_match_a_bitset_retained_alongside(void)
 {
     uint8_t buffer[MMGR_ACCURACY_RING_CAPACITY];
     uint8_t region[MMGR_RING_LOCULI > 0u ? MMGR_RING_LOCULI : 1u];
@@ -638,7 +638,7 @@ void test_the_loculus_masks_match_a_bitset_kept_alongside(void)
         held_by_us[index] = EMBED_TRUE;
         TEST_ASSERT_FALSE_MESSAGE(EMBED_CALL(anularis.loculus_hold, AnularisCfg, .ring = &ring, .index = index,
                                              .src = &region[index], .bytes = 1u),
-                                  "a loculus already held was handed out again");
+                                  "a loculus already held was passed out again");
 
         for (unsigned probe = 0u; probe < MMGR_RING_LOCULI; probe++)
         {
@@ -716,15 +716,15 @@ void test_the_lowest_set_bit_matches_a_bit_at_a_time_scan(void)
 }
 
 /**
- * @brief Checks that a pinned loculus hands back the region it received.
+ * @brief Checks that a pinned loculus passes back the region it received.
  *
  * @note The keepout is what a reader walks in place, and the claim is that the span comes back with
  *       the same bytes the hold recorded. A span that came back short leaves a reader on a walk past
- *       the region it had to keep out of.
+ *       the region it had to retain out of.
  * @note The case checks that the read offset starts at zero, since no reader walked a fresh hold.
  * @note The case checks the record again after the drop, which leaves it in place for a restream.
  */
-void test_a_held_loculus_hands_back_the_region_it_was_given(void)
+void test_a_held_loculus_passes_back_the_region_it_was_given(void)
 {
     uint8_t buffer[MMGR_ACCURACY_RING_CAPACITY];
     uint8_t region[32];
@@ -741,7 +741,7 @@ void test_a_held_loculus_hands_back_the_region_it_was_given(void)
 
     const mmgr_ring_span *const span = EMBED_CALL(anularis.loculus_keepout, AnularisCfg, .ring = &ring, .index = 0u);
 
-    TEST_ASSERT_NOT_NULL_MESSAGE(span, "a loculus in range handed back no span");
+    TEST_ASSERT_NOT_NULL_MESSAGE(span, "a loculus in range passed back no span");
     TEST_ASSERT_EQUAL_PTR_MESSAGE(region, span->buf, "the span names a different region than the hold recorded");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(sizeof region, span->bytes, "the span is a different length than was recorded");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, span->read_offset, "a fresh hold started with a reader part way through it");

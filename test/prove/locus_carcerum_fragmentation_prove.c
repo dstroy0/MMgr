@@ -7,7 +7,7 @@
 /**
  * @file locus_carcerum_fragmentation_prove.c
  * @brief Fragment.lean's reading_le proved on the C. For every persistent end and every running total at or below
- *        it, mmgr_series_cellularum_fragmentation reads at most 100, and 0 below a hundred bytes.
+ *        it, mmgr_series_cellularum_fragmentation reads at max 100, and 0 below a hundred bytes.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
  */
@@ -35,7 +35,7 @@ int main(void)
     embed_atomic_usize_store(&series->bounds,
                              (((embed_atomic_usize_value)series->size << MMGR_CARCER_HALF_BITS) | end));
     embed_atomic_usize_store(&series->persistent_in_use, in_use);
-    PROVE_ASSERT(mmgr_series_cellularum_persistent_end(series) == end, "the harness lays the end it means");
+    PROVE_ASSERT(mmgr_series_cellularum_persistent_end(series) == end, "the harness positions the end it means");
     const size_t reading = mmgr_series_cellularum_fragmentation(series);
     PROVE_ASSERT(reading <= 100u, "fragmentation reads as a percent");
     PROVE_ASSERT((end >= 100u) || (reading == 0u), "a tier under a hundred bytes reads 0");

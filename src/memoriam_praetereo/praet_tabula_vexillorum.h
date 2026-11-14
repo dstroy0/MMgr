@@ -6,7 +6,7 @@
  */
 /**
  * @file praet_tabula_vexillorum.h
- * @brief Every bit of the channel flag word, and the assertions that keep the map from drift.
+ * @brief Every bit of the channel flag word, and the assertions that retain the map from drift.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
@@ -251,7 +251,7 @@ EMBED_BEGIN_DECLS
  *       written, and a caller cannot pass a byte that means nothing.
  * @note Two of them, because ParsMemoriaeInternae and ParsMemoriaeExternum are the two declarations a
  *       pool can have. A part with more address spaces than that adds ids here and the
- *       assertion below keeps them inside the field.
+ *       assertion below retains them inside the field.
  * @note The values are ordinals. A build that wants a descriptor it can infer an address space from
  *       replaces the numbers and changes nothing else. The field is a byte and every read of it
  *       goes through PRAET_REGION_FIELD.
@@ -306,7 +306,7 @@ EMBED_STATIC_ASSERT((PRAET_REGION_SHIFT % 8u) == 0u, "the region descriptor is n
 EMBED_STATIC_ASSERT((PRAET_REGION_SHIFT + PRAET_REGION_BITS) <= 32u,
                     "the map runs off the top of the 32 bit flag word");
 
-// The write reaches the whole field and never a bit past it, whatever the caller hands over. Both
+// The write reaches the whole field and never a bit past it, whatever the caller passes over. Both
 // halves matter: a field that cannot fill loses descriptors, and one that overruns lands in a
 // status
 EMBED_STATIC_ASSERT(PRAET_REGION_FIELD(PRAET_REGION_MAX) == PRAET_REGION_MASK,

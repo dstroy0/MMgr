@@ -170,13 +170,13 @@ void test_zero_is_not_told_apart_from_the_single_bit_at_the_end_each_counts_from
     TEST_ASSERT_EQUAL_INT_MESSAGE(63, EMBED_CALL(clz.lead, ClzCfg, .val = 0u),
                                   "the header warns that zero and one give the same leading count");
     TEST_ASSERT_EQUAL_INT_MESSAGE(EMBED_CALL(clz.lead, ClzCfg, .val = 1u), EMBED_CALL(clz.lead, ClzCfg, .val = 0u),
-                                  "a caller that can be handed zero has to test for it first");
+                                  "a caller that can be passed zero has to test for it first");
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(63, EMBED_CALL(clz.trail, ClzCfg, .val = 0u),
                                   "the header warns that zero and the top bit give the same trailing count");
     TEST_ASSERT_EQUAL_INT_MESSAGE(EMBED_CALL(clz.trail, ClzCfg, .val = (embed_u64)1 << 63),
                                   EMBED_CALL(clz.trail, ClzCfg, .val = 0u),
-                                  "a caller that can be handed zero has to test for it first");
+                                  "a caller that can be passed zero has to test for it first");
 }
 
 /**

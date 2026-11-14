@@ -10,8 +10,8 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note One entry, because a descriptor is data and almost everything about it stands where it
- *       appears. What cannot stand there is how long a chain is. A chain forms when descriptors
+ * @note One entry, because a descriptor is data and almost everything about it is where it
+ *       appears. What cannot are there is how long a chain is. A chain forms when descriptors
  *       point at each other after each exists.
  * @warning The whole file exists only when MMGR_ENABLE_DMA holds.
  */

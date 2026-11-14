@@ -17,7 +17,7 @@
 /**
  * @brief Cost of each byte value, indexed by the byte itself.
  *
- * @note Lower means rarer in this corpus, and cellul_pick_rows keeps the lowest cost it finds.
+ * @note Lower means rarer in this corpus, and cellul_pick_rows retains the lowest cost it finds.
  * @note The floor is 1. The ceiling 255 sits on the NUL and the space, and so neither is ever chosen as a
  *       sieve offset.
  */

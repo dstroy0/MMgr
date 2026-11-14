@@ -11,7 +11,7 @@
  *       inside src/ for the checks environment. A library for a target with no libc cannot
  *       reach for fprintf and abort, and the flag that pulls them in is a test environment's.
  * @note Both macros sit under #ifndef in mmgr_config.h, and so a definition here ahead of it is the
- *       seam and not a change to it. The src/ tree keeps the two libc-free forms. MMGR_ASSERT expands
+ *       seam and not a change to it. The src/ tree retains the two libc-free forms. MMGR_ASSERT expands
  *       to a sizeof that type checks its condition and never evaluates it, and MMGR_FATAL spins.
  * @warning Reached only by a forced include on the checks environment's targets. A suite compiled
  *          without it gets the inert forms, as every other environment wants.
@@ -28,7 +28,7 @@
  * @note Nothing under src/ reads it. Every mention there is comment text about what a checks build
  *       catches, and so the knob itself is the suites' and belongs with them.
  * @note Takes 0 or 1, alone. A switch read with #if treats any non-zero as set, and so the
- *       check below keeps a mistyped value from a quiet read as on.
+ *       check below retains a mistyped value from a quiet read as on.
  * @note A suite built for another environment never reaches this header, and #if on an undefined
  *       name is 0. A case that tests it there reads false with no need of a default.
  */
@@ -60,7 +60,7 @@
  * @brief Reports an illegal call and stops, with the file and line that reached it.
  *
  * @param[in] msg_ String literal that names the broken rule.
- * @note Aborts and does not spin, which keeps a suite from a hang on a fault the way the
+ * @note Aborts and does not spin, which retains a suite from a hang on a fault the way the
  *       form for a part would.
  * @note fflush(NULL) before the trap, for the reason MMGR_ASSERT flushes.
  */

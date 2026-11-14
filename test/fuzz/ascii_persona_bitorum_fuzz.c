@@ -20,12 +20,12 @@ static int within(unsigned int byte, unsigned int low, unsigned int high)
     return (byte >= low) && (byte <= high);
 }
 
-static int stated(MmgrAsciiClass kind, unsigned int byte)
+static int stated(MmgrAsciiClass type, unsigned int byte)
 {
     const int num = within(byte, '0', '9');
     const int upper = within(byte, 'A', 'Z');
     const int lower = within(byte, 'a', 'z');
-    switch (kind)
+    switch (type)
     {
     case MMGR_ASCII_NUM:
         return num;
@@ -55,9 +55,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     FuzzInput input = fuzz_input(data, size);
     while (fuzz_left(&input))
     {
-        const MmgrAsciiClass kind = (MmgrAsciiClass)(fuzz_byte(&input) % (uint8_t)MMGR_ASCII_CLASSES);
+        const MmgrAsciiClass type = (MmgrAsciiClass)(fuzz_byte(&input) % (uint8_t)MMGR_ASCII_CLASSES);
         const uint8_t byte = fuzz_byte(&input);
-        fuzz_check((EMBED_CALL(ascii.in, AsciiCfg, .kind = kind, .byte = byte) != 0) == stated(kind, byte),
+        fuzz_check((EMBED_CALL(ascii.in, AsciiCfg, .type = type, .byte = byte) != 0) == stated(type, byte),
                    "a byte's class is the class the header states");
     }
     return 0;

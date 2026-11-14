@@ -1,7 +1,7 @@
 name: Proofs
 
 # The checks the suite does not run. The fuzz harnesses, the Lean proofs, CBMC and the machine arm on each proof
-# harness, and GenMC on each thread client. The harness test/harness.py runs each one, with the flags it keeps. A flag that
+# harness, and GenMC on each thread client. The harness test/harness.py runs each one, with the flags it retains. A flag that
 # this file also writes is a second copy of that flag.
 #
 # A hosted runner has 16 GB of memory. The prove --hosted command does not run a harness whose bound needs more, and the run
@@ -80,7 +80,7 @@ jobs:
       - name: Prove
         run: python3 test/harness.py prove --arm cbmc --arm machine --hosted
 
-      - name: Keep the run
+      - name: Retain the run
         if: always()
         uses: actions/upload-artifact@v7
         with:
@@ -99,7 +99,7 @@ jobs:
         # names.
         run: python3 test/harness.py prove --arm genmc --hosted
 
-      - name: Keep the run
+      - name: Retain the run
         if: always()
         uses: actions/upload-artifact@v7
         with:

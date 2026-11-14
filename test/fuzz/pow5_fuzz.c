@@ -17,7 +17,7 @@
 #include "fuzz_input.h"
 #include "fuzz_wide.h"
 
-/** @brief The top 128 bits of @p wide, truncated, as hi and lo, and the exponent of its lowest kept bit. */
+/** @brief The top 128 bits of @p wide, truncated, as hi and lo, and the exponent of its lowest retained bit. */
 static MmgrPow5 wide_top(const Wide *wide, int shift_in)
 {
     const unsigned int bits = wide_bits(wide);

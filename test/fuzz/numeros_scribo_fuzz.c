@@ -7,8 +7,8 @@
 /**
  * @file numeros_scribo_fuzz.c
  * @brief A libFuzzer harness over the spec writer. Any spec of literals and fields with any values runs against
- *        the same text written field by field through the verba writer each kind names. The default width applies
- *        where none comes. A value absent, a kind that differs or a value left over answers 0 with the text before
+ *        the same text written field by field through the verba writer each type names. The default width applies
+ *        where none comes. A value absent, a type that differs or a value left over answers 0 with the text before
  *        the write left whole. The appends run against the same write after the text already there, and emit
  *        against the values written with their own widths.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
@@ -21,19 +21,19 @@
 
 #include <string.h>
 
-#define FUZZ_CAP_MOST 160u
-#define FUZZ_FIELDS_MOST 12u
+#define FUZZ_CAP_MAX 160u
+#define FUZZ_FIELDS_MAX 12u
 #define FUZZ_PAD 16u
 
-static char s_out[FUZZ_CAP_MOST + FUZZ_PAD];
-static char s_expected[FUZZ_CAP_MOST + FUZZ_PAD];
-static char s_texts[FUZZ_FIELDS_MOST][24];
-static char s_literals[FUZZ_FIELDS_MOST][16];
+static char s_out[FUZZ_CAP_MAX + FUZZ_PAD];
+static char s_expected[FUZZ_CAP_MAX + FUZZ_PAD];
+static char s_texts[FUZZ_FIELDS_MAX][24];
+static char s_literals[FUZZ_FIELDS_MAX][16];
 
-/** @brief The width a kind takes when its field or value gives none. */
-static uint8_t default_width(mmgr_fk kind)
+/** @brief The width a type takes when its field or value gives none. */
+static uint8_t default_width(mmgr_fk type)
 {
-    switch (kind)
+    switch (type)
     {
     case MMGR_FK_U32:
     case MMGR_FK_U64:
@@ -48,11 +48,11 @@ static uint8_t default_width(mmgr_fk kind)
     }
 }
 
-/** @brief One value written at @p at through the verba writer its kind names, at @p width. */
+/** @brief One value written at @p at through the verba writer its type names, at @p width. */
 static size_t written_one(const mmgr_fval *value, uint8_t width, size_t cap, size_t at)
 {
-    const uint8_t taken = (width != 0u) ? width : default_width(value->kind);
-    switch (value->kind)
+    const uint8_t taken = (width != 0u) ? width : default_width(value->type);
+    switch (value->type)
     {
     case MMGR_FK_STR:
         return EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = s_expected, .cap = cap, .at = at,
@@ -95,13 +95,13 @@ static size_t written_one(const mmgr_fval *value, uint8_t width, size_t cap, siz
     }
 }
 
-static mmgr_fval drawn_value(FuzzInput *input, mmgr_fk kind, unsigned int slot)
+static mmgr_fval drawn_value(FuzzInput *input, mmgr_fk type, unsigned int slot)
 {
     mmgr_fval value;
     memset(&value, 0, sizeof value);
-    value.kind = kind;
+    value.type = type;
     const uint64_t bits = fuzz_edge_word(input);
-    switch (kind)
+    switch (type)
     {
     case MMGR_FK_STR:
     case MMGR_FK_JSON:
@@ -138,7 +138,7 @@ static mmgr_fval drawn_value(FuzzInput *input, mmgr_fk kind, unsigned int slot)
     return value;
 }
 
-static mmgr_fk drawn_kind(FuzzInput *input)
+static mmgr_fk drawn_type(FuzzInput *input)
 {
     return (mmgr_fk)(MMGR_FK_STR + (fuzz_byte(input) % (MMGR_FK_XML - MMGR_FK_STR + 1u)));
 }
@@ -148,9 +148,9 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     FuzzInput input = fuzz_input(data, size);
     while (fuzz_left(&input))
     {
-        mmgr_field spec[FUZZ_FIELDS_MOST + 1u];
-        mmgr_fval vals[FUZZ_FIELDS_MOST + 2u];
-        const unsigned int fields = fuzz_byte(&input) % FUZZ_FIELDS_MOST;
+        mmgr_field spec[FUZZ_FIELDS_MAX + 1u];
+        mmgr_fval vals[FUZZ_FIELDS_MAX + 2u];
+        const unsigned int fields = fuzz_byte(&input) % FUZZ_FIELDS_MAX;
         unsigned int values = 0u;
 
         for (unsigned int each = 0u; each < fields; each += 1u)
@@ -166,37 +166,37 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             }
             else
             {
-                const mmgr_fk kind = drawn_kind(&input);
-                spec[each] = (mmgr_field){kind, (uint8_t)(fuzz_byte(&input) % 12u), 0u, NULL};
-                vals[values] = drawn_value(&input, kind, each);
+                const mmgr_fk type = drawn_type(&input);
+                spec[each] = (mmgr_field){type, (uint8_t)(fuzz_byte(&input) % 12u), 0u, NULL};
+                vals[values] = drawn_value(&input, type, each);
                 values += 1u;
             }
         }
         spec[fields] = (mmgr_field){MMGR_FK_END, 0u, 0u, NULL};
 
-        const size_t cap = fuzz_below(&input, FUZZ_CAP_MOST + 1u);
+        const size_t cap = fuzz_below(&input, FUZZ_CAP_MAX + 1u);
         const size_t start = (cap == 0u) ? 0u : fuzz_below(&input, cap);
         const uint8_t shape = fuzz_byte(&input);
-        size_t handed = values;
+        size_t passed = values;
         int matched = 1;
         if (((shape & 7u) == 1u) && (values != 0u))
         {
-            handed = values - 1u;
+            passed = values - 1u;
             matched = 0;
         }
         else if ((shape & 7u) == 2u)
         {
-            vals[values] = drawn_value(&input, drawn_kind(&input), FUZZ_FIELDS_MOST - 1u);
-            handed = values + 1u;
+            vals[values] = drawn_value(&input, drawn_type(&input), FUZZ_FIELDS_MAX - 1u);
+            passed = values + 1u;
             matched = 0;
         }
         else if (((shape & 7u) == 3u) && (values != 0u))
         {
             const unsigned int which = (unsigned int)fuzz_below(&input, values);
-            const mmgr_fk other = drawn_kind(&input);
-            if (other != vals[which].kind)
+            const mmgr_fk other = drawn_type(&input);
+            if (other != vals[which].type)
             {
-                vals[which].kind = other;
+                vals[which].type = other;
                 matched = 0;
             }
         }
@@ -221,12 +221,12 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         if (appending)
         {
             answered = EMBED_CALL(numer.append, NumerosCfg, .out = s_out, .cap = cap, .at = told, .spec = spec,
-                                  .vals = vals, .nvals = handed);
+                                  .vals = vals, .nvals = passed);
         }
         else
         {
             answered = EMBED_CALL(numer.build, NumerosCfg, .out = s_out, .cap = cap, .at = start, .spec = spec,
-                                  .vals = vals, .nvals = handed);
+                                  .vals = vals, .nvals = passed);
         }
 
         if (cap == 0u)
@@ -245,7 +245,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         unsigned int next = 0u;
         for (unsigned int each = 0u; each < fields; each += 1u)
         {
-            if (spec[each].kind == MMGR_FK_LIT)
+            if (spec[each].type == MMGR_FK_LIT)
             {
                 at = EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = s_expected, .cap = cap, .at = at,
                                 .text = spec[each].literal, .text_len = spec[each].bytes);

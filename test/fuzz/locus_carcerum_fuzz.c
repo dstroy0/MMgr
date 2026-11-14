@@ -26,10 +26,10 @@
 #include <string.h>
 
 #define FUZZ_BYTES 16384u
-#define FUZZ_LIVE_MOST 64u
+#define FUZZ_LIVE_MAX 64u
 #define FUZZ_MOVING_BYTES 8192u
 #define FUZZ_MOVING_CELLS 16u
-#define FUZZ_MOVING_MOST 512u
+#define FUZZ_MOVING_MAX 512u
 
 #define FUZZ_OWNERS(owner_) owner_(s_f0, "f0") owner_(s_f1, "f1") owner_(s_f2, "f2") owner_(s_f3, "f3")
 MMGR_OWNERS(FUZZ_OWNERS)
@@ -43,7 +43,7 @@ LocusCarcerum(mover, MMGR_MINIMUM_SECURITY(moving));
 #define BLOCK (&fuzz_fuzzed_ctx)
 #define MOVING (&mover_moving_ctx)
 
-/** @brief One cell the model stands: its payload, its bytes, its mark, its owner and whether it is temporary. */
+/** @brief One cell the model is: its payload, its bytes, its mark, its owner and whether it is temporary. */
 typedef struct
 {
     uint8_t *payload;
@@ -53,17 +53,17 @@ typedef struct
     int temporary;
 } FuzzLive;
 
-/** @brief One movable cell the model stands: its identity, its bytes and a copy of what they hold. */
+/** @brief One movable cell the model is: its identity, its bytes and a copy of what they hold. */
 typedef struct
 {
     const CarcerMovableEntry *entry;
     size_t bytes;
     unsigned int owner;
-    uint8_t copy[FUZZ_MOVING_MOST];
+    uint8_t copy[FUZZ_MOVING_MAX];
 } FuzzMovable;
 
 static const CellOwner *s_owner[4];
-static FuzzLive s_live[FUZZ_LIVE_MOST];
+static FuzzLive s_live[FUZZ_LIVE_MAX];
 static unsigned int s_count;
 static FuzzMovable s_movable[FUZZ_MOVING_CELLS];
 static unsigned int s_movable_count;
@@ -126,13 +126,13 @@ static void gone(unsigned int at, int wiping)
 /** @brief A request size: mostly a fit, sometimes zero, sometimes past the cellblock's. */
 static size_t drawn_size(FuzzInput *input, uint8_t arg)
 {
-    const uint8_t kind = fuzz_byte(input);
-    switch (kind & 15u)
+    const uint8_t type = fuzz_byte(input);
+    switch (type & 15u)
     {
     case 0:
-        return SIZE_MAX - (size_t)(kind >> 4);
+        return SIZE_MAX - (size_t)(type >> 4);
     case 1:
-        return FUZZ_BYTES + 1u + (size_t)(kind >> 4);
+        return FUZZ_BYTES + 1u + (size_t)(type >> 4);
     case 2:
         return 0u;
     default:
@@ -170,7 +170,7 @@ static void unchanged(const BlockState *before, const char *what)
 
 static void taken(FuzzInput *input, uint8_t op, uint8_t arg, unsigned int owner, uint8_t mark)
 {
-    if (s_count >= FUZZ_LIVE_MOST)
+    if (s_count >= FUZZ_LIVE_MAX)
     {
         return;
     }
@@ -245,7 +245,7 @@ static void grown(FuzzInput *input, uint8_t op, uint8_t arg, unsigned int owner)
                "a persistent cell grows where it is, a temporary one moves down");
     for (size_t at = 0u; at < live->bytes; at += 1u)
     {
-        fuzz_check(grew[at] == live->mark, "a growth keeps the bytes the cell carried");
+        fuzz_check(grew[at] == live->mark, "a growth retains the bytes the cell carried");
     }
     if (size > live->bytes)
     {
@@ -332,19 +332,19 @@ static void movable_assigned(void)
     s_option_assigned = 1;
 }
 
-/** @brief A cell's header word, as the module lays it: a word rounded up to the alignment, ahead of the payload. */
+/** @brief A cell's header word, as the module positions it: a word rounded up to the alignment, ahead of the payload. */
 #define FUZZ_CELL_HEADER ((sizeof(embed_atomic_usize) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
 
-/** @brief A cell's header and owner word, as the module lays them: two words each rounded up to the alignment. */
+/** @brief A cell's header and owner word, as the module positions them: two words each rounded up to the alignment. */
 #define FUZZ_CELL_WORDS (2u * FUZZ_CELL_HEADER)
 
 /**
  * @brief The bytes a movable cell carries, read off the longest span a read from its start takes. That is its
- *        request rounded to the alignment. Up to a header and an owner word more comes where the take kept a free run whole.
+ *        request rounded to the alignment. Up to a header and an owner word more comes where the take retained a free run whole.
  */
 static size_t movable_capacity(const FuzzMovable *cell)
 {
-    static uint8_t probe[FUZZ_MOVING_MOST + 2u * FUZZ_CELL_WORDS + MMGR_CARCER_ALIGN];
+    static uint8_t probe[FUZZ_MOVING_MAX + 2u * FUZZ_CELL_WORDS + MMGR_CARCER_ALIGN];
     const size_t least = mmgr_align_up_buf(cell->bytes);
     size_t carried = 0u;
 
@@ -356,7 +356,7 @@ static size_t movable_capacity(const FuzzMovable *cell)
         }
     }
     fuzz_check((carried >= least) && (carried <= least + FUZZ_CELL_WORDS),
-               "a movable cell carries its rounded request and at most a header more");
+               "a movable cell carries its rounded request and at max a header more");
     return carried;
 }
 
@@ -367,7 +367,7 @@ static void movable_step(FuzzInput *input, uint8_t op, unsigned int owner)
     case 0:
         if (s_movable_count < FUZZ_MOVING_CELLS)
         {
-            const size_t bytes = 1u + fuzz_below(input, FUZZ_MOVING_MOST);
+            const size_t bytes = 1u + fuzz_below(input, FUZZ_MOVING_MAX);
             const CarcerMovableEntry *const entry = mmgr_movable_buf_alloc(MOVING, bytes, s_owner[owner]);
             if (entry != NULL)
             {
@@ -404,7 +404,7 @@ static void movable_step(FuzzInput *input, uint8_t op, unsigned int owner)
             FuzzMovable *const cell = &s_movable[fuzz_below(input, s_movable_count)];
             const size_t offset = fuzz_below(input, cell->bytes + 16u);
             const size_t bytes = fuzz_below(input, cell->bytes + 16u);
-            uint8_t span[FUZZ_MOVING_MOST + 32u];
+            uint8_t span[FUZZ_MOVING_MAX + 32u];
             const int inside = (offset <= cell->bytes) && (bytes <= cell->bytes - offset);
             const int past = offset + bytes > movable_capacity(cell);
             if ((op % 7u) == 2u)
@@ -485,13 +485,13 @@ static void movable_step(FuzzInput *input, uint8_t op, unsigned int owner)
     }
     for (unsigned int each = 0u; each < s_movable_count; each += 1u)
     {
-        uint8_t span[FUZZ_MOVING_MOST];
+        uint8_t span[FUZZ_MOVING_MAX];
         fuzz_check(mmgr_movable_buf_read(MOVING, &(CarcerMovableCfg){.cell = s_movable[each].entry,
                                                                      .dst = span,
                                                                      .bytes = s_movable[each].bytes}) != 0,
-                   "a standing movable cell reads whole");
+                   "a located movable cell reads whole");
         fuzz_check(memcmp(span, s_movable[each].copy, s_movable[each].bytes) == 0,
-                   "a movable cell keeps its bytes through every move");
+                   "a movable cell retains its bytes through every move");
     }
 }
 

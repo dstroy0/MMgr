@@ -90,7 +90,7 @@ static inline uint32_t dbench_host_cycles(void)
 
 extern volatile uintptr_t g_dbench_sink;
 
-#define DBENCH_KEEP(v) (g_dbench_sink = (uintptr_t)(v))
+#define DBENCH_RETAIN(v) (g_dbench_sink = (uintptr_t)(v))
 
 #if MMGR_BENCH_ESP
 #define DBENCH_SETTLE() vTaskDelay(1)

@@ -19,7 +19,7 @@ grep -c 'is not documented' docs/doxygen-warnings.log
 The Docs workflow captures the same log, counts it by class, and writes the totals into the job
 summary.
 
-## Where it stands
+## Where it is
 
 Every module has a `@file` block and every free function has `@brief`, `@param` and `@return`. The
 remaining gap is two specific classes:
@@ -32,7 +32,7 @@ remaining gap is two specific classes:
 
 The dispatch-table members are the bulk, and they are a genuine question and not an oversight:
 each loculus points at a free function that is already documented, and so documenting the loculus as well
-duplicates the prose and creates a second copy to keep in step. The alternatives are to document
+duplicates the prose and creates a second copy to retain in step. The alternatives are to document
 each loculus, or to accept the gap and let the reader follow the pointer.
 
 ## Why the build does not fail on it

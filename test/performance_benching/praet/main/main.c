@@ -9,7 +9,7 @@
  *
  * Three arms, all of which reach the same two entries the same way:
  *
- *   known    the direction stands at the call site. The floor, not a competitor. It does less
+ *   known    the direction is at the call site. The floor, not a competitor. It does less
  *            work deliberately, and its number is what the other two pay against.
  *   Branch   compares the two addresses and branches.
  *   Mask     builds a mask from the same compare and indexes a two entry table, and so nothing predicts.
@@ -139,7 +139,7 @@ static void praet_fill_pattern(uint8_t *at, size_t bytes)
 {
     for (size_t offset = 0u; offset < bytes; offset++)
     {
-        // Explicit cast narrows the mixed value to the byte it fills. The or with 1 keeps it away
+        // Explicit cast narrows the mixed value to the byte it fills. The or with 1 retains it away
         // from zero. A byte left untouched by a short move is distinguishable from a written one
         at[offset] = (uint8_t)((((offset * 31u) + 17u) & 0xFFu) | 1u);
     }

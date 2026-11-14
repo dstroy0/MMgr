@@ -31,7 +31,7 @@ Five things, in the order a byte meets them. The first four are one path:
                         prison.work.persistent_buf_alloc ──► spatium ──► operation
 ```
 
-A pool is declared at compile time; a cellblock is dressed over it; the cellblock hands out a cell
+A pool is declared at compile time; a cellblock is dressed over it; the cellblock passes out a cell
 and returns its first byte; a span bounds that cell; and the text, scan and copy calls work against
 the span. Rings are the fifth, and sit alongside that line instead of on it.
 
@@ -39,7 +39,7 @@ the span. Rings are the fifth, and sit alongside that line instead of on it.
 
 `ParsMemoriaeInternae` and `ParsMemoriaeExternum` declare the storage and its alignment.
 `LocusCarcerum` is a declaration too and never a call: it emits each cellblock's state and the entries
-bound to it, and nothing runs at startup. From then on a cellblock hands out storage from two ends of
+bound to it, and nothing runs at startup. From then on a cellblock passes out storage from two ends of
 its pool's bytes:
 
 - **persist** grows up from the base. It is for things that live as long as the region does.
@@ -68,17 +68,17 @@ uint8_t *buf = prison.work.temporary_buf_alloc(512, reader);
 prison.work.persistent_buf_release(buf, reader);
 ```
 
-A take bumps the top down. A release frees the cell's header and, where the cell stood at the top, trims the top
+A take bumps the top down. A release frees the cell's header and, where the cell was at the top, trims the top
 back up over the free cells there. A take the gap cannot meet walks the tier alone: every run of free cells merged
 into one, the fitting run nearest the pool's size taken, the free run at the top returned to the gap. One release
 serves both tiers, since a cell's offset says which tier it lies in.
 
 Nothing is reallocated and nothing moves: `buf` still points at readable memory after its release.
-It is dead all the same, and the library cannot tell you that you kept it.
+It is dead all the same, and the library cannot tell you that you retained it.
 
 ## 3. A cell is given back by one call, and the pool decides what that costs
 
-A _cell_ is what a pool hands out. Every one is taken with the pool's own `persistent_buf_alloc` and
+A _cell_ is what a pool passes out. Every one is taken with the pool's own `persistent_buf_alloc` and
 given back with its own `persistent_buf_release`. There is one release and never two. What differs is
 which guard the pool was declared under:
 
@@ -94,12 +94,12 @@ The extent cleared is the block's own, read from its header. A caller cannot und
 naming fewer bytes than it holds.
 
 Two guards exist instead of one that always clears, because the clear costs a pass over the bytes and
-most cells hold nothing worth paying it for. Which storage is which is settled by declaring two pools
-and handing secrets to the maximum-security cellblock. Each one's extent is the count in its own pool
+max cells hold nothing worth paying it for. Which storage is which is settled by declaring two pools
+and handing secrets to the max-security cellblock. Each one's extent is the count in its own pool
 declaration, and no build knob sizes it.
 
 Bytes are cleared on release, not on hand-out. An allocation does **not** return zeroed storage: a
-cell released from a minimum-security cellblock and handed out again carries what the last prisoner
+cell released from a minimum-security cellblock and passed out again carries what the last prisoner
 left. Declaring the sensitive pool under `MMGR_MAXIMUM_SECURITY` buys the zeroing.
 
 `mmgr_zero_buf` clears an address and a count in place without giving anything back. Its stores are
@@ -121,23 +121,23 @@ There are two, and they are different types by design:
 | extent   | `cap`       | `len`        |
 | the flag | `overflow`  | `err`        |
 
-Naming the extent differently in each stops one being handed where the other belongs without
+Naming the extent differently in each stops one being passed where the other belongs without
 the compiler saying so.
 
 The flag is sticky, and the stickiness is the gain of a span over a bare pointer and length. A caller may append
 a whole message through several calls and test once at the end in place of after each.
 `spat.reset` alone clears the flag.
 
-The two flags do not mean the same kind of thing. **`overflow` is a build failure**: what a writer
+The two flags do not mean the same type of thing. **`overflow` is a build failure**: what a writer
 emits and how big its buffer is are both fixed before the build: there is no runtime condition
 under which a correct writer overruns a correctly sized span. It asserts, nothing in a shipping
 build, an abort in `checks`, and the latch is what a shipping build does with a wrong program,
-keeping it from running off the end in place of offering it somewhere to go.
+retention it from running off the end in place of offering it somewhere to go.
 
 **`err` is a runtime fact**: a read span runs out because whatever sent the bytes sent fewer, and
 nothing was built wrong. For that reason every take answers and no append returns anything: a short
 read is a case to handle, an overrun append is a bug to fix. A take that reaches past the end leaves
-the cursor where it was. A caller that keeps reading after a failure still knows where it is.
+the cursor where it was. A caller that retains reading after a failure still knows where it is.
 
 A read is a buffer, how far it may go, and where it is. Those are the members
 @ref mod_cellul_guide names `src`, `cap` and `at`. A struct holding the three added a second
@@ -163,13 +163,13 @@ consumer advances `tail`: ordering is all that is needed, and every atomic acces
 module's own `MMGR_ATOMIC_LOAD` and `MMGR_ATOMIC_STORE`, acquire and release, and no entry on those
 two takes a lock or a read-modify-write.
 
-It offers three things over the same bytes: a byte ring, a segment view that hands out whole
-segments by index instead of copying them, and loculi, numbered holds that record a region to keep
+It offers three things over the same bytes: a byte ring, a segment view that passes out whole
+segments by index instead of copying them, and loculi, numbered holds that record a region to retain
 out of, for a reader walking bytes in place.
 
 The ring's size is yours to pick. `cap` is the bytes in the buffer you hand `mmgr_anular_init`, and
 any non-zero power of two is accepted, because the ring wraps by masking. `nsegs` is a power of two
-at most `cap`.
+at max `cap`.
 
 What the word width bounds is the loculi and never the segments: their free and busy masks are one
 machine word each, and `MMGR_RING_LOCULI_MAX` is `EMBED_WORD_BITS`, 64 on a 64-bit build, 16 on a
@@ -218,8 +218,8 @@ read them, then size the region.
 the two boundaries. `buf_available` reports the gap between them.
 
 For the peak in place of the current value, turn on `MMGR_ENABLE_HW_MEM_CAPACITY_CB`. Each end then
-keeps the largest it has seen in its own field, `persistent_hw` records the persistent end, `temporary_hw`
-records the bytes taken from the top, one per end: neither is a maximum over the other. It is off by
+retains the largest it has seen in its own field, `persistent_hw` records the persistent end, `temporary_hw`
+records the bytes taken from the top, one per end: neither is a max over the other. It is off by
 default, and there is no entry that returns either: read the field.
 
 See @ref concept_zero_heap for the argument, @ref concept_ownership for the lifetime rules in

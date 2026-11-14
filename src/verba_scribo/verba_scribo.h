@@ -6,7 +6,7 @@
  */
 /**
  * @file verba_scribo.h
- * @brief Text and number writes, the limits, and one table per kind of thing written.
+ * @brief Text and number writes, the limits, and one table per type of thing written.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
@@ -28,14 +28,14 @@
 EMBED_BEGIN_DECLS
 
 /**
- * @brief Expands to 18u, the most significant digits mmgr_verba_g will keep.
+ * @brief Expands to 18u, the max significant digits mmgr_verba_g will retain.
  *
  * @note A larger args->sig stops here. An args->sig of 0 counts as 1.
  */
 #define MMGR_G_MAX_SIG 18u
 
 /**
- * @brief Expands to 18u, the most digits after the point mmgr_verba_fixed will write.
+ * @brief Expands to 18u, the max digits after the point mmgr_verba_fixed will write.
  *
  * @note A larger args->decimals stops here. An args->decimals of 0 writes no point at all.
  */
@@ -153,7 +153,7 @@ typedef struct
     const size_t cap;       /**< Bytes available in out. */
     const size_t at;        /**< Offset to write at. */
     const double real;      /**< The value to write or classify. */
-    const uint8_t sig;      /**< Significant digits g keeps, clamped at MMGR_G_MAX_SIG. */
+    const uint8_t sig;      /**< Significant digits g retains, clamped at MMGR_G_MAX_SIG. */
     const uint8_t decimals; /**< Digits after the point fixed writes, clamped at MMGR_FIXED_MAX_DECIMALS. */
 } VerbaFractioCfg;
 
@@ -236,7 +236,7 @@ size_t mmgr_verba_put_clip(const VerbaTextusCfg *args);
  * @param[in] args Buffer, capacity, offset and the text [BORROWS].
  * @return         The offset past the write, which is args->at for a NULL args->text.
  * @note Replaces the ampersand, the two angle brackets and the double quote. The apostrophe is
- *       goes out as it stands, and so this suits element text and double quoted attributes.
+ *       goes out as it is, and so this suits element text and double quoted attributes.
  * @warning Walks to the terminator. Its own terminator bounds args->text, and not args->cap.
  */
 size_t mmgr_verba_xml(const VerbaTextusCfg *args);
@@ -331,8 +331,8 @@ size_t mmgr_verba_u64(const VerbaNumerusCfg *args);
  *
  * @param[in] args Buffer, capacity, offset and the signed value in sval [BORROWS].
  * @return         The offset past the digits, or args->cap when they do not fit.
- * @note Writes the sign through ch, then hands the magnitude to uint at base ten.
- * @note The magnitude is -(sval + 1) plus one, which stays in range for the most negative value.
+ * @note Writes the sign through ch, then passes the magnitude to uint at base ten.
+ * @note The magnitude is -(sval + 1) plus one, which stays in range for the max negative value.
  * @warning Reads args->sval and not args->val. A caller that fills the unsigned member writes a zero.
  */
 size_t mmgr_verba_i64(const VerbaNumerusCfg *args);

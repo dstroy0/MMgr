@@ -45,7 +45,7 @@ void test_case_folding_agrees_across_builder_and_scanner(void)
                                 .ci = EMBED_TRUE));
 }
 
-void test_appending_keeps_every_earlier_field_findable(void)
+void test_appending_retains_every_earlier_field_findable(void)
 {
     char buf[160];
     const mmgr_fval first[] = {MMGR_VSTR("a=1")};

@@ -6,7 +6,7 @@ There are two sets, and they answer different questions. The host benches under 
 the library against itself - carrier widths, optimization levels, what LTO is worth. The on-device
 benches under `test/performance_benching` compare it against the target's own libc on silicon, and
 those are the numbers that decide whether an entry is fast. A host figure cannot settle that: a
-desktop libc reaches for SSE or AVX and no target in the list has anything of the kind.
+desktop libc reaches for SSE or AVX and no target in the list has anything of the type.
 
 ## Running them
 
@@ -78,7 +78,7 @@ IDF project has to take that flag back out - see `test/performance_benching` for
 
 The tables above are x86-64. They say which optimization level to hand a module and how the lane
 width scales; they are not a figure for how fast the library is, because a desktop libc answers the
-same calls with SSE or AVX and no target in the list has anything of the kind.
+same calls with SSE or AVX and no target in the list has anything of the type.
 
 `test/performance_benching` runs the entries against the target's own libc on silicon, reading the
 part's cycle counter. That libc is ESP-ROM - `strnlen`, `strchr`, `memcmp`, `memchr`, `memcpy`,
@@ -173,7 +173,7 @@ input changes is almost certainly doing that.
 
 ```c
 BENCH_TIME(has_zero, {
-    embed_word w = words[bench_i_ & MASK];       BENCH_KEEP(scrut.has_zero(w));
+    embed_word w = words[bench_i_ & MASK];       BENCH_RETAIN(scrut.has_zero(w));
 });
 ```
 

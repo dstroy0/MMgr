@@ -18,7 +18,7 @@ Usage:
     python tools/dev_env/strip_comments.py PATH --go            # rewrite in place
 
     --ext .c,.h     which suffixes to visit (default .c,.h)
-    --keep-header   keep the leading copyright / SPDX block (default on)
+    --retain-header   retain the leading copyright / SPDX block (default on)
     --no-header     strip that block too
     --exclude PAT   skip any path containing PAT (repeatable)
 
@@ -81,8 +81,8 @@ def header_of(text):
     return head
 
 
-def rewrite(text, keep_header):
-    head = header_of(text) if keep_header else []
+def rewrite(text, retain_header):
+    head = header_of(text) if retain_header else []
     body = "\n".join(text.split("\n")[len(head) :]) if head else text
     body = strip(body)
     out, blank = [], 0
@@ -118,7 +118,7 @@ def main():
     ap.add_argument("paths", nargs="+")
     ap.add_argument("--go", action="store_true", help="rewrite in place")
     ap.add_argument("--ext", default=".c,.h")
-    ap.add_argument("--no-header", dest="keep_header", action="store_false")
+    ap.add_argument("--no-header", dest="retain_header", action="store_false")
     ap.add_argument("--exclude", action="append", default=["__pycache__", ".pio", "unity_runner.c"])
     a = ap.parse_args()
 
@@ -127,7 +127,7 @@ def main():
     for p in walk(a.paths, exts, a.exclude):
         files += 1
         t = io.open(p, encoding="utf-8", errors="replace", newline="").read()
-        new = rewrite(t, a.keep_header)
+        new = rewrite(t, a.retain_header)
         if new == t:
             continue
         changed += 1

@@ -41,7 +41,7 @@ typedef struct
  * @param[in] args Request size and the internal memory figures [BORROWS].
  * @return         EMBED_TRUE when the bytes fit and dram_reserve would still be free afterwards.
  * @note Tests the size first, and so the subtraction that follows cannot wrap.
- * @note dram_reserve stands as given. A reserve above free_dram refuses every request, size 0
+ * @note dram_reserve is as given. A reserve above free_dram refuses every request, size 0
  *       included. A reserve equal to it admits only a size of 0.
  */
 EMBED_INLINE embed_bool exter_dram_fits(const ExterCtx *args)
@@ -121,7 +121,7 @@ EMBED_INLINE mmgr_place exter_place(const ExterCtx *args)
  *
  * @param[in,out] args Pair to reset, as args->pingpong [BORROWS].
  * @note The store below puts fill_index in range. The other three backends read it as it
- *       stands.
+ *       is.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it, and the
  *          store below goes through it at once.
  */
@@ -136,7 +136,7 @@ EMBED_INLINE void exter_pingpong_init(const ExterCtx *args)
  * @param[in] args Pair to read, as args->pingpong [BORROWS].
  * @return         0 or 1.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
- * @warning Hands back fill_index as it stands. It is 0 or 1 on a pair exter_pingpong_init set,
+ * @warning Passes back fill_index as it is. It is 0 or 1 on a pair exter_pingpong_init set,
  *          and whatever the storage contained on one it did not.
  */
 EMBED_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
@@ -149,7 +149,7 @@ EMBED_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
  *
  * @param[in] args Pair to read, as args->pingpong [BORROWS].
  * @return         The other index, 0 or 1.
- * @note Flips the low bit of fill_index and keeps no second member, and so the two indexes
+ * @note Flips the low bit of fill_index and retains no second member, and so the two indexes
  *       cannot drift apart.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
  * @warning The answer is an index only while fill_index is 0 or 1. On a pair exter_pingpong_init has
@@ -157,7 +157,7 @@ EMBED_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
  */
 EMBED_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
 {
-    // Explicit cast keeps the result in uint8_t after the exclusive or promotes to int
+    // Explicit cast retains the result in uint8_t after the exclusive or promotes to int
     return (uint8_t)(args->pingpong->fill_index ^ 1u);
 }
 
@@ -174,7 +174,7 @@ EMBED_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
  */
 EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
 {
-    // The flip stands on its own line and the read of the answer comes on the next. So neither is a side
+    // The flip is on its own line and the read of the answer comes on the next. So neither is a side
     // effect inside the other. That second read is a fresh load, which is where a concurrent swap
     // would show up
     args->pingpong->fill_index ^= 1u;
@@ -221,7 +221,7 @@ EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
  *
  * @note memoria_externa.h describes each at its declaration.
  * @note The fields each line forwards are the ones that entry reads, and EMBED_CALL zeroes the rest.
- * @note The four pingpong lines pass args->pingpong through as it stands [BORROWS]. EMBED_CALL builds
+ * @note The four pingpong lines pass args->pingpong through as it is [BORROWS]. EMBED_CALL builds
  *       its literal inside the emitted function, and so the literal lives for that call alone and the
  *       pair has to outlive it. Nothing here copies the pair or frees it.
  * @warning No line tests what it forwards. A null pingpong reaches a backend that dereferences it

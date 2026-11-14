@@ -1,14 +1,14 @@
 /-!
 # LocusCarcerum, the persistent tier as its cells
 
-The persistent tier is its cells laid end to end from offset 0. Each cell is a header, its payload and its owner
+The persistent tier is its cells positioned end to end from offset 0. Each cell is a header, its payload and its owner
 word, with `H` the bytes of the header and the owner word together. A cell is busy or free, and a busy cell counts
 its payload to its owner. The end is the sum of the cells' footprints.
 
 The sweep (`carcer_swept`) joins every run of free cells into one free cell, the run's footprints summed. It
-returns a free run at the end to the gap. The theorems: the join keeps every byte laid, the busy cells in
-order and every owner's count. After the join no two free cells stand together. The trim leaves no free cell
-at the end, keeps the busy cells and the counts, and the end never rises.
+returns a free run at the end to the gap. The theorems: the join retains every byte positioned, the busy cells in
+order and every owner's count. After the join no two free cells are together. The trim leaves no free cell
+at the end, retains the busy cells and the counts, and the end never rises.
 -/
 
 namespace LocusCarcerum.Layout
@@ -22,10 +22,10 @@ structure Cell where
 
 variable (H : Nat)
 
-/-- The bytes a cell lays: its header and owner word, and its payload. -/
+/-- The bytes a cell positions: its header and owner word, and its payload. -/
 def foot (c : Cell) : Nat := H + c.size
 
-/-- The bytes a tier lays, which is the persistent end. -/
+/-- The bytes a tier positions, which is the persistent end. -/
 def len : List Cell → Nat
   | [] => 0
   | c :: rest => foot H c + len rest
@@ -40,7 +40,7 @@ def count (o : Nat) : List Cell → Nat
   | [] => 0
   | c :: rest => (if c.busy ∧ c.owner = o then c.size else 0) + count o rest
 
-/-- The free cell two free cells merge into: both footprints laid as one. -/
+/-- The free cell two free cells merge into: both footprints positioned as one. -/
 def joined (a b : Cell) : Cell := ⟨a.size + H + b.size, false, 0⟩
 
 /-- Every run of free cells merged into one free cell. -/
@@ -51,7 +51,7 @@ def merge : List Cell → List Cell
     | [] => [c]
     | d :: tail => if !c.busy && !d.busy then joined H c d :: tail else c :: d :: tail
 
-/-- No two free cells stand together. -/
+/-- No two free cells are together. -/
 def separated : List Cell → Prop
   | [] => True
   | [_] => True
@@ -133,7 +133,7 @@ theorem merge_separated (l : List Cell) : separated (merge H l) := by
       rw [h] at ih
       split
       · next hf =>
-        -- the joined cell is free, and what follows it stood apart from the free d
+        -- the joined cell is free, and what follows it was apart from the free d
         simp at hf
         cases tail with
         | nil => trivial

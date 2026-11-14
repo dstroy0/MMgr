@@ -9,7 +9,7 @@ The sequence is the old value of a `fetch_add` on a counter of the owner, one fo
 owner have sequences one after the other, in the order the counter gives them.
 
 The pair (place, sequence) names each take. An undo of one owner's work back to a mark gives back the owner's cells
-whose sequence is after the mark. It keeps each other cell. Which cells those are depends on the cells alone, and
+whose sequence is after the mark. It retains each other cell. Which cells those are depends on the cells alone, and
 on no time or schedule.
 
 The sequence rolls in its field of b bits. A cell is after the mark where its distance from the mark, modulo 2^b,
@@ -22,7 +22,7 @@ The theorems:
 - `word_fields_64` and `word_fields_32`: a word built from a place and a sequence gives both back.
 - `after_exact` and `before_exact`: a take d steps after the mark, d below 2^(b - 1), reads after it. A take at
   or before the mark reads not after it.
-- `undo_keeps_others`, `undo_removes`: the undo keeps each cell of another owner and each cell of the owner at or
+- `undo_retains_others`, `undo_removes`: the undo retains each cell of another owner and each cell of the owner at or
   before the mark, and gives back each other cell.
 - `undos_commute`: the undos of two owners give the same cells in either order.
 -/
@@ -128,16 +128,16 @@ structure Cell (b : Nat) where
   sequence : BitVec b
   deriving DecidableEq
 
-/-- The cells an undo keeps: each cell but those of the owner after the mark. -/
+/-- The cells an undo retains: each cell but those of the owner after the mark. -/
 def undo {b : Nat} (owner : Nat) (mark : BitVec b) (cells : List (Cell b)) : List (Cell b) :=
   cells.filter fun c => !(c.place == owner && after c.sequence mark)
 
-theorem undo_keeps_others {b : Nat} (owner : Nat) (mark : BitVec b) (cells : List (Cell b)) (c : Cell b)
+theorem undo_retains_others {b : Nat} (owner : Nat) (mark : BitVec b) (cells : List (Cell b)) (c : Cell b)
     (hc : c ∈ cells) (ho : c.place ≠ owner) : c ∈ undo owner mark cells := by
   simp only [undo, List.mem_filter]
   exact ⟨hc, by simp [ho]⟩
 
-theorem undo_keeps_before {b : Nat} (owner : Nat) (mark : BitVec b) (cells : List (Cell b)) (c : Cell b)
+theorem undo_retains_before {b : Nat} (owner : Nat) (mark : BitVec b) (cells : List (Cell b)) (c : Cell b)
     (hc : c ∈ cells) (ha : after c.sequence mark = false) : c ∈ undo owner mark cells := by
   simp only [undo, List.mem_filter]
   exact ⟨hc, by simp [ha]⟩
@@ -146,7 +146,7 @@ theorem undo_removes {b : Nat} (owner : Nat) (mark : BitVec b) (cells : List (Ce
     (ho : c.place = owner) (ha : after c.sequence mark = true) : c ∉ undo owner mark cells := by
   simp [undo, ho, ha]
 
-/-- The undos of two owners keep the same cells in either order. -/
+/-- The undos of two owners retain the same cells in either order. -/
 theorem undos_commute {b : Nat} (o1 o2 : Nat) (m1 m2 : BitVec b) (cells : List (Cell b)) :
     undo o1 m1 (undo o2 m2 cells) = undo o2 m2 (undo o1 m1 cells) := by
   simp only [undo, List.filter_filter]

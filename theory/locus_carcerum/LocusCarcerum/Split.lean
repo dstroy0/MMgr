@@ -7,7 +7,7 @@ The same state as `Packed`, with a bump in two steps as two atomic words have it
 read-modify-write on the bump's own boundary, and the decision a later read of the other boundary. Steps
 of different bumps interleave. One order of steps, the witness in the document, refuses an earlier
 reservation and takes a later one above it. The invariant breaks, and the settle puts the persistent end below
-a laid cell.
+a positioned cell.
 -/
 
 namespace LocusCarcerum.Split
@@ -47,22 +47,22 @@ def after : State :=
   let s5 := decideUp wA 0x1e8 s4
   decideDown wC 0x210 s5
 
-/-- The words after. `E` at 0xfd750, the laid persistent chain with its end there, 0x1e8 overrun. The top at
+/-- The words after. `E` at 0xfd750, the positioned persistent chain with its end there, 0x1e8 overrun. The top at
 0xfd658 with 0x210 overrun and the temporary chain with its start still at 0xfd868. -/
 theorem after_words : after = ⟨0x100000, 0xfd750, 0xfd658, 0x1e8, 0x210, 0xfd750, 0xfd868⟩ := by
   decide
 
-/-- Lemma 6: the invariant fails after the round. `E - O_E` is 0xfd568, below the laid chain's end
+/-- Lemma 6: the invariant fails after the round. `E - O_E` is 0xfd568, below the positioned chain's end
 0xfd750. The refused reservation of `A` lies below the taken cell of `B`, and the overrun counts it as if it
-lay above. -/
+position above. -/
 theorem not_inv_after : ¬ Packed.Inv after := by
   rw [after_words]
   unfold Packed.Inv
   decide
 
-/-- The settle then puts the persistent end 0x1e8 bytes below the laid cell's end. The cell `B` laid at
-[0xfd6a8, 0xfd750) stands above the end, in the gap the next bumps take from. -/
-theorem settle_below_laid : (settle after).E < after.eP := by
+/-- The settle then puts the persistent end 0x1e8 bytes below the positioned cell's end. The cell `B` positioned at
+[0xfd6a8, 0xfd750) is above the end, in the gap the next bumps take from. -/
+theorem settle_below_positioned : (settle after).E < after.eP := by
   rw [after_words]
   decide
 

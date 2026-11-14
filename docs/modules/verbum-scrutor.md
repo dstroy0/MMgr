@@ -9,7 +9,7 @@ Word-at-a-time lane primitives. Branch-free, and the performance core of the lib
 - You are implementing something in the `mem*` or `str*` shape and want the same engine the rest of
   the library uses.
 
-Most callers never touch it directly: they use @ref mod_memor_guide or @ref mod_cellul_guide, which
+Max callers never touch it directly: they use @ref mod_memor_guide or @ref mod_cellul_guide, which
 are built on it.
 
 ## What it composes with

@@ -29,7 +29,7 @@
 
 #define GENMC_BYTES 160u
 #define GENMC_PAYLOAD 16u
-#define GENMC_PERSISTENT_MOST 8u
+#define GENMC_PERSISTENT_MAX 8u
 
 #define GENMC_OWNERS(owner_) owner_(s_writer, "writer")
 MMGR_OWNERS(GENMC_OWNERS)
@@ -48,7 +48,7 @@ LocusCarcerum(written_cells, MMGR_MINIMUM_SECURITY(written));
 #define GENMC_BLOCK (&written_cells_written_ctx)
 
 static void *s_temporary[2];
-static void *s_persistent[GENMC_PERSISTENT_MOST];
+static void *s_persistent[GENMC_PERSISTENT_MAX];
 static unsigned int s_persistent_count;
 static void *s_spilled;
 
@@ -76,7 +76,7 @@ int main(void)
     s_temporary[1] = mmgr_temporary_buf_alloc(GENMC_BLOCK, GENMC_PAYLOAD, s_writer);
     assert((s_temporary[0] != NULL) && (s_temporary[1] != NULL));
     // persistent cells until a take fails: the gap left holds no cell
-    while (s_persistent_count < GENMC_PERSISTENT_MOST)
+    while (s_persistent_count < GENMC_PERSISTENT_MAX)
     {
         void *const cell = mmgr_persistent_buf_alloc(GENMC_BLOCK, GENMC_PAYLOAD, s_writer);
         if (cell == NULL)
@@ -86,7 +86,7 @@ int main(void)
         s_persistent[s_persistent_count] = cell;
         s_persistent_count += 1u;
     }
-    assert(s_persistent_count < GENMC_PERSISTENT_MOST);
+    assert(s_persistent_count < GENMC_PERSISTENT_MAX);
 
     (void)pthread_create(&threads[0], NULL, spilled, NULL);
     (void)pthread_create(&threads[1], NULL, given, NULL);

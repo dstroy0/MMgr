@@ -6,11 +6,11 @@ sets its cell's header free, then sets the closed bit and its tier's trim bit wi
 bit was clear the give holds the cellblock, and where another holds it the give leaves.
 
 A holder opens in one pass. One fetch-and takes the trim bits and the holder trims the tiers they name. Then a
-second fetch-and clears the closed bit whatever trim bits stand. A trim bit a give sets between the two stays on
+second fetch-and clears the closed bit whatever trim bits are. A trim bit a give sets between the two stays on
 the open word. The next take, or the next read of the gap, holds the bit and runs it before its own pass.
 
-A tier is `dirty` while a cell given back at its boundary stands untrimmed. The invariant: a dirty tier has its
-trim bit set, or a give of that tier stands between its store and its fetch-or. The theorems: a cellblock with
+A tier is `dirty` while a cell given back at its boundary is untrimmed. The invariant: a dirty tier has its
+trim bit set, or a give of that tier is between its store and its fetch-or. The theorems: a cellblock with
 no trim bit set and no give in flight has no dirty tier. The take that a holder runs first leaves no tier
 dirty except through a give in flight.
 
@@ -27,7 +27,7 @@ inductive Tier where
   | temporary
   deriving DecidableEq, Repr
 
-/-- Where a context stands: at rest, a give of a tier between its store and its fetch-or, or with the bit in hand. -/
+/-- Where a context is: at rest, a give of a tier between its store and its fetch-or, or with the bit in hand. -/
 inductive Place where
   | idle
   | stored (t : Tier)
@@ -62,7 +62,7 @@ inductive Step : State → State → Prop where
   /-- The open's fetch-and: the trim bits taken and the tiers they name trimmed. -/
   | take {s : State} (i : Nat) (h : s.place i = .holding) :
       Step s { s with owed := fun _ => false, dirty := fun t => s.dirty t && !s.owed t }
-  /-- The open's second fetch-and: the closed bit cleared, the trim bits left as they stand. -/
+  /-- The open's second fetch-and: the closed bit cleared, the trim bits left as they are. -/
   | release {s : State} (i : Nat) (h : s.place i = .holding) :
       Step s { s with held := false, place := moved s.place i .idle }
 
@@ -197,7 +197,7 @@ theorem inv_reach {s : State} (h : Reach s) : Inv s := by
   | step _ st ih => exact inv_step ih st
 
 /-- A cellblock has no dirty tier when its word holds no trim bit and no give is in flight. A trim walks past
-each cell that a give frees at a boundary, or the word keeps the trim bit of its tier. -/
+each cell that a give frees at a boundary, or the word retains the trim bit of its tier. -/
 theorem open_trimmed {s : State} (h : Reach s) (hno : ∀ t, s.owed t = false)
     (hquiet : ∀ i t, s.place i ≠ .stored t) : ∀ t, s.dirty t = false := by
   intro t
@@ -210,7 +210,7 @@ theorem open_trimmed {s : State} (h : Reach s) (hno : ∀ t, s.owed t = false)
     · exact (hquiet i t hit).elim
 
 /-- A holder runs the take first. After the take, each dirty tier has a give in flight. Thus the walk after the
-take runs each trim that the word kept. -/
+take runs each trim that the word retained. -/
 theorem taken_trimmed {s s' : State} (h : Reach s) (i : Nat) (hi : s.place i = .holding)
     (hs' : s' = { s with owed := fun _ => false, dirty := fun t => s.dirty t && !s.owed t }) :
     ∀ t, s'.dirty t = true → ∃ j, s'.place j = .stored t := by

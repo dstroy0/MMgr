@@ -13,7 +13,7 @@
  *
  * @note parva_extremitas moves bytes in the host's own order and magna_extremitas in the reverse of it.
  *       Nothing here consults MMGR_HW_BIG_ENDIAN, and so the two names hold on a little endian host and
- *       stand for the opposite orders on a big endian one.
+ *       are for the opposite orders on a big endian one.
  * @note The two tables share the table type and the rev entry. Their wr and rd differ, since one pair
  *       reverses and the other does not.
  */
@@ -64,7 +64,7 @@ typedef struct
  * nothing else.
  * @note Two instances share this type, one per byte order. Which one a call goes through is what sets
  *       the order, and no member takes it as an argument.
- * @note wr hands back args->width as it came. The other two return the value they produced.
+ * @note wr passes back args->width as it came. The other two return the value they produced.
  */
 typedef struct
 {
@@ -79,7 +79,7 @@ EMBED_TABLE_LAYOUT(EndianNs, wr, rd, rev);
  *
  * @param[in,out] args Destination, value and width [BORROWS].
  * @return             args->width.
- * @warning args->dst must be writable for args->width bytes. Nothing checks it. endian.c hands it to
+ * @warning args->dst must be writable for args->width bytes. Nothing checks it. endian.c passes it to
  *          proxim.put16, put32 or put64, each of which stores through it with no test.
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value writes eight
  *          bytes.
@@ -91,7 +91,7 @@ size_t mmgr_wr_le(const EndianCfg *args);
  *
  * @param[in] args Source and width [BORROWS].
  * @return         The value read, in the low args->width bytes.
- * @warning args->src must be readable for args->width bytes. Nothing checks it. endian.c hands it to
+ * @warning args->src must be readable for args->width bytes. Nothing checks it. endian.c passes it to
  *          proxim.load16, load32 or load64, each of which reads through it with no test.
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value reads eight
  *          bytes.
@@ -103,7 +103,7 @@ uint64_t mmgr_rd_le(const EndianCfg *args);
  *
  * @param[in,out] args Destination, value and width [BORROWS].
  * @return             args->width.
- * @warning args->dst must be writable for args->width bytes. Nothing checks it. endian.c hands it to
+ * @warning args->dst must be writable for args->width bytes. Nothing checks it. endian.c passes it to
  *          proxim.put16, put32 or put64, each of which stores through it with no test.
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value writes eight
  *          bytes. One above eight wraps the reversal's shift count, and a width of 0 shifts by 64,
@@ -116,7 +116,7 @@ size_t mmgr_wr_be(const EndianCfg *args);
  *
  * @param[in] args Source and width [BORROWS].
  * @return         The reversed value, in the low args->width bytes.
- * @warning args->src must be readable for args->width bytes. Nothing checks it. endian.c hands it to
+ * @warning args->src must be readable for args->width bytes. Nothing checks it. endian.c passes it to
  *          proxim.load16, load32 or load64, each of which reads through it with no test.
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value reads eight
  *          bytes. One above eight wraps the reversal's shift count, and a width of 0 shifts by 64,

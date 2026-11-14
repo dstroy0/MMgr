@@ -4,7 +4,7 @@ build_*/
 sdkconfig.esp32*
 sdkconfig.old
 
-# Captured serial output. Kept out of the tree by default: a capture is a measurement of one board
+# Captured serial output. Retained out of the tree by default: a capture is a measurement of one board
 # on one day, and committing it invites reading a stale number as the current one. Check in a
 # specific capture deliberately with `git add -f` when it is being cited.
 results/

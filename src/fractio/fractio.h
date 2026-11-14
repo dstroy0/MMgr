@@ -186,7 +186,7 @@ embed_u64 mmgr_fract_mant(const FractioCfg *args);
  * @return         The assembled pattern.
  * @note Each field has a mask of its own width. A wide input cannot reach the next field.
  * @warning What the mask drops stays gone and nothing reports it. A sign above MMGR_DBL_SIGN_ONE, an
- *          exponent above MMGR_DBL_EXP_ALL or a mantissa above MMGR_DBL_MANT_MASK keeps only its low
+ *          exponent above MMGR_DBL_EXP_ALL or a mantissa above MMGR_DBL_MANT_MASK retains only its low
  *          bits.
  */
 embed_u64 mmgr_fract_merge(const FractioCfg *args);
@@ -212,7 +212,7 @@ embed_u64 mmgr_fract_to_bits(const FractioCfg *args);
  *
  * @note EMBED_TABLE_STORAGE is static const, and so every translation unit that includes this header holds a copy of
  * its own and the addresses differ between them. The six functions it points at are the one shared definition.
- * @note EMBED_UNUSED keeps a translation unit that includes the header and never calls through the
+ * @note EMBED_UNUSED retains a translation unit that includes the header and never calls through the
  *       table from a warning about it. It expands to nothing where the unused attribute is unavailable.
  */
 EMBED_TABLE_STORAGE FractioNs fract EMBED_UNUSED = {

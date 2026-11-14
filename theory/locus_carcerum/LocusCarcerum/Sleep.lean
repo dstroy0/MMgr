@@ -9,7 +9,7 @@ contract of `Futex.lean`: the kernel compares and sleeps in one step. A writer o
 the trim bits, then a second fetch-and that clears the closed bit and the sleeper bit. It wakes the word where
 the value the second fetch-and returned had the sleeper bit (`carcer_opened`).
 
-The backoff step is embedded_types', and its bound comes from its proof: each wait lasts at most
+The backoff step is embedded_types', and its bound comes from its proof: each wait lasts at max
 `Manifold.Backoff.limitNs`, which `wait_bounded` carries here from `Manifold.Backoff.limit_fits`.
 
 One writer and one sleeper on the word's two bits. The writer shuts, takes the word, opens, and wakes. The sleeper
@@ -30,7 +30,7 @@ namespace LocusCarcerum.Sleep
 
 open EmbeddedTypes.Manifold
 
-/-- A sleep on the closed word lasts at most the backoff's limit for its shift and exponent. That fits a
+/-- A sleep on the closed word lasts at max the backoff's limit for its shift and exponent. That fits a
 nanosecond count of 2^30 and so every host wait's argument. -/
 theorem wait_bounded (s k : Nat) (hs : s ≤ Backoff.shiftMost) (hk : k ≤ Backoff.kMost) :
     Backoff.limitNs s k ≤ 2 ^ 30 :=
@@ -79,7 +79,7 @@ inductive Step : State → State → Prop where
   bit. -/
   | open_ {s : State} (hw : s.writer = .took) :
       Step s { s with word := ⟨false, false⟩, writer := .waking s.word.sleepers }
-  /-- The wake: every sleep on the word ends where a wake stands owed. -/
+  /-- The wake: every sleep on the word ends where a wake is owed. -/
   | wake {s : State} {w : Bool} (hw : s.writer = .waking w) :
       Step s { s with writer := .rest,
                       sleeper := if w && s.sleeper = .asleep then .done else s.sleeper }

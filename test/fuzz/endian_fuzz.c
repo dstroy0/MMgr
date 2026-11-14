@@ -6,7 +6,7 @@
  */
 /**
  * @file endian_fuzz.c
- * @brief A libFuzzer harness over the byte orders. Each write runs against bytes laid out one shift at a time, and
+ * @brief A libFuzzer harness over the byte orders. Each write runs against bytes arranged one shift at a time, and
  *        each read against the same. Every write reads back, and the reversal runs against the low bytes taken in reverse.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
@@ -46,7 +46,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         memset(written, 0xA5, sizeof written);
         fuzz_check(EMBED_CALL(parva_extremitas.wr, EndianCfg, .dst = written, .val = val, .width = width) == bytes,
                    "the little-endian write counts its bytes");
-        fuzz_check(memcmp(written, little, bytes) == 0, "the little-endian write lays out the low byte first");
+        fuzz_check(memcmp(written, little, bytes) == 0, "the little-endian write arranges the low byte first");
         fuzz_check(written[bytes] == 0xA5u, "the little-endian write stays within its width");
         fuzz_check(EMBED_CALL(parva_extremitas.rd, EndianCfg, .src = written, .width = width) == low,
                    "the little-endian read gives back what was written");
@@ -54,7 +54,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         memset(written, 0xA5, sizeof written);
         fuzz_check(EMBED_CALL(magna_extremitas.wr, EndianCfg, .dst = written, .val = val, .width = width) == bytes,
                    "the big-endian write counts its bytes");
-        fuzz_check(memcmp(written, big, bytes) == 0, "the big-endian write lays out the high byte first");
+        fuzz_check(memcmp(written, big, bytes) == 0, "the big-endian write arranges the high byte first");
         fuzz_check(written[bytes] == 0xA5u, "the big-endian write stays within its width");
         fuzz_check(EMBED_CALL(magna_extremitas.rd, EndianCfg, .src = written, .width = width) == low,
                    "the big-endian read gives back what was written");

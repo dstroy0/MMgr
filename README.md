@@ -66,7 +66,7 @@ the next settle.
 
 That step needs one atomic step for two actions of a bump: the move of its own boundary and the read of
 the other boundary. Thus the two boundaries share one word. With two words, a bump can fail while a later
-bump above it succeeds. The settle then moves the boundary below a laid cell.
+bump above it succeeds. The settle then moves the boundary below a positioned cell.
 
 [LocusCarcerum: the algorithm](docs/concepts/locus-carcerum-algorithm.md) gives the state, the
 operations, the invariant, Lemmas 1 to 6 and the theorem. It also gives the order of steps that breaks
@@ -84,11 +84,11 @@ That theory holds the turnstile proofs for the passes and the drain. `Pass.lean`
 | `Packed.lean`   | Lemmas 1 to 5 and the theorem, with the two boundaries read in one step               |
 | `Split.lean`    | the steps with two words, and the order of steps that breaks the invariant            |
 | `Word.lean`     | the arithmetic of the word, the request guard, and the limit on the bumps in progress |
-| `Layout.lean`   | the sweep keeps the bytes, the busy cells and the count of each owner                 |
-| `Take.lean`     | a take over a free run, and the count that the mover keeps                            |
+| `Layout.lean`   | the sweep retains the bytes, the busy cells and the count of each owner                 |
+| `Take.lean`     | a take over a free run, and the count that the mover retains                            |
 | `Spill.lean`    | the spill, the bump at the end, and the two growths                                   |
 | `Give.lean`     | a cell goes off the count of its owner one time                                       |
-| `Temporary.lean` | the temporary tier is the persistent tier mirrored: its sweep, its last fit and its laying |
+| `Temporary.lean` | the temporary tier is the persistent tier mirrored: its sweep, its last fit and its positioning |
 | `Boundary.lean` | a free cell stays at the edge only while its trim bit is set                          |
 | `Fragment.lean` | the fragmentation value is 100 or less                                                |
 | `Futex.lean`    | the address wait that GenMC runs has the behavior of the futex contract and no other  |
@@ -254,7 +254,7 @@ it writes the name of each harness that it does not run. The `locus_carcerum_mov
 - **Each width is a compile-time knob, and the tree builds all of them.** [Width and order](docs/concepts/width-and-order.md)
 - **The scans are SWAR, in plain C, with no intrinsics.** [SWAR](docs/concepts/swar.md)
 - **The namespace idiom removes the indirect calls.** [The ns idiom](docs/concepts/ns-idiom.md)
-- **A take is one fetch-add on the word that the two boundaries share, and no take lands on a laid cell.** [LocusCarcerum: the algorithm](docs/concepts/locus-carcerum-algorithm.md), proved in [Lean](theory/locus_carcerum)
+- **A take is one fetch-add on the word that the two boundaries share, and no take lands on a positioned cell.** [LocusCarcerum: the algorithm](docs/concepts/locus-carcerum-algorithm.md), proved in [Lean](theory/locus_carcerum)
 - **`to_double`, `verba.g` and `verba.fixed` are exact. `to_float` rounds two times and can give the wrong neighbor.** [Numbers, and their accuracy](docs/quality/numeric-accuracy.md)
 - **The suites cover each compile-time width, and they pass against this library and against libc.** [The test suite](docs/quality/testing.md)
 - **The cost of each optimization level.** [Optimization](docs/quality/optimization.md)
@@ -273,7 +273,7 @@ please email dstroy0 (Douglas Quigg) <dquigg123@gmail.com> from your _.edu or _.
 faculty email address, I would be happy to grant you an exception on a case-by-case basis. Your exception
 governs your use, specifically the accreditation requirement of underlying systems in any research/presentation materials.
 Academic exemptions can lead to viable market products, in which case this license shifts to a royalty ladder,
-based arbitrarily off of the amount of goodwill you've shown and how well you've adhered to crediting students and
+based arbitrarily off of the amount of goodwill you've displayed and how well you've adhered to crediting students and
 other faculty involved in the project, a portion of the royalties go directly to your institution at a minimum and
 straight to your department if their rules allow for it.
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).

@@ -90,7 +90,7 @@ void test_a_narrowing_past_the_end_fails_rather_than_shortening(void)
         "past the end is a failed span");
 }
 
-void test_a_narrowing_keeps_the_bytes_it_names(void)
+void test_a_narrowing_retains_the_bytes_it_names(void)
 {
     const mmgr_span span = EMBED_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = sizeof buf);
     const mmgr_span half = EMBED_CALL(spat.first, SpatiumCfg, .span = span, .count = 32u);

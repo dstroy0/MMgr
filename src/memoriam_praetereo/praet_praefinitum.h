@@ -16,10 +16,10 @@
  * @note Nothing here stops the build. Every unset knob takes its default, raises a warning that names
  *       itself and the value it took, and leaves a flag behind. praet_iudex.h reads those
  *       flags at the end and stops once, with a list of what to go fix.
- * @note That order is essential. An #error halts its translation unit where it stands. A
+ * @note That order is essential. An #error halts its translation unit where it is. A
  *       build with four knobs unset reports one, gets a fix, and reports the next. That is four
  *       rounds to learn four facts that were all known on the first. A warning here and a stop at
- *       the end hands the whole basket over at once.
+ *       the end passes the whole basket over at once.
  * @note Nothing about it needs a build system. It is preprocessor directives. A bare gcc or clang
  *       on one file behaves the same way as any tree that drives them. A build that continues past
  *       an error reaches across translation units on top of this. That is a separate half of the
@@ -27,7 +27,7 @@
  * @note #warning is a GNU and clang directive and is standard from C23. This library targets those
  *       two compilers and no others, and so it is available everywhere this builds.
  * @note Every message is a #warning directive, with no macro over _Pragma. GCC's warning pragma
- *       keeps only the first string literal after it. A message written as adjacent literals
+ *       retains only the first string literal after it. A message written as adjacent literals
  *       arrives cut off at the first one. That still reads as a finished sentence and still passes a
  *       check written against its first words. A #warning takes the rest of the line and arrives
  *       whole.
@@ -82,11 +82,11 @@
  *       65 millisecond ceiling a 16-bit word puts on a microsecond count is far above any value
  *       worth a place here. A transfer's runtime has no bound at all.
  */
-#ifndef PRAET_KEEPALIVE_MICROS
-#define PRAET_KEEPALIVE_MICROS 1000u
-#define PRAET_UNSET_KEEPALIVE_MICROS 1
+#ifndef PRAET_RETAINALIVE_MICROS
+#define PRAET_RETAINALIVE_MICROS 1000u
+#define PRAET_UNSET_RETAINALIVE_MICROS 1
 #warning                                                                                                               \
-    "PRAET_KEEPALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
+    "PRAET_RETAINALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
 #endif
 
 /**
@@ -108,7 +108,7 @@
 #endif
 
 // A capability switch is on or off, and a third value is somebody reading it as a count or a channel
-// number. Every test on it below would take the on arm silently. This one stops where it stands
+// number. Every test on it below would take the on arm silently. This one stops where it is
 // and stays out of the basket. Every gate after it would answer a question about a
 // value nobody can read
 #if (PRAET_RECOVERY != 0) && (PRAET_RECOVERY != 1)

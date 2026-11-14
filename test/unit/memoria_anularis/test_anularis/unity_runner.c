@@ -19,12 +19,12 @@ extern void test_peek_holds_a_request_above_capacity(void);
 extern void test_read_byte_empties_the_ring(void);
 extern void test_loculus_next_picks_the_lowest_and_reports_empty(void);
 extern void test_hold_takes_a_loculus_and_drop_returns_it(void);
-extern void test_mark_leaves_a_ring_it_was_laid_down_on_as_it_was(void);
+extern void test_mark_leaves_a_ring_it_was_positioned_down_on_as_it_was(void);
 extern void test_hold_refuses_a_loculus_that_does_not_exist(void);
 extern void test_segments_publish_and_release_in_order(void);
 extern void test_seg_at_walks_the_buffer(void);
-extern void test_a_ring_over_a_pool_the_system_gives_hands_its_two_segments_back_and_forth(void);
-extern void test_a_ring_given_its_segment_size_hands_out_segments_of_that_size(void);
+extern void test_a_ring_over_a_pool_the_system_gives_passes_its_two_segments_back_and_forth(void);
+extern void test_a_ring_given_its_segment_size_passes_out_segments_of_that_size(void);
 extern void test_a_ring_given_its_segment_size_streams_no_bytes(void);
 extern void test_a_segment_size_the_capacity_cannot_hold_is_refused(void);
 
@@ -106,12 +106,12 @@ int main(void)
   run_test(test_read_byte_empties_the_ring, "test_read_byte_empties_the_ring", 174);
   run_test(test_loculus_next_picks_the_lowest_and_reports_empty, "test_loculus_next_picks_the_lowest_and_reports_empty", 190);
   run_test(test_hold_takes_a_loculus_and_drop_returns_it, "test_hold_takes_a_loculus_and_drop_returns_it", 202);
-  run_test(test_mark_leaves_a_ring_it_was_laid_down_on_as_it_was, "test_mark_leaves_a_ring_it_was_laid_down_on_as_it_was", 232);
+  run_test(test_mark_leaves_a_ring_it_was_positioned_down_on_as_it_was, "test_mark_leaves_a_ring_it_was_positioned_down_on_as_it_was", 232);
   run_test(test_hold_refuses_a_loculus_that_does_not_exist, "test_hold_refuses_a_loculus_that_does_not_exist", 243);
   run_test(test_segments_publish_and_release_in_order, "test_segments_publish_and_release_in_order", 252);
   run_test(test_seg_at_walks_the_buffer, "test_seg_at_walks_the_buffer", 279);
-  run_test(test_a_ring_over_a_pool_the_system_gives_hands_its_two_segments_back_and_forth, "test_a_ring_over_a_pool_the_system_gives_hands_its_two_segments_back_and_forth", 296);
-  run_test(test_a_ring_given_its_segment_size_hands_out_segments_of_that_size, "test_a_ring_given_its_segment_size_hands_out_segments_of_that_size", 318);
+  run_test(test_a_ring_over_a_pool_the_system_gives_passes_its_two_segments_back_and_forth, "test_a_ring_over_a_pool_the_system_gives_passes_its_two_segments_back_and_forth", 296);
+  run_test(test_a_ring_given_its_segment_size_passes_out_segments_of_that_size, "test_a_ring_given_its_segment_size_passes_out_segments_of_that_size", 318);
   run_test(test_a_ring_given_its_segment_size_streams_no_bytes, "test_a_ring_given_its_segment_size_streams_no_bytes", 342);
   run_test(test_a_segment_size_the_capacity_cannot_hold_is_refused, "test_a_segment_size_the_capacity_cannot_hold_is_refused", 358);
 

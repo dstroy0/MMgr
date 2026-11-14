@@ -58,7 +58,7 @@ static void proto_fresh(void)
         proto_fresh();                                                                                                 \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             void *p_ = protocore_arena_persist_alloc(&g_arena, (N));                                                   \
-            BENCH_KEEP(p_ != NULL);                                                                                    \
+            BENCH_RETAIN(p_ != NULL);                                                                                    \
             protocore_arena_persist_free(&g_arena, p_);                                                                \
         });                                                                                                            \
         report("protocore", "persist alloc+free", (N), cy_);                                                           \
@@ -66,7 +66,7 @@ static void proto_fresh(void)
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             void *p_ = ram.general.persistent_buf_alloc((N), cells);                                                   \
-            BENCH_KEEP(p_ != NULL);                                                                                    \
+            BENCH_RETAIN(p_ != NULL);                                                                                    \
             ram.general.persistent_buf_release(p_, cells);                                                             \
         });                                                                                                            \
         report("locus_carcerum", "persist alloc+free", (N), cy_);                                                      \
@@ -81,7 +81,7 @@ static void proto_fresh(void)
             const size_t m_ = protocore_arena_scratch_mark(&g_arena);                                                  \
             for (unsigned k_ = 0; k_ < CHAIN; k_++)                                                                    \
             {                                                                                                          \
-                BENCH_KEEP(protocore_arena_scratch_alloc(&g_arena, (N)) != NULL);                                      \
+                BENCH_RETAIN(protocore_arena_scratch_alloc(&g_arena, (N)) != NULL);                                      \
             }                                                                                                          \
             protocore_arena_scratch_release(&g_arena, m_);                                                             \
         });                                                                                                            \
@@ -93,7 +93,7 @@ static void proto_fresh(void)
             for (unsigned k_ = 0; k_ < CHAIN; k_++)                                                                    \
             {                                                                                                          \
                 held_[k_] = ram.general.temporary_buf_alloc((N), cells);                                               \
-                BENCH_KEEP(held_[k_] != NULL);                                                                         \
+                BENCH_RETAIN(held_[k_] != NULL);                                                                         \
             }                                                                                                          \
             for (unsigned k_ = 0; k_ < CHAIN; k_++)                                                                    \
             {                                                                                                          \
@@ -109,13 +109,13 @@ static void proto_fresh(void)
         double cy_ = 0.0;                                                                                              \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             protocore_secure_wipe(g_buf, (N));                                                                         \
-            BENCH_KEEP(g_buf[0]);                                                                                      \
+            BENCH_RETAIN(g_buf[0]);                                                                                      \
         });                                                                                                            \
         report("protocore", "wipe", (N), cy_);                                                                         \
                                                                                                                        \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             mmgr_zero_buf(g_buf, (N));                                                                                 \
-            BENCH_KEEP(g_buf[0]);                                                                                      \
+            BENCH_RETAIN(g_buf[0]);                                                                                      \
         });                                                                                                            \
         report("locus_carcerum", "zero", (N), cy_);                                                                    \
     } while (0)
@@ -126,7 +126,7 @@ static void proto_fresh(void)
         double cy_ = 0.0;                                                                                              \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             const size_t m_ = protocore_secure_mark();                                                                 \
-            BENCH_KEEP(protocore_secure_alloc((N), sizeof(void *)) != NULL);                                           \
+            BENCH_RETAIN(protocore_secure_alloc((N), sizeof(void *)) != NULL);                                           \
             protocore_secure_release(m_);                                                                              \
         });                                                                                                            \
         report("protocore", "secure take+wiped release", (N), cy_);                                                    \
@@ -134,14 +134,14 @@ static void proto_fresh(void)
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             void *p_ = ram.general.persistent_buf_alloc((N), cells);                                                   \
-            BENCH_KEEP(p_ != NULL);                                                                                    \
+            BENCH_RETAIN(p_ != NULL);                                                                                    \
             ram.general.persistent_buf_release(p_, cells);                                                             \
         });                                                                                                            \
         report("locus_carcerum", "max security alloc+zeroing release", (N), cy_);                                      \
                                                                                                                        \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             const size_t m_ = protocore_plaintext_mark();                                                              \
-            BENCH_KEEP(protocore_plaintext_alloc((N), sizeof(void *)) != NULL);                                        \
+            BENCH_RETAIN(protocore_plaintext_alloc((N), sizeof(void *)) != NULL);                                        \
             protocore_plaintext_release(m_);                                                                           \
         });                                                                                                            \
         report("protocore", "plain take+release", (N), cy_);                                                           \
@@ -149,7 +149,7 @@ static void proto_fresh(void)
         carcer_fresh();                                                                                                \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             void *p_ = ram.general.persistent_buf_alloc((N), cells);                                                   \
-            BENCH_KEEP(p_ != NULL);                                                                                    \
+            BENCH_RETAIN(p_ != NULL);                                                                                    \
             ram.general.persistent_buf_release(p_, cells);                                                             \
         });                                                                                                            \
         report("locus_carcerum", "min security alloc+release", (N), cy_);                                              \
@@ -165,7 +165,7 @@ int main(void)
     {
         double cy = 0.0;
 
-        BENCH_TIME_CYCLES(cy, ITERS, { BENCH_KEEP(bench_i_); });
+        BENCH_TIME_CYCLES(cy, ITERS, { BENCH_RETAIN(bench_i_); });
         printf("harness,nop,0,%.3f,\n", (bench_cycles_per_s() / cy) / 1e6);
         fflush(stdout);
     }
@@ -186,19 +186,19 @@ int main(void)
         BENCH_TIME_CYCLES(cy, ITERS, {
             protocore_span s_ = protocore_span_from(g_buf, sizeof g_buf);
             s_.pos = 128u;
-            BENCH_KEEP(protocore_span_ok(protocore_span_first(protocore_span_after(s_, 8u), 64u)));
-            BENCH_KEEP(protocore_cspan_ok(protocore_span_produced(s_)));
+            BENCH_RETAIN(protocore_span_ok(protocore_span_first(protocore_span_after(s_, 8u), 64u)));
+            BENCH_RETAIN(protocore_cspan_ok(protocore_span_produced(s_)));
         });
         report("protocore", "span walk", 0u, cy);
 
         BENCH_TIME_CYCLES(cy, ITERS, {
             mmgr_span s_ = EMBED_CALL(spat.from, SpatiumCfg, .buf = g_buf, .cap = sizeof g_buf);
             s_.pos = 128u;
-            BENCH_KEEP(EMBED_CALL(
+            BENCH_RETAIN(EMBED_CALL(
                 spat.ok, SpatiumCfg,
                 .span = EMBED_CALL(spat.first, SpatiumCfg,
                                    .span = EMBED_CALL(spat.after, SpatiumCfg, .span = s_, .count = 8u), .count = 64u)));
-            BENCH_KEEP(EMBED_CALL(spat.cok, SpatiumCfg, .cspan = EMBED_CALL(spat.produced, SpatiumCfg, .span = s_)));
+            BENCH_RETAIN(EMBED_CALL(spat.cok, SpatiumCfg, .cspan = EMBED_CALL(spat.produced, SpatiumCfg, .span = s_)));
         });
         report("locus_carcerum", "span walk", 0u, cy);
     }

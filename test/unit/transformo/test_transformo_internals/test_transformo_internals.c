@@ -160,7 +160,7 @@ void test_rounding_a_fraction_of_nothing(void)
     TEST_ASSERT_TRUE_MESSAGE(
         EMBED_CALL(fract.sign, FractioCfg,
                    .bits = EMBED_CALL(fract.to_bits, FractioCfg, .val = muto_round_probe(&f, EMBED_TRUE))) != 0u,
-        "and it keeps a sign it was given");
+        "and it retains a sign it was given");
 }
 
 static embed_u64 to_u64_of(embed_u64 hi, embed_u64 lo, embed_iword fe2)

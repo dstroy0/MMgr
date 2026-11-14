@@ -89,7 +89,7 @@
  *       A test harness wants that. The form here halts and names nothing, and a harness that reports
  *       the case defines its own with the report in it.
  * @warning With MMGR_DEBUG_CHECKS at 0, a failed expectation produces no diagnostic and no trap. It
- *          is not a runtime check and cannot stand as one.
+ *          is not a runtime check and cannot are as one.
  */
 #ifndef MMGR_ASSERT
 #if MMGR_DEBUG_CHECKS
@@ -126,7 +126,7 @@
 /**
  * @brief Bytes in the largest secure confinium this build will declare.
  *
- * @note The same kind of number as MMGR_PLAINTEXT_CONFIN_SIZE, and it sizes no pool either.
+ * @note The same type of number as MMGR_PLAINTEXT_CONFIN_SIZE, and it sizes no pool either.
  */
 #ifndef MMGR_SECURE_CONFIN_SIZE
 #define MMGR_SECURE_CONFIN_SIZE 4096u

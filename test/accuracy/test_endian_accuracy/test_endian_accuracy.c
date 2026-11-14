@@ -48,7 +48,7 @@
  * @brief Set to 1 where this host puts a value's least significant byte at the lowest address.
  *
  * @note The compiler states the order in __BYTE_ORDER__, and so nothing here works it out. That is the
- *       toolchain's answer and not the library's, which keeps it usable as a reference.
+ *       toolchain's answer and not the library's, which retains it usable as a reference.
  *       MMGR_HW_BIG_ENDIAN is what the module branches on, and a read of it would put the same answer
  *       on both sides of every comparison below.
  * @note A compile-time constant, and so every expectation below folds and no case carries a run-time
@@ -72,7 +72,7 @@
  */
 static uint8_t accuracy_byte_at(uint64_t value, unsigned position)
 {
-    // Explicit cast narrows the shifted value to the byte this returns. The mask keeps eight bits,
+    // Explicit cast narrows the shifted value to the byte this returns. The mask retains eight bits,
     // as a uint8_t holds
     return (uint8_t)((value >> (position * 8u)) & 0xFFu);
 }
@@ -134,7 +134,7 @@ void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void)
  * @brief Checks that the host-order write puts each byte of the value where the host puts it.
  *
  * @note parva_extremitas moves bytes as they lie. On a little endian host the byte at the lowest
- *       address is the value's least significant. On a big endian host it is the most
+ *       address is the value's least significant. On a big endian host it is the max
  *       significant of the width under write.
  * @note Every case checks the guard byte past the width. A write that moved eight bytes for a
  *       width of two fails there.
@@ -179,7 +179,7 @@ void test_the_host_order_write_places_every_byte(void)
  *
  * @note The notes on magna_extremitas give it as the reverse of the host's order. The expectation comes
  *       from the same byte extraction with the position mirrored across the width.
- * @note A compare against the mirrored reference and not against the other table keeps this
+ * @note A compare against the mirrored reference and not against the other table retains this
  *       independent of whether parva_extremitas is itself correct.
  */
 void test_the_reversed_write_places_every_byte(void)
@@ -217,16 +217,16 @@ void test_the_reversed_write_places_every_byte(void)
 }
 
 /**
- * @brief Checks that each read returns the value its bytes stand for under that table's order.
+ * @brief Checks that each read returns the value its bytes are for under that table's order.
  *
  * @note The bytes go down here one at a time and shifts build the expectation from them. So
  *       nothing about the answer comes from the module's own loads.
  * @note Both tables read from the same buffer. The two answers are the value and its reversal at
  *       that width, and that leaves a read that ignored its order visible.
  */
-void test_each_read_returns_the_value_its_bytes_stand_for(void)
+void test_each_read_returns_the_value_its_bytes_are_for(void)
 {
-    static const uint8_t laid_out[MMGR_ACCURACY_ENDIAN_MAX] = {0x11u, 0x22u, 0x33u, 0x44u, 0x55u, 0x66u, 0x77u, 0x88u};
+    static const uint8_t arranged[MMGR_ACCURACY_ENDIAN_MAX] = {0x11u, 0x22u, 0x33u, 0x44u, 0x55u, 0x66u, 0x77u, 0x88u};
     static const mmgr_endian_width width_of[] = {MMGR_ENDIAN_16, MMGR_ENDIAN_32, MMGR_ENDIAN_64};
     // Explicit cast narrows the sizeof quotient to the unsigned the loop counts in, as above
     const unsigned width_count = (unsigned)(sizeof width_of / sizeof width_of[0]);
@@ -244,16 +244,16 @@ void test_each_read_returns_the_value_its_bytes_stand_for(void)
             const unsigned host_shift = MMGR_ACCURACY_HOST_LITTLE ? position : (width - 1u - position);
             const unsigned reverse_shift = MMGR_ACCURACY_HOST_LITTLE ? (width - 1u - position) : position;
 
-            host_order |= (uint64_t)laid_out[position] << (host_shift * 8u);
-            reversed |= (uint64_t)laid_out[position] << (reverse_shift * 8u);
+            host_order |= (uint64_t)arranged[position] << (host_shift * 8u);
+            reversed |= (uint64_t)arranged[position] << (reverse_shift * 8u);
         }
 
         TEST_ASSERT_EQUAL_HEX64_MESSAGE(
-            host_order, EMBED_CALL(parva_extremitas.rd, EndianCfg, .src = laid_out, .width = width_of[width_index]),
-            "the host order read did not return the value its bytes stand for");
+            host_order, EMBED_CALL(parva_extremitas.rd, EndianCfg, .src = arranged, .width = width_of[width_index]),
+            "the host order read did not return the value its bytes are for");
         TEST_ASSERT_EQUAL_HEX64_MESSAGE(
-            reversed, EMBED_CALL(magna_extremitas.rd, EndianCfg, .src = laid_out, .width = width_of[width_index]),
-            "the reversed read did not return the value its bytes stand for");
+            reversed, EMBED_CALL(magna_extremitas.rd, EndianCfg, .src = arranged, .width = width_of[width_index]),
+            "the reversed read did not return the value its bytes are for");
     }
 }
 

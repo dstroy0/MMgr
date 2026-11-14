@@ -28,7 +28,7 @@ a build whose flags nobody wrote down.
 
 Every tree lives under one container, build/, named for what it is and stamped with its date and
 time: build/build-20260831-181500. Two builds can then never share objects, and a tree can stay
-for a later comparison in place of a loss. A build keeps its tree between invocations,
+for a later comparison in place of a loss. A build retains its tree between invocations,
 because a fresh one costs a full configure and a full compile every time. The --fresh option forces
 a new one, the thing a changed target or a changed toolchain needs. The newest three per name stay and
 the older ones go on the way in.
@@ -46,7 +46,7 @@ instead of in somebody's shell history:
 
 The device benches are ESP-IDF projects, which is a second build system with its own toolchain and
 environment. To reach it needs a shell: this file writes the shell script out, runs it, and
-removes it when it succeeds. A script kept in the tree is a second place the paths live, and it
+removes it when it succeeds. A script retained in the tree is a second place the paths live, and it
 drifts from what this file computes. One generated from the paths this file just resolved cannot.
 A script that fails stays behind with its path printed. A build that failed is exactly when the
 command that ran is worth a read.
@@ -108,7 +108,7 @@ import time
 
 # No __pycache__ beside the source. This process imports bench.py out of the bench tree, and the
 # interpreter writes bytecode next to whatever it imports. That is a generated directory in the
-# checkout, left by the one tool whose job is to keep generated things in a single place.
+# checkout, left by the one tool whose job is to retain generated things in a single place.
 sys.dont_write_bytecode = True
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -136,9 +136,9 @@ BUILD_CONTAINER = os.path.join(BUILD_ROOT, "build")
 # configured tree.
 BUILD_POINTER = os.path.join(BUILD_CONTAINER, "current.json")
 
-# Trees kept per name before the oldest goes. Small by design: an instrumented tree is
+# Trees retained per name before the oldest goes. Small by design: an instrumented tree is
 # hundreds of megabytes, and what anyone wants is the last few and never the last month.
-BUILD_KEEP = 3
+BUILD_RETAIN = 3
 
 
 def build_stamp():
@@ -162,7 +162,7 @@ def write_pointer(current):
         json.dump(current, fh, indent=2, sort_keys=True)
 
 
-# Where the pointer keeps the last good toolchain. Underscored so the tree lookups can tell
+# Where the pointer retains the last good toolchain. Underscored so the tree lookups can tell
 # it from a tree name without a list of exceptions.
 REMEMBERED_TOOLCHAIN = "_toolchain"
 
@@ -224,7 +224,7 @@ def tree_dirs(tree):
     )
 
 
-# Asked at most once per run. The query costs about a second, and the answer does not change in the
+# Asked at max once per run. The query costs about a second, and the answer does not change in the
 # middle of a build.
 _DEFENDER_RT = "unasked"
 
@@ -329,7 +329,7 @@ def remove_tree(path):
 
     This clears every read-only bit under the tree first. FetchContent clones Unity into _deps with
     its .git intact, and git holds pack files at 0444, which Windows will not unlink. A plain
-    rmtree of any fully built tree stops partway and leaves a directory with most of its contents
+    rmtree of any fully built tree stops partway and leaves a directory with the majority of its contents
     gone. That husk still matches the tree pattern: the rotation counts it, `trees` lists it, and
     no later run removes it either.
     """
@@ -345,8 +345,8 @@ def remove_tree(path):
     return not os.path.exists(path)
 
 
-def rotate_trees(tree, keep=BUILD_KEEP):
-    """Remove all but the newest @p keep directories that belong to @p tree.
+def rotate_trees(tree, retain=BUILD_RETAIN):
+    """Remove all but the newest @p retain directories that belong to @p tree.
 
     The name carries the stamp: a sort of the names sorts them by age with no stat of anything.
     The one the pointer names stays whatever its position. A rotation that removes the tree a
@@ -354,7 +354,7 @@ def rotate_trees(tree, keep=BUILD_KEEP):
     """
     live = read_pointer().get(tree)
     mine = tree_dirs(tree)
-    for name in mine[: max(0, len(mine) - keep)]:
+    for name in mine[: max(0, len(mine) - retain)]:
         if name == live:
             continue
         # Said out loud. A rotation that cannot remove what it selected leaves the container one
@@ -367,7 +367,7 @@ def rotate_trees(tree, keep=BUILD_KEEP):
 def tree_path(tree, fresh=False):
     """Absolute path of build tree @p tree, with a new one where @p fresh or none is current.
 
-    A build keeps its tree between invocations, because a fresh one means a full configure and a
+    A build retains its tree between invocations, because a fresh one means a full configure and a
     full compile every time. The common command runs constantly. What fresh buys is the case
     where reuse would be wrong. A different target, a different toolchain, anything that leaves a
     cache that describes a build nobody asked for.
@@ -380,10 +380,10 @@ def tree_path(tree, fresh=False):
     name = "%s-%s" % (tree, build_stamp())
     current[tree] = name
     write_pointer(current)
-    # One fewer than the count kept, because the tree named above is not on disk yet - cmake makes it
-    # on the way through configure. A rotation to BUILD_KEEP here leaves that many behind and then adds
-    # one, and the container settles at one more than this file says it keeps.
-    rotate_trees(tree, BUILD_KEEP - 1)
+    # One fewer than the count retained, because the tree named above is not on disk yet - cmake makes it
+    # on the way through configure. A rotation to BUILD_RETAIN here leaves that many behind and then adds
+    # one, and the container settles at one more than this file says it retains.
+    rotate_trees(tree, BUILD_RETAIN - 1)
     return os.path.join(BUILD_CONTAINER, name)
 
 # A five-way split. A suite is a directory with exactly one .c
@@ -397,7 +397,7 @@ def tree_path(tree, fresh=False):
 #   integration/test_<name>/       more than one module together
 #   interop/test_<name>/           this library's output against another implementation's
 #
-# accuracy is separate from unit by design. A unit suite asks whether an entry keeps the contract
+# accuracy is separate from unit by design. A unit suite asks whether an entry retains the contract
 # its header states. A table-driven module can satisfy that with a table that is internally
 # consistent and numerically wrong. An accuracy suite asks what the number actually is.
 UNIT = os.path.join(ROOT, "test", "unit")
@@ -541,7 +541,7 @@ def generate_runner(suite_dir, unity_rb):
     with open(out, "rb") as fh:
         written = fh.read()
     fixed = written.replace(b"\r\n", b"\n")
-    # Unity writes the source path it receives into UnityBegin, and the caller hands this function
+    # Unity writes the source path it receives into UnityBegin, and the caller passes this function
     # an absolute one. The same argument as the line endings above applies, and it is worse. An
     # absolute path in a generated file under version control names the machine that produced it.
     # It rewrites itself on every checkout at a different location, and each diff reads as authored
@@ -610,7 +610,7 @@ def undriven_deps(path):
 # pin a timer to: the clock is the caller's. The two DMA trees, the target probe and the remote
 # columns all start from these. Each replaces a knob by name where it asks a different question.
 PRAET_KNOBS = (
-    "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u", "PRAET_KEEPALIVE_MICROS=250u",
+    "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u", "PRAET_RETAINALIVE_MICROS=250u",
     "PRAET_RECOVERY=1", "PRAET_CLOCK_HZ=240000000u", "PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER",
 )
 
@@ -693,11 +693,11 @@ def borrowed_toolchain(skip_path):
     """Generator and compiler taken from whichever tree is already configured.
 
     cmake's default generator is not always the one that works on a given machine. A tree that
-    already built is proof of one that does. Beats a second place to keep a toolchain path.
+    already built is proof of one that does. Beats a second place to retain a toolchain path.
 
     @p skip_path is the directory under configuration, and it is the only one this passes over. A
-    skip of the whole tree NAME would read as "never borrow from a tree of the kind you build". That
-    kind is the one most likely to have one.
+    skip of the whole tree NAME would read as "never borrow from a tree of the type you build". That
+    type is the one max likely to have one.
     """
     # Read off the directories and never through tree_path. That function makes a directory and
     # rotates when a tree has none, and a probe for a toolchain must not create anything.
@@ -795,7 +795,7 @@ def ctest(tree, pattern):
 # Device benches
 # ------------------------------------------------------------------------------------------------
 # The on-device benches are ESP-IDF projects, which is a second build system with its own toolchain
-# and its own environment. To reach it needs a shell. A shell script kept in the tree is a second
+# and its own environment. To reach it needs a shell. A shell script retained in the tree is a second
 # place the paths live. It drifts from what this file computes and is wrong exactly when nobody
 # checks. So this file writes the script out, runs it, and removes it on success.
 #
@@ -834,7 +834,7 @@ def run_script(path, quiet=False):
     if r.returncode == 0:
         os.unlink(path)
     else:
-        print("script kept for reading: %s" % os.path.relpath(path, ROOT).replace("\\", "/"))
+        print("script retained for reading: %s" % os.path.relpath(path, ROOT).replace("\\", "/"))
     return r
 
 
@@ -1055,7 +1055,7 @@ def cmd_trees(a):
         print("no build trees yet")
         return 0
 
-    print("%s  (keeping %d per name)" % (os.path.relpath(BUILD_CONTAINER, ROOT).replace("\\", "/"), BUILD_KEEP))
+    print("%s  (retention %d per name)" % (os.path.relpath(BUILD_CONTAINER, ROOT).replace("\\", "/"), BUILD_RETAIN))
     # Only the tree entries. The pointer also carries the remembered toolchain, whose value is a list
     # and would not go into a set at all.
     live = {name for key, name in current.items() if not key.startswith("_")}
@@ -1098,7 +1098,7 @@ STRAY_FILES = (
 def cmd_stray(a):
     """Everything outside the container that looks like something a build produced.
 
-    The container rule is only worth its keep if a break of it is visible. Left to the eye, a stray
+    The container rule is only worth its retain if a break of it is visible. Left to the eye, a stray
     tree turns up days later, and by then there are several and nobody knows which tool made which.
     So this makes a dirty tree one line of output instead of an afternoon in the directories.
 
@@ -1206,7 +1206,7 @@ def cmd_fuzz(a):
     """Build the fuzz tree, then run its harnesses: as the suite runs them, or for a time each over a corpus.
 
     With no --seconds every harness runs its fixed seed and count as a test. With --seconds each runs that long
-    over a corpus kept under the tree at fuzz/<name>, which grows with what libFuzzer finds between runs. An
+    over a corpus retained under the tree at fuzz/<name>, which grows with what libFuzzer finds between runs. An
     input that fails lands beside it as crash-*, the file to hand back to the harness to see it again.
     """
     tree = "build-fuzz"
@@ -1289,7 +1289,7 @@ def cmd_coverage(a):
     # nothing can reach. The tool rules on what needs no coverage, and it rules from the compiler's
     # records and never from the source. A branch this report does not print is a branch nobody
     # looked at. A reader establishes anything truly unreachable and writes it down, and the
-    # denominator keeps it.
+    # denominator retains it.
     #
     # A failed MMGR_ASSERT stops the program, and so its failure arm is no branch a green suite
     # runs. The checks environment still tests its condition.
@@ -1617,7 +1617,7 @@ RV_15 = os.path.join(ESP_TOOLS, "riscv32-esp-elf", "esp-15.2.0_20251204", "riscv
                      "riscv32-esp-elf-gcc.exe")
 
 # Current Arm GNU. PlatformIO ships GCC 5.4.1 from 2016, which predates ARMv8-M and cannot build a
-# Cortex-M23 or M33 at all. ARM_OLD keeps two rows anyway: a header this full of preprocessor tests
+# Cortex-M23 or M33 at all. ARM_OLD retains two rows anyway: a header this full of preprocessor tests
 # is just what compiles on one compiler generation and not another.
 ARM = os.environ.get("MMGR_ARM_GCC",
                      r"C:\Program Files (x86)\Arm GNU Toolchain arm-none-eabi\14.2 rel1\bin\arm-none-eabi-gcc.exe")
@@ -2176,10 +2176,10 @@ def cmd_vectors(a):
     wrong = abs(len(got) - len(hmac_cases))
     truncated = 0
     for case, have in zip(hmac_cases, got):
-        keep = int(case["Tlen"]) * 2
+        retain = int(case["Tlen"]) * 2
         if int(case["Tlen"]) < 32:
             truncated += 1
-        if have[:keep].lower() != case["Mac"].lower():
+        if have[:retain].lower() != case["Mac"].lower():
             wrong += 1
     print("%-22s %4d vectors (%d truncated tags), %d wrong"
           % ("CAVP HMAC", len(hmac_cases), truncated, wrong))
@@ -2270,21 +2270,21 @@ def main():
 
     p = sub.add_parser("build", help="configure if needed, then build")
     p.add_argument("--tree", default="build", choices=sorted(TREES), help="which build tree")
-    p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.add_argument("--jobs", type=int, default=2, help="build parallelism, retained low on purpose")
     p.add_argument("--fresh", action="store_true", help=fresh_help)
     p.set_defaults(fn=cmd_build)
 
     p = sub.add_parser("test", help="build, then run the suites")
     p.add_argument("--tree", default="build", choices=sorted(TREES), help="which build tree")
     p.add_argument("--filter", help="only suites matching this regex")
-    p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.add_argument("--jobs", type=int, default=2, help="build parallelism, retained low on purpose")
     p.add_argument("--fresh", action="store_true", help=fresh_help)
     p.set_defaults(fn=cmd_test)
 
     p = sub.add_parser("fuzz", help="build the fuzz harnesses, then run them as tests or for a time each")
     p.add_argument("--seconds", type=int, default=0, help="seconds each harness runs over its corpus, 0 for the tests")
     p.add_argument("--filter", help="only harnesses matching this regex")
-    p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.add_argument("--jobs", type=int, default=2, help="build parallelism, retained low on purpose")
     p.add_argument("--fresh", action="store_true", help=fresh_help)
     p.set_defaults(fn=cmd_fuzz)
 
@@ -2309,7 +2309,7 @@ def main():
 
     p = sub.add_parser("ab", help="both sides of the A/B, one after the other")
     p.add_argument("--filter", help="only suites matching this regex")
-    p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.add_argument("--jobs", type=int, default=2, help="build parallelism, retained low on purpose")
     p.add_argument("--fresh", action="store_true", help=fresh_help)
     p.set_defaults(fn=cmd_ab)
 
@@ -2318,7 +2318,7 @@ def main():
     p.add_argument("--gaps", action="store_true", help="name every uncovered line and branch")
     p.add_argument("--no-build", action="store_true", help="report on what is already built")
     p.add_argument("--no-run", action="store_true", help="report on the counters already there")
-    p.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    p.add_argument("--jobs", type=int, default=2, help="build parallelism, retained low on purpose")
     p.add_argument("--fresh", action="store_true", help=fresh_help)
     p.set_defaults(fn=cmd_coverage)
 
@@ -2338,7 +2338,7 @@ def main():
     d = dsub.add_parser("build", help="configure and build one bench for one part")
     d.add_argument("bench")
     d.add_argument("--target", required=True, help="esp32s3, esp32c6")
-    d.add_argument("--jobs", type=int, default=2, help="build parallelism, kept low on purpose")
+    d.add_argument("--jobs", type=int, default=2, help="build parallelism, retained low on purpose")
     d.set_defaults(fn=cmd_device_build)
 
     d = dsub.add_parser("flash", help="flash the image a build produced")
@@ -2379,7 +2379,7 @@ def main():
     g.set_defaults(fn=cmd_runners_gen)
 
     p = sub.add_parser("generated", help="are the generated headers what their generators emit")
-    p.add_argument("--write", action="store_true", help="keep the regenerated output instead of restoring")
+    p.add_argument("--write", action="store_true", help="retain the regenerated output instead of restoring")
     p.add_argument("--strict", action="store_true", help="exit non-zero on a finding, for a CI gate")
     p.set_defaults(fn=cmd_generated)
 

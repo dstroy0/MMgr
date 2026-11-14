@@ -140,7 +140,7 @@ static void big_set_128(BigNumber *number, uint64_t high, uint64_t low)
     big_set_small(number, 0u);
 
     // Explicit casts narrow each half to the limb that holds it. The shift takes the upper 32 bits
-    // before the cast discards them, and so the two limbs together keep every bit of the half
+    // before the cast discards them, and so the two limbs together retain every bit of the half
     number->limb[0] = (uint32_t)low;
     number->limb[1] = (uint32_t)(low >> MMGR_ACCURACY_LIMB_BITS);
     number->limb[2] = (uint32_t)high;
@@ -151,7 +151,7 @@ static void big_set_128(BigNumber *number, uint64_t high, uint64_t low)
  * @brief Multiplies a BigNumber in place by a value that fits in one limb.
  *
  * @param[in,out] number     Value to scale, overwritten with the product [BORROWS].
- * @param[in]     multiplier Multiplier, at most one limb wide.
+ * @param[in]     multiplier Multiplier, at max one limb wide.
  * @note A carry out of the top limb drops. The widest value this suite builds reaches bit 722,
  *       so that carry is zero every time this runs.
  */
@@ -166,7 +166,7 @@ static void big_multiply_small(BigNumber *number, uint32_t multiplier)
         const uint64_t product = ((uint64_t)number->limb[index] * (uint64_t)multiplier) + carry;
 
         // Explicit cast narrows to the low limb deliberately. The bits it drops are the ones the
-        // next line keeps as the carry, and so nothing goes lost between the two statements
+        // next line retains as the carry, and so nothing goes lost between the two statements
         number->limb[index] = (uint32_t)product;
         carry = product >> 32;
     }
@@ -245,7 +245,7 @@ static int big_bit_length(const BigNumber *number)
  * @note The top-bit shift comes from MMGR_ACCURACY_LIMB_BITS and not from a literal 31. A change
  *       to the limb width cannot then leave this reading the wrong bit.
  * @warning A carry out of the top limb drops. big_divide is the only caller and it shifts a
- *          remainder kept below its denominator. So the widest value that reaches here is 5^256 at 595
+ *          remainder retained below its denominator. So the widest value that reaches here is 5^256 at 595
  *          bits and the shift never reaches the top limb.
  */
 static void big_shift_left_one(BigNumber *number)
@@ -313,7 +313,7 @@ static void big_subtract(BigNumber *left, const BigNumber *right)
 }
 
 /**
- * @brief Divides one BigNumber by another, and keeps the quotient and drops the remainder.
+ * @brief Divides one BigNumber by another, and retains the quotient and drops the remainder.
  *
  * @param[in]  numerator   Value to divide [BORROWS].
  * @param[in]  denominator Value to divide by [BORROWS].

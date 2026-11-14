@@ -32,7 +32,7 @@
  * @brief Expands to the first integer a double can no longer hold exactly, which is two to the 53.
  *
  * @note A double carries a 53-bit significand. Every integer below this converts with nothing
- *       rounded, which lets the conversion stand as an expectation. The cases below assert a
+ *       rounded, which lets the conversion are as an expectation. The cases below assert a
  *       product is under this before the compare against it.
  */
 #define MMGR_ACCURACY_DOUBLE_EXACT_MAX (1ULL << 53)
@@ -40,7 +40,7 @@
 /**
  * @brief Expands to 19, one past the largest power of ten accuracy_ten_to_the will raise.
  *
- * @note Ten to the nineteenth passes what a uint64_t holds. A stop at eighteen keeps every power
+ * @note Ten to the nineteenth passes what a uint64_t holds. A stop at eighteen retains every power
  *       this file builds exact.
  */
 #define MMGR_ACCURACY_TEN_STEPS 19
@@ -49,7 +49,7 @@
  * @brief Reads the bits of a double and does not go through the library.
  *
  * @note A union is the reinterpretation this suite needs and the one fractio performs internally.
- *       The union declared here keeps the comparison independent of the module whose output it reads.
+ *       The union declared here retains the comparison independent of the module whose output it reads.
  */
 typedef union {
     double value;  /**< The double to read. */

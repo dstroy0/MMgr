@@ -2,7 +2,7 @@
 # the fuzzer runtime. Each one is also a test: a fixed seed and MMGR_FUZZ_RUNS inputs, and the suite runs every
 # harness. The fuzz command of harness.py runs them for as long as the command line says, over a corpus under build/.
 #
-# Most harnesses link the host library. Three build their module in themselves, with the switches the host library
+# Max harnesses link the host library. Three build their module in themselves, with the switches the host library
 # does without. The memoria_externa one builds with external memory on. The memoriam_praetereo one builds with
 # DMA on and its knobs, once with recovery and once lean. The impensa_ancorae_acus one builds once for each of
 # its five cost tables, of which a build links one.
@@ -96,7 +96,7 @@ set(MMGR_FUZZ_PRAET_SOURCES
     "${MMGR_INCLUDE_DIR}/memoriam_praetereo/praet_ordo.c"
     "${MMGR_INCLUDE_DIR}/memoriam_praetereo/praet_descriptor.c")
 set(MMGR_FUZZ_PRAET_KNOBS
-    PRAET_CHANNELS=8u PRAET_KEEPALIVE_MICROS=250u PRAET_CLOCK_HZ=240000000u PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER)
+    PRAET_CHANNELS=8u PRAET_RETAINALIVE_MICROS=250u PRAET_CLOCK_HZ=240000000u PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER)
 mmgr_fuzz_harness(memoriam_praetereo
     SOURCES ${MMGR_FUZZ_PRAET_SOURCES}
     DEFINITIONS MMGR_ENABLE_DMA=1 MMGR_ENABLE_EXTRAM=0 ${MMGR_FUZZ_PRAET_KNOBS} PRAET_SETTLE_MICROS=40u PRAET_RECOVERY=1)

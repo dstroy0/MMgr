@@ -62,27 +62,27 @@ static inline uint64_t fuzz_word(FuzzInput *input)
     return gathered;
 }
 
-/** @brief A count below @p most, drawn from two bytes. */
-static inline size_t fuzz_below(FuzzInput *input, size_t most)
+/** @brief A count below @p max, drawn from two bytes. */
+static inline size_t fuzz_below(FuzzInput *input, size_t max)
 {
     const size_t drawn = (size_t)fuzz_byte(input) | ((size_t)fuzz_byte(input) << 8);
-    return (most == 0u) ? 0u : (drawn % most);
+    return (max == 0u) ? 0u : (drawn % max);
 }
 
 /** @brief A word skewed toward the edges: zero, all ones, a single bit, a byte, or any word. */
 static inline uint64_t fuzz_edge_word(FuzzInput *input)
 {
-    const uint8_t kind = fuzz_byte(input);
-    switch (kind & 7u)
+    const uint8_t type = fuzz_byte(input);
+    switch (type & 7u)
     {
     case 0:
         return 0u;
     case 1:
         return ~(uint64_t)0;
     case 2:
-        return (uint64_t)1 << (kind >> 2);
+        return (uint64_t)1 << (type >> 2);
     case 3:
-        return ~((uint64_t)1 << (kind >> 2));
+        return ~((uint64_t)1 << (type >> 2));
     case 4:
         return (uint64_t)fuzz_byte(input);
     default:

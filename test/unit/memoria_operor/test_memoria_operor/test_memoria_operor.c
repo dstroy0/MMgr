@@ -298,7 +298,7 @@ void test_set_matches_memset_at_every_offset(void)
     }
 }
 
-void test_set_keeps_only_the_low_byte_of_its_value(void)
+void test_set_retains_only_the_low_byte_of_its_value(void)
 {
     EMBED_CALL(memor.set, MemoriaCfg, .dst = got + PAD, .val = (uint8_t)(0x1234u & 0xFFu), .bytes = (size_t)8);
     memset(want + PAD, 0x34, 8u);

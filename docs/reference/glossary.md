@@ -10,10 +10,10 @@ entirely different: the backend is machine-width parallel word processing throug
 extensive, and SIMD within a register is used wherever it applies.
 
 A name that collided with libc's would advertise a drop-in replacement of the implementation as well
-as of the result. The names also keep the library clear of a consumer's own vocabulary and of the
+as of the result. The names also retain the library clear of a consumer's own vocabulary and of the
 half-dozen other things in an embedded codebase already called `buffer`, `pool`, `arena` or `span`.
 
-That reason stands alone. It is not decoration, and it is not obscurity for its own sake: a module
+That reason is alone. It is not decoration, and it is not obscurity for its own sake: a module
 called `spatium` can be grepped for with confidence, and a symbol called `mmgr_spat_from` cannot be
 confused with anybody else's span. The cost is this page, which is a fair trade for never having to
 rename anything again.
@@ -49,7 +49,7 @@ The stem is the name of the module's dispatch table, and a call site reads it.
 
 ## Verbs
 
-The verbs are where the Latin does the most work, because the English words were the ones most
+The verbs are where the Latin does the max work, because the English words were the ones max
 likely to mislead.
 
 The public entries are English. A handle is assembled from its parts, `[lifetime]_[security]_[what
@@ -68,7 +68,7 @@ all four.
 | entry           | means                              | why not the English                                                                                                       |
 | --------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `buf_available` | bytes at hand                      | `free_bytes` reads as a verb, as though it frees something. It reports a count                                            |
-| `buf_grow`      | a cell made larger where it stands | `realloc` moves a cell and reuses holes. This moves no other cell, and answers no where the cell is not its tier's newest |
+| `buf_grow`      | a cell made larger where it is | `realloc` moves a cell and reuses holes. This moves no other cell, and answers no where the cell is not its tier's newest |
 
 `temporary_buf_alloc` takes a cell from the temporary tier. `persistent_buf_release` takes **the cell
 itself**, of either tier, and gives it back, in any order, because the cell's own header carries its extent and its
@@ -98,7 +98,7 @@ the metaphor stays behind the name.
 
 | term            | means                                                                           |
 | --------------- | ------------------------------------------------------------------------------- |
-| **borrow**      | storage the library was handed and does not own. Everything is a borrow         |
+| **borrow**      | storage the library was passed and does not own. Everything is a borrow         |
 | **pool**        | a block of bytes, declared by `ParsMemoriaeInternae` or `ParsMemoriaeExternum`  |
 | **facility**    | one prison site, declared by `LocusCarcerum`                                    |
 | **cellblock**   | a housing unit inside a facility, dressed over one pool                         |
@@ -106,14 +106,14 @@ the metaphor stays behind the name.
 | **soluta**      | general population. Open, and a release leaves the bytes as they are            |
 | **secura**      | solitary. Controlled, and a release zeroes the cell first                       |
 | **cell**        | one allocation, its header and the payload behind it                            |
-| **prisoner**    | what an allocation hands back. Never a _tenant_                                 |
+| **prisoner**    | what an allocation passes back. Never a _tenant_                                 |
 | **claim**       | dressing a pool. It happens once, at the declaration, and the build enforces it |
 | **carrier**     | the integer a SWAR operation runs on. Always the machine word                   |
 | **lane**        | one byte inside the carrier                                                     |
 | **environment** | one set of compile-time widths. See @ref ref_environments                       |
 | **latch**       | a flag that stays set once set. A run is checked once at the end                |
 
-The two axes are independent, and that independence is the part to keep. **Which custodia** is the
+The two axes are independent, and that independence is the part to retain. **Which custodia** is the
 environment. It is fixed at the cellblock's declaration and governs how a release behaves.
 **Persistent or temporary** is the sentence, how long the prisoner holds the cell, and it is chosen
 per allocation. A long sentence in general population is an ordinary thing, and so is a short stay in

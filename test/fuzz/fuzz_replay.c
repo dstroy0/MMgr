@@ -7,7 +7,7 @@
 /**
  * @file fuzz_replay.c
  * @brief The main a fuzz harness links with where there is no libFuzzer: on gcc, on MSVC, on any toolchain.
- *        It hands the harness every file named after the count and the seed. Then it hands the count of inputs
+ *        It passes the harness every file named after the count and the seed. Then it passes the count of inputs
  *        drawn from the seed, the same inputs on every toolchain. A harness's oracle judges each toolchain's
  *        build of the module on the same bytes. A disagreement stops in the harness, which names it.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
@@ -20,9 +20,9 @@
 
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size);
 
-#define REPLAY_BYTES_MOST 4096u
+#define REPLAY_BYTES_MAX 4096u
 
-static uint8_t s_input[REPLAY_BYTES_MOST];
+static uint8_t s_input[REPLAY_BYTES_MAX];
 
 /** @brief The next word of a xorshift64 stream, the same on every toolchain. */
 static uint64_t replay_next(uint64_t *state)

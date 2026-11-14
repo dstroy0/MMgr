@@ -15,7 +15,7 @@ that a wide host can exercise a narrow machine's code paths without owning the n
 | -------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
 | `host`   | _(none)_              | whatever this machine is. `EMBED_WORD_BITS` derives from `UINTPTR_MAX`. The default build.                                    |
 | `word32` | `EMBED_WORD_BITS=32`  | a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.                                         |
-| `word16` | `EMBED_WORD_BITS=16`  | the narrowest carrier. Most likely to expose an off-by-one in a scan tail.                                                    |
+| `word16` | `EMBED_WORD_BITS=16`  | the narrowest carrier. Max likely to expose an off-by-one in a scan tail.                                                    |
 | `idx16`  | `EMBED_INDEX_BITS=16` | a 16-bit index against a 64-bit word, the pairing the static asserts in `embed_types.h` exist to police.                      |
 | `checks` | `MMGR_DEBUG_CHECKS=1` | the checks compiled in, and the trapping `MMGR_ASSERT` selected. A broken precondition fails a test instead of being a no-op. |
 
@@ -58,7 +58,7 @@ ctest --test-dir build -R '_word16$' --output-on-failure
 
 ## Why these five
 
-`word16` and `idx16` are the two that earn their place most often. A SWAR scan is written once and
+`word16` and `idx16` are the two that earn their place max often. A SWAR scan is written once and
 runs at whatever the carrier is; the tail, the bytes after the last whole word, is where an
 off-by-one hides, and a 16-bit carrier reaches that tail four times sooner than a 64-bit one.
 `idx16` exists because a narrow index against a wide word is the combination nothing else covers,
@@ -92,7 +92,7 @@ set(MMGR_ENVIRONMENTS
 ```
 
 Every module target, every aggregate and every test registration follows from it. Nothing central
-lists the modules, and so nothing central has to be kept in step.
+lists the modules, and so nothing central has to be retained in step.
 
 @note The generated API reference on this site is produced at one configuration, 64-bit word,
 32-bit index, because Doxygen must resolve `embed_word` to a single concrete type. The other four

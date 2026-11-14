@@ -100,13 +100,13 @@ static const char *const s_work_names[PRAET_OPUS_KINDS] = {
 };
 
 EMBED_STATIC_ASSERT((sizeof s_work_names / sizeof s_work_names[0]) == PRAET_OPUS_KINDS,
-                    "the optimization arm has a name for every kind of work or for none of them");
+                    "the optimization arm has a name for every type of work or for none of them");
 
-void praet_procurator_opus(unsigned kind)
+void praet_procurator_opus(unsigned type)
 {
-    if (kind < (unsigned)PRAET_OPUS_KINDS)
+    if (type < (unsigned)PRAET_OPUS_KINDS)
     {
-        s_work[kind]++;
+        s_work[type]++;
     }
 }
 
@@ -138,10 +138,10 @@ static void praet_procurator_ratio(const char *label, unsigned long top, unsigne
  */
 static void praet_procurator_opus_report(void)
 {
-    printf("work done, by kind\n");
-    for (unsigned kind = 0u; kind < (unsigned)PRAET_OPUS_KINDS; kind++)
+    printf("work done, by type\n");
+    for (unsigned type = 0u; type < (unsigned)PRAET_OPUS_KINDS; type++)
     {
-        printf("%-24s%10lu\n", s_work_names[kind], s_work[kind]);
+        printf("%-24s%10lu\n", s_work_names[type], s_work[type]);
     }
 
     printf("\nwork per transfer, and per poll\n");

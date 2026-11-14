@@ -44,7 +44,7 @@ def by_lines(lines, lines_per_page):
 
 
 def by_bytes(lines, kb_per_page):
-    """Chunks of at most kb_per_page kilobytes, split only between lines."""
+    """Chunks of at max kb_per_page kilobytes, split only between lines."""
     limit = kb_per_page * 1024
     p0 = 0
     used = 0

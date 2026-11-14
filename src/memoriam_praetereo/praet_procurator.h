@@ -99,7 +99,7 @@ void praet_procurator_transitus(embed_word channel, uint32_t was, uint32_t now);
  * @brief Prints what the run reached, as a table.
  *
  * @note Written to stdout, because this is a report a person reads and not a result anything asserts
- *       on. A suite that fails still prints it, which is when it is worth most.
+ *       on. A suite that fails still prints it, which is when it is worth max.
  * @note Prints the work the run did as well, where PRAET_OPTIMIZE is on.
  */
 void praet_procurator_report(void);
@@ -114,7 +114,7 @@ EMBED_END_DECLS
  * @param channel_ Channel whose word changed, discarded.
  * @param was_     The word before, discarded.
  * @param now_     The word after, discarded.
- * @note Casts each argument to void, which keeps a build without the instrument from a warning about the values
+ * @note Casts each argument to void, which retains a build without the instrument from a warning about the values
  *       it received.
  */
 #define praet_procurator_transitus(channel_, was_, now_) ((void)(channel_), (void)(was_), (void)(now_))
@@ -149,15 +149,15 @@ typedef enum
     PRAET_OPUS_POLL_WALK = 8,  /**< A poll that walked every channel. */
     PRAET_OPUS_ALVEUS = 9,     /**< One channel visited inside a walk. */
     PRAET_OPUS_PROGRESS = 10,  /**< The port heard a question about how far a channel got. */
-    PRAET_OPUS_KINDS = 11      /**< How many kinds there are, which sizes the counters. */
+    PRAET_OPUS_KINDS = 11      /**< How many types there are, which sizes the counters. */
 } PraetOpus;
 
 /**
  * @brief Counts one piece of work.
  *
- * @param[in] kind The work done, as a PraetOpus.
+ * @param[in] type The work done, as a PraetOpus.
  */
-void praet_procurator_opus(unsigned kind);
+void praet_procurator_opus(unsigned type);
 
 EMBED_END_DECLS
 
@@ -166,9 +166,9 @@ EMBED_END_DECLS
 /**
  * @brief Expands to nothing where PRAET_OPTIMIZE is 0.
  *
- * @param kind_ The work done, dropped.
+ * @param type_ The work done, dropped.
  */
-#define praet_procurator_opus(kind_) ((void)0)
+#define praet_procurator_opus(type_) ((void)0)
 
 #endif
 

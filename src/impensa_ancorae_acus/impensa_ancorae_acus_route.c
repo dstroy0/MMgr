@@ -6,7 +6,7 @@
  */
 /**
  * @file impensa_ancorae_acus_route.c
- * @brief Byte cost table that scores letters, digits and path punctuation.
+ * @brief Byte cost table that scores characters, digits and path punctuation.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
@@ -17,9 +17,9 @@
 /**
  * @brief Cost of each byte value, indexed by the byte itself.
  *
- * @note Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.
+ * @note Lower means rarer, and cellul_pick_rows retains the lowest cost it finds.
  * @note 255 marks the NUL and the slash, and so neither is ever chosen as a sieve offset.
- * @note The braces at 123 and 125 carry a cost, where most punctuation sits at 1.
+ * @note The braces at 123 and 125 carry a cost, where max punctuation sits at 1.
  */
 static const uint8_t s_impensa[256] = {
     255, 1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,

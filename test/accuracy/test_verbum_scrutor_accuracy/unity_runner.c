@@ -16,7 +16,7 @@ extern void test_both_candidates_answer_over_every_boundary_word(void);
 extern void test_eq_answers_per_lane_with_contrasting_neighbors(void);
 extern void test_has_zero_finds_the_zero_lane_and_no_other(void);
 extern void test_the_character_predicates_answer_per_lane_for_every_byte(void);
-extern void test_fold_lower_changes_the_letters_and_leaves_every_other_byte(void);
+extern void test_fold_lower_changes_the_characters_and_leaves_every_other_byte(void);
 
 
 /*=======Mock Management=====*/
@@ -86,7 +86,7 @@ int main(void)
   run_test(test_eq_answers_per_lane_with_contrasting_neighbors, "test_eq_answers_per_lane_with_contrasting_neighbors", 441);
   run_test(test_has_zero_finds_the_zero_lane_and_no_other, "test_has_zero_finds_the_zero_lane_and_no_other", 474);
   run_test(test_the_character_predicates_answer_per_lane_for_every_byte, "test_the_character_predicates_answer_per_lane_for_every_byte", 512);
-  run_test(test_fold_lower_changes_the_letters_and_leaves_every_other_byte, "test_fold_lower_changes_the_letters_and_leaves_every_other_byte", 567);
+  run_test(test_fold_lower_changes_the_characters_and_leaves_every_other_byte, "test_fold_lower_changes_the_characters_and_leaves_every_other_byte", 567);
 
   return UNITY_END();
 }

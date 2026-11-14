@@ -6,12 +6,12 @@
  */
 /**
  * @file verba_linea.c
- * @brief A line written into a caller's buffer through verba's own entries, and handed on as it fills.
+ * @brief A line written into a caller's buffer through verba's own entries, and passed on as it fills.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-10-23
  *
  * @note Every write comes down to mmgr_line_put_n, which places each piece through verba_textus.put_n
- *       and hands the line to its flush between pieces. A number goes into a buffer of its own
+ *       and passes the line to its flush between pieces. A number goes into a buffer of its own
  *       first, and so its digits cross a flush the way a text does.
  * @note Every write ends with the store of the terminator, one store it pays for on every call. A
  *       written line's buffer is always a terminated text.
@@ -21,14 +21,14 @@
 #include "verba_scribo/verba_scribo.h"
 
 /**
- * @brief Bytes a number occupies before it goes on a line: its most digits at 255 and more.
+ * @brief Bytes a number occupies before it goes on a line: its max digits at 255 and more.
  */
 #define LINEA_DIGITS 280u
 
 /**
- * @brief The most digits or columns a number entry can take, the most a byte of verba's arguments holds.
+ * @brief The max digits or columns a number entry can take, the max a byte of verba's arguments holds.
  */
-#define LINEA_LEAST_MOST 255u
+#define LINEA_LEAST_MAX 255u
 
 /**
  * @brief Spaces mmgr_line_put_columns writes in one run.
@@ -71,7 +71,7 @@ EMBED_INLINE void linea_filled(VerbaLinea *line)
  * @param[in,out] line    The line [BORROWS].
  * @param[in]     digits  The number's own buffer, LINEA_DIGITS bytes [BORROWS].
  * @param[in]     written Where verba's write ended. LINEA_DIGITS holds the widest number, which
- *                        LINEA_LEAST_MOST bounds, and so it always fit.
+ *                        LINEA_LEAST_MAX bounds, and so it always fit.
  */
 EMBED_INLINE void linea_number(VerbaLinea *line, const char *digits, size_t written)
 {
@@ -79,15 +79,15 @@ EMBED_INLINE void linea_number(VerbaLinea *line, const char *digits, size_t writ
 }
 
 /**
- * @brief Holds a count of digits or columns at LINEA_LEAST_MOST.
+ * @brief Holds a count of digits or columns at LINEA_LEAST_MAX.
  *
  * @param[in] count The count asked for.
- * @return          count, or LINEA_LEAST_MOST where it is more.
+ * @return          count, or LINEA_LEAST_MAX where it is more.
  */
 EMBED_INLINE uint8_t linea_least(unsigned int count)
 {
     // Explicit cast narrows a count already clamped at 255 into the byte verba reads it from
-    return (uint8_t)((count < LINEA_LEAST_MOST) ? count : LINEA_LEAST_MOST);
+    return (uint8_t)((count < LINEA_LEAST_MAX) ? count : LINEA_LEAST_MAX);
 }
 
 VerbaLinea mmgr_line_over(char *out, size_t capacity)
@@ -102,9 +102,9 @@ embed_bool mmgr_line_flush(VerbaLinea *line)
     {
         return EMBED_FALSE;
     }
-    const int handed = line->flush(line->context, line->out, line->at);
+    const int passed = line->flush(line->context, line->out, line->at);
 
-    if (handed == 0)
+    if (passed == 0)
     {
         linea_filled(line);
         return EMBED_FALSE;
@@ -154,7 +154,7 @@ size_t mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
  *
  * @param[in,out] line The line [BORROWS].
  * @param[in]     text Terminated text [BORROWS].
- * @return             Bytes of text the line took, handed on included.
+ * @return             Bytes of text the line took, passed on included.
  * @note The measure of each piece goes as far as one byte past what the room takes. So the read of the
  *       text goes no further than its terminator or the room, whichever comes first. It needs no
  *       bound of its own.
@@ -198,9 +198,9 @@ size_t mmgr_line_put(VerbaLinea *line, const char *text)
     return linea_streamed(line, text);
 }
 
-size_t mmgr_line_put_most(VerbaLinea *line, const char *text, size_t most)
+size_t mmgr_line_put_max(VerbaLinea *line, const char *text, size_t max)
 {
-    return mmgr_line_put_n(line, text, EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = text, .cap = most));
+    return mmgr_line_put_n(line, text, EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = text, .cap = max));
 }
 
 void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int columns)

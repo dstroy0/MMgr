@@ -31,7 +31,7 @@ void test_index_fits_the_register_that_carries_it(void)
                                              "an index wider than the word is spilled arithmetic on every use");
 }
 
-void test_packed_enum_keeps_its_declared_width(void)
+void test_packed_enum_retains_its_declared_width(void)
 {
     TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, sizeof(MmgrEnumProbe), "MMGR_ENUM_PACKED was not honored");
 }

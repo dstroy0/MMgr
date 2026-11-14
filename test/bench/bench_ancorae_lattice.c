@@ -48,7 +48,7 @@
 #define PATTERN_POINTS 8u
 
 /**
- * @brief The most anchors a row will stack, bounded by the points available to pick from.
+ * @brief The max anchors a row will stack, bounded by the points available to pick from.
  */
 #define LATTICE_MAX_ANCHORS 6u
 
@@ -155,7 +155,7 @@ static void draw_bytes(uint8_t *into, size_t length, uint64_t salt)
     {
         for (unsigned index = 0u; index < 8u; index++)
         {
-            // Explicit cast narrows one byte out of each 64 bit word, most significant first
+            // Explicit cast narrows one byte out of each 64 bit word, max significant first
             seed[index] = (uint8_t)((salt >> (56u - (index * 8u))) & 0xFFu);
             seed[8u + index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
         }
@@ -567,7 +567,7 @@ static size_t build_field(void)
  *
  * @return How many bases it wrote, shared by all three.
  * @note The box is a 2 by 4 rectangle. The scatter is eight points placed inside a 5 by 5 window with
- *       no row or column filled, the case a rectangle cannot stand in for. The turned set is
+ *       no row or column filled, the case a rectangle cannot are in for. The turned set is
  *       the scatter under (row, column) to (column, 4 - row), and so it is the same eight points
  *       rotated a quarter turn. A rotation permutes displacements and does nothing else, and one base
  *       list for the three makes that visible in the rows.
@@ -635,7 +635,7 @@ static size_t build_cube(void)
 }
 
 /**
- * @brief The most dimensions the sweep reaches.
+ * @brief The max dimensions the sweep reaches.
  */
 #define MAX_DIMENSION 8u
 
@@ -662,7 +662,7 @@ static ptrdiff_t s_hypercube_points[PATTERN_POINTS];
  * @note A corner of a hypercube instead would place all eight points inside three axes at every
  *       dimension above three. That would measure a three dimensional pattern in a larger space and
  *       report it as a higher dimensional result.
- * @note Seven points off the origin can touch at most seven axes. At dimension eight the pattern
+ * @note Seven points off the origin can touch at max seven axes. At dimension eight the pattern
  *       spans seven of them. It spans every dimension up to seven completely.
  * @note Bases are every position where the whole pattern stays in bounds, the geometry the
  *       core reads. Nothing about the dimension reaches the core by any other route.

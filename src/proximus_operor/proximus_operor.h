@@ -137,7 +137,7 @@ void mmgr_proxim_put(const ProximusCfg *args);
  *
  * @param[in] args Address to read from [BORROWS].
  * @return         The bytes as an embed_word.
- * @note Reaches the same bytes as mmgr_proxim_load, through a type that keeps embed_word's alignment.
+ * @note Reaches the same bytes as mmgr_proxim_load, through a type that retains embed_word's alignment.
  * @warning args->at must be readable for a whole embed_word and aligned for one.
  */
 embed_word mmgr_aequus_load(const ProximusCfg *args);
@@ -146,7 +146,7 @@ embed_word mmgr_aequus_load(const ProximusCfg *args);
  * @brief Writes the low word of args->val to an aligned args->dst.
  *
  * @param[in] args Destination and value [BORROWS].
- * @note Reaches the same bytes as mmgr_proxim_put, through a type that keeps embed_word's alignment.
+ * @note Reaches the same bytes as mmgr_proxim_put, through a type that retains embed_word's alignment.
  * @warning args->dst must be writable for a whole embed_word and aligned for one.
  */
 void mmgr_aequus_put(const ProximusCfg *args);
@@ -156,7 +156,7 @@ void mmgr_aequus_put(const ProximusCfg *args);
  *
  * @param[in] args Address to read from [BORROWS].
  * @return         The eight bytes as a uint64_t.
- * @note Reaches the same bytes as mmgr_proxim_load64, through a type that keeps uint64_t's alignment.
+ * @note Reaches the same bytes as mmgr_proxim_load64, through a type that retains uint64_t's alignment.
  * @warning args->at must be readable for eight bytes and aligned for a uint64_t.
  */
 uint64_t mmgr_aequus_load64(const ProximusCfg *args);
@@ -165,7 +165,7 @@ uint64_t mmgr_aequus_load64(const ProximusCfg *args);
  * @brief Writes all eight bytes of args->val to an aligned args->dst.
  *
  * @param[in] args Destination and value [BORROWS].
- * @note Reaches the same bytes as mmgr_proxim_put64, through a type that keeps uint64_t's alignment.
+ * @note Reaches the same bytes as mmgr_proxim_put64, through a type that retains uint64_t's alignment.
  * @warning args->dst must be writable for eight bytes and aligned for a uint64_t.
  */
 void mmgr_aequus_put64(const ProximusCfg *args);

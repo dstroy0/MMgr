@@ -93,7 +93,7 @@ def splice_replace(text, name, entry):
     """Replace an env's whole `"name": {...}` in place, rendered at the indent it already sits at.
 
     The same render as splice_after. An updated env and a new one have the same indent. The
-    leading pad goes because the text kept ahead of key_start already carries it.
+    leading pad goes because the text retained ahead of key_start already carries it.
     """
     pad, key_start, close = env_span(text, name)
     block = json.dumps({name: entry}, indent=2)[1:-1].rstrip()

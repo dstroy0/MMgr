@@ -124,7 +124,7 @@ MMGR_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *c)
  */
 MMGR_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *c)
 {
-    // Explicit cast keeps the result in uint8_t after the exclusive or promotes to int
+    // Explicit cast retains the result in uint8_t after the exclusive or promotes to int
     return (uint8_t)(c->pp->fill_idx ^ 1u);
 }
 

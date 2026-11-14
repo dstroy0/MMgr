@@ -109,7 +109,7 @@ static void plant(const char *needle, size_t at)
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             const size_t o_ = (size_t)(bench_i_ & 7u);                                                                 \
             const void *r_ = (EXPR);                                                                                   \
-            BENCH_KEEP(r_);                                                                                            \
+            BENCH_RETAIN(r_);                                                                                            \
         });                                                                                                            \
         printf("find,%s,%s,%u,%u,%.0f,%.3f\n", LABEL, g_needle, (unsigned)g_nlen, MMGR_SWAR_BITS, cy_,                 \
                cy_ / (double)HAY_BYTES);                                                                               \

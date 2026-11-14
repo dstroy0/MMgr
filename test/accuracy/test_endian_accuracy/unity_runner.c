@@ -11,7 +11,7 @@ extern void tearDown(void);
 extern void test_the_exact_arithmetic_this_suite_relies_on_is_itself_right(void);
 extern void test_the_host_order_write_places_every_byte(void);
 extern void test_the_reversed_write_places_every_byte(void);
-extern void test_each_read_returns_the_value_its_bytes_stand_for(void);
+extern void test_each_read_returns_the_value_its_bytes_are_for(void);
 extern void test_the_reversal_mirrors_every_byte_across_the_width(void);
 extern void test_a_write_then_a_read_of_the_same_order_returns_the_value(void);
 
@@ -78,7 +78,7 @@ int main(void)
   run_test(test_the_exact_arithmetic_this_suite_relies_on_is_itself_right, "test_the_exact_arithmetic_this_suite_relies_on_is_itself_right", 124);
   run_test(test_the_host_order_write_places_every_byte, "test_the_host_order_write_places_every_byte", 142);
   run_test(test_the_reversed_write_places_every_byte, "test_the_reversed_write_places_every_byte", 185);
-  run_test(test_each_read_returns_the_value_its_bytes_stand_for, "test_each_read_returns_the_value_its_bytes_stand_for", 227);
+  run_test(test_each_read_returns_the_value_its_bytes_are_for, "test_each_read_returns_the_value_its_bytes_are_for", 227);
   run_test(test_the_reversal_mirrors_every_byte_across_the_width, "test_the_reversal_mirrors_every_byte_across_the_width", 268);
   run_test(test_a_write_then_a_read_of_the_same_order_returns_the_value, "test_a_write_then_a_read_of_the_same_order_returns_the_value", 304);
 

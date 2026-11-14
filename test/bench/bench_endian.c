@@ -16,7 +16,7 @@ static uint8_t g_buf[SPREAD + 64u];
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             const size_t off_ = (size_t)(bench_i_ & (SPREAD - 1u));                                                    \
             const uint64_t r_ = (uint64_t)(EXPR);                                                                      \
-            BENCH_KEEP(r_);                                                                                            \
+            BENCH_RETAIN(r_);                                                                                            \
         });                                                                                                            \
         printf("endian,%s,%u,%u,%.4f\n", LABEL, (unsigned)(WIDTH), EMBED_WORD_BITS, cy_);                              \
         fflush(stdout);                                                                                                \

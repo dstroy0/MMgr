@@ -229,7 +229,7 @@ void test_hold_takes_a_loculus_and_drop_returns_it(void)
                            (unsigned)EMBED_CALL(anularis.loculus_ready, AnularisCfg, .ring = &g_ring));
 }
 
-void test_mark_leaves_a_ring_it_was_laid_down_on_as_it_was(void)
+void test_mark_leaves_a_ring_it_was_positioned_down_on_as_it_was(void)
 {
     fresh();
 
@@ -293,7 +293,7 @@ void test_seg_at_walks_the_buffer(void)
 ParsMemoriaeHospes(given_at_run_time);
 MemoriaAnularis(s_hosted_ring, given_at_run_time);
 
-void test_a_ring_over_a_pool_the_system_gives_hands_its_two_segments_back_and_forth(void)
+void test_a_ring_over_a_pool_the_system_gives_passes_its_two_segments_back_and_forth(void)
 {
     static uint8_t s_given[GIVEN_BYTES];
     size_t segment = 9u;
@@ -306,16 +306,16 @@ void test_a_ring_over_a_pool_the_system_gives_hands_its_two_segments_back_and_fo
     TEST_ASSERT_TRUE(anularis.seg_at(&(AnularisCfg){.ring = &s_hosted_ring, .index = 1u}) == (s_given + 2048));
     anularis.seg_publish(&(AnularisCfg){.ring = &s_hosted_ring});
     TEST_ASSERT_TRUE(anularis.seg_next(&(AnularisCfg){.ring = &s_hosted_ring, .out_index = &segment}));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, segment, "the second is drawn while the first is shown");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, segment, "the second is drawn while the first is displayed");
     anularis.seg_publish(&(AnularisCfg){.ring = &s_hosted_ring});
     TEST_ASSERT_FALSE_MESSAGE(anularis.seg_next(&(AnularisCfg){.ring = &s_hosted_ring, .out_index = &segment}),
-                              "a segment still shown is not handed out");
+                              "a segment still displayed is not passed out");
     anularis.seg_release(&(AnularisCfg){.ring = &s_hosted_ring});
     TEST_ASSERT_TRUE(anularis.seg_next(&(AnularisCfg){.ring = &s_hosted_ring, .out_index = &segment}));
     TEST_ASSERT_EQUAL_size_t(0u, segment);
 }
 
-void test_a_ring_given_its_segment_size_hands_out_segments_of_that_size(void)
+void test_a_ring_given_its_segment_size_passes_out_segments_of_that_size(void)
 {
     static uint8_t s_given[GIVEN_BYTES];
     size_t segment = 9u;

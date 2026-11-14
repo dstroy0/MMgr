@@ -5,7 +5,7 @@
 # negotiated commercial licensing contract or an educator's license issued to you personally.
 
 # A span is a value type with pure walks over it and no storage of its own, and so this reaches nothing
-# but mmgr.h. It sits below locus_carcerum, byteio and anything else that hands a buffer to a caller.
+# but mmgr.h. It sits below locus_carcerum, byteio and anything else that passes a buffer to a caller.
 mmgr_add_module(spatium
   SOURCES spatium.c
   DEPS

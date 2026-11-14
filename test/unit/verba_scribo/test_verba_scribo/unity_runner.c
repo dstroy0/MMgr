@@ -75,7 +75,7 @@ extern void test_fixed_over_every_decimal_count(void);
 extern void test_fixed_of_a_fraction_that_lands_on_a_tie(void);
 extern void test_g_where_the_exponent_estimate_overshoots(void);
 extern void test_g_clamps_its_digit_count(void);
-extern void test_g_at_its_maximum_still_reads_back(void);
+extern void test_g_at_its_max_still_reads_back(void);
 extern void test_g_at_two_to_the_sixty_four(void);
 extern void test_g_is_exact_at_every_precision_it_can_carry(void);
 extern void test_g_of_the_smallest_normal_double(void);
@@ -203,7 +203,7 @@ int main(void)
   run_test(test_fixed_of_a_fraction_that_lands_on_a_tie, "test_fixed_of_a_fraction_that_lands_on_a_tie", 845);
   run_test(test_g_where_the_exponent_estimate_overshoots, "test_g_where_the_exponent_estimate_overshoots", 861);
   run_test(test_g_clamps_its_digit_count, "test_g_clamps_its_digit_count", 906);
-  run_test(test_g_at_its_maximum_still_reads_back, "test_g_at_its_maximum_still_reads_back", 922);
+  run_test(test_g_at_its_max_still_reads_back, "test_g_at_its_max_still_reads_back", 922);
   run_test(test_g_at_two_to_the_sixty_four, "test_g_at_two_to_the_sixty_four", 933);
   run_test(test_g_is_exact_at_every_precision_it_can_carry, "test_g_is_exact_at_every_precision_it_can_carry", 942);
   run_test(test_g_of_the_smallest_normal_double, "test_g_of_the_smallest_normal_double", 961);

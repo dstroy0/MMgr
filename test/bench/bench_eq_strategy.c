@@ -65,19 +65,19 @@ static size_t find_swar(const uint8_t *p, size_t n, uint8_t c)
         BENCH_TIME_CYCLES(cb_, ITERS, {                                                                                \
             const size_t r_ = (size_t)(bench_i_ & (SPREAD - 1u));                                                      \
             const uint64_t v_ = (uint64_t)find_bytewise(g_buf + r_, (STRIDE) + 8u, TARGET);                            \
-            BENCH_KEEP(v_);                                                                                            \
+            BENCH_RETAIN(v_);                                                                                            \
         });                                                                                                            \
         BENCH_TIME_CYCLES(cs_, ITERS, {                                                                                \
             const size_t r_ = (size_t)(bench_i_ & (SPREAD - 1u));                                                      \
             const uint64_t v_ = (uint64_t)find_swar(g_buf + r_, (STRIDE) + 8u, TARGET);                                \
-            BENCH_KEEP(v_);                                                                                            \
+            BENCH_RETAIN(v_);                                                                                            \
         });                                                                                                            \
                                                                                                                        \
         BENCH_TIME_CYCLES(cm_, ITERS, {                                                                                \
             const size_t r_ = (size_t)(bench_i_ & (SPREAD - 1u));                                                      \
             const void *q_ = EMBED_CALL(memor.chr, MemoriaCfg, .src = g_buf + r_, .bytes = (size_t)((STRIDE) + 8u),    \
                                         .val = (uint8_t)TARGET);                                                       \
-            BENCH_KEEP(q_);                                                                                            \
+            BENCH_RETAIN(q_);                                                                                            \
         });                                                                                                            \
         printf("eq_strategy,%u,%u,%.1f,%.4f,%.4f,%.4f,%.4f,%s\n", MMGR_SWAR_BITS, (unsigned)(STRIDE), avg_, cb_, cs_,  \
                cm_, cb_ / cm_, (cb_ < cm_) ? "bytewise" : "memor.chr");                                                \

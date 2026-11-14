@@ -34,7 +34,7 @@
  * @brief Reads the bits of a double and does not go through the library.
  *
  * @note fractio performs this same reinterpretation, and mmgr_cellul_to_double assembles its result
- *       through it. The union declared here keeps the comparison independent of both.
+ *       through it. The union declared here retains the comparison independent of both.
  */
 typedef union {
     double value;  /**< The double to read. */
@@ -267,11 +267,11 @@ void test_the_float_entry_is_the_double_entry_narrowed(void)
  *
  * @note This is what a caller does with a case-insensitive compare. Two ways to write one word, from
  *       a form field or a header, matched whatever case the user typed.
- * @note The accented letter is identical in both strings and takes no part in what the answer should
- *       be. Only the ASCII letters around it differ in case, and a case-insensitive compare has
+ * @note The accented character is identical in both strings and takes no part in what the answer should
+ *       be. Only the ASCII characters around it differ in case, and a case-insensitive compare has
  *       to call the two equal.
  * @note The bytes appear as escapes so the answer does not depend on the encoding of this file.
- *       Latin-1 is what a legacy protocol, an older filesystem or a serial device hands a
+ *       Latin-1 is what a legacy protocol, an older filesystem or a serial device passes a
  *       caller, and 0xFC is its lowercase u with a diaeresis.
  * @note The plain ASCII pair comes first. It is the same comparison with the accent removed,
  *       and it is what shows the difference is the accent, while the comparison is the same.
@@ -312,7 +312,7 @@ void test_a_case_insensitive_compare_holds_on_an_accented_word(void)
  * @brief Checks a case-insensitive search for a word that follows an accented one.
  *
  * @note The other thing a caller does with these entries: find a word in a line of text whatever
- *       its case. The line here is a Latin-1 name of the kind a directory list or a
+ *       its case. The line here is a Latin-1 name of the type a directory list or a
  *       contact record carries.
  * @note The needle is entirely ASCII, and so nothing about the search itself involves a byte at or above
  *       0x80. What differs from the plain line is only that the text around the needle carries one.
@@ -337,7 +337,7 @@ void test_a_case_insensitive_search_finds_a_word_after_an_accented_one(void)
  * @brief Sweeps every byte at every position to find where a case-insensitive compare stops its fold.
  *
  * @note Builds two strings with the same bytes, one lowercase and one uppercase in its ASCII
- *       letters. One non-letter byte sits at a chosen position in both. A case-insensitive
+ *       characters. One non-character byte sits at a chosen position in both. A case-insensitive
  *       compare has to call every such pair equal, whatever the planted byte is.
  * @note Reports the first pair that disagrees, with the byte and the position. So the domain the
  *       lane comparison actually holds over comes from a measurement and not a guess.

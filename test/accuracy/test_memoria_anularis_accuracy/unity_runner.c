@@ -16,9 +16,9 @@ extern void test_a_peek_returns_what_a_read_would_and_moves_nothing(void);
 extern void test_a_span_too_large_is_refused_whole(void);
 extern void test_segments_come_back_in_order_and_tile_the_buffer(void);
 extern void test_the_producer_is_refused_once_every_segment_is_in_flight(void);
-extern void test_the_loculus_masks_match_a_bitset_kept_alongside(void);
+extern void test_the_loculus_masks_match_a_bitset_retained_alongside(void);
 extern void test_the_lowest_set_bit_matches_a_bit_at_a_time_scan(void);
-extern void test_a_held_loculus_hands_back_the_region_it_was_given(void);
+extern void test_a_held_loculus_passes_back_the_region_it_was_given(void);
 
 
 /*=======Mock Management=====*/
@@ -87,9 +87,9 @@ int main(void)
   run_test(test_a_span_too_large_is_refused_whole, "test_a_span_too_large_is_refused_whole", 439);
   run_test(test_segments_come_back_in_order_and_tile_the_buffer, "test_segments_come_back_in_order_and_tile_the_buffer", 507);
   run_test(test_the_producer_is_refused_once_every_segment_is_in_flight, "test_the_producer_is_refused_once_every_segment_is_in_flight", 573);
-  run_test(test_the_loculus_masks_match_a_bitset_kept_alongside, "test_the_loculus_masks_match_a_bitset_kept_alongside", 613);
+  run_test(test_the_loculus_masks_match_a_bitset_retained_alongside, "test_the_loculus_masks_match_a_bitset_retained_alongside", 613);
   run_test(test_the_lowest_set_bit_matches_a_bit_at_a_time_scan, "test_the_lowest_set_bit_matches_a_bit_at_a_time_scan", 688);
-  run_test(test_a_held_loculus_hands_back_the_region_it_was_given, "test_a_held_loculus_hands_back_the_region_it_was_given", 727);
+  run_test(test_a_held_loculus_passes_back_the_region_it_was_given, "test_a_held_loculus_passes_back_the_region_it_was_given", 727);
 
   return UNITY_END();
 }

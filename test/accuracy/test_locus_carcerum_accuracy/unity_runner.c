@@ -13,8 +13,8 @@ extern void test_the_pattern_helpers_this_suite_relies_on_are_themselves_right(v
 extern void test_persistent_cells_never_share_a_byte(void);
 extern void test_a_reused_cell_does_not_disturb_its_neighbors(void);
 extern void test_the_two_tiers_never_hand_out_the_same_byte(void);
-extern void test_a_maximum_security_release_leaves_zeros(void);
-extern void test_a_maximum_security_give_of_a_temporary_cell_zeros_every_byte_of_it(void);
+extern void test_a_max_security_release_leaves_zeros(void);
+extern void test_a_max_security_give_of_a_temporary_cell_zeros_every_byte_of_it(void);
 extern void test_temporary_cells_given_back_give_back_every_byte_they_took(void);
 extern void test_two_prison_sites_hold_no_byte_in_common(void);
 extern void test_the_rounding_lands_on_the_next_whole_word(void);
@@ -83,8 +83,8 @@ int main(void)
   run_test(test_persistent_cells_never_share_a_byte, "test_persistent_cells_never_share_a_byte", 259);
   run_test(test_a_reused_cell_does_not_disturb_its_neighbors, "test_a_reused_cell_does_not_disturb_its_neighbors", 309);
   run_test(test_the_two_tiers_never_hand_out_the_same_byte, "test_the_two_tiers_never_hand_out_the_same_byte", 373);
-  run_test(test_a_maximum_security_release_leaves_zeros, "test_a_maximum_security_release_leaves_zeros", 430);
-  run_test(test_a_maximum_security_give_of_a_temporary_cell_zeros_every_byte_of_it, "test_a_maximum_security_give_of_a_temporary_cell_zeros_every_byte_of_it", 462);
+  run_test(test_a_max_security_release_leaves_zeros, "test_a_max_security_release_leaves_zeros", 430);
+  run_test(test_a_max_security_give_of_a_temporary_cell_zeros_every_byte_of_it, "test_a_max_security_give_of_a_temporary_cell_zeros_every_byte_of_it", 462);
   run_test(test_temporary_cells_given_back_give_back_every_byte_they_took, "test_temporary_cells_given_back_give_back_every_byte_they_took", 510);
   run_test(test_two_prison_sites_hold_no_byte_in_common, "test_two_prison_sites_hold_no_byte_in_common", 544);
   run_test(test_the_rounding_lands_on_the_next_whole_word, "test_the_rounding_lands_on_the_next_whole_word", 601);

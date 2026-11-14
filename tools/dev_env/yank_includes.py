@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
 """Move a header's #include lines down into the files that include it.
 
-A header that includes another header hands every consumer a dependency it never asked for and hides
+A header that includes another header passes every consumer a dependency it never asked for and hides
 what a translation unit actually needs. This takes the includes out of the header and puts them in
 each .c that reaches it. They go immediately before that file's own include of the header. So the
 TU states what it compiles against.
@@ -20,7 +20,7 @@ What it refuses, and why each refusal is right:
   * an include the consumer already has - nothing to add; the header's copy is still removed.
   * a header no .c reaches - removing its includes would break it with nothing to catch it, and so it is
     reported and left alone unless --orphan is given.
-  * the entry-point header (mmgr.h) - every file's first include by design. Named in KEEP below.
+  * the entry-point header (mmgr.h) - every file's first include by design. Named in RETAIN below.
 
 WHY --go REFUSES TODAY
 
@@ -53,8 +53,8 @@ CONSUMER = os.path.join(ROOT, "tools", "ci_tooling", "build", "gen_cmake.py")
 # The assembly chain: everything includes this, and so its includes are the point.
 #
 # The width and decls vocabulary lives in the embedded_types dependency under deps/, and what every
-# module header includes is include/mmgr.h. A KEEP set that names absent files protects nothing.
-KEEP = {
+# module header includes is include/mmgr.h. A RETAIN set that names absent files protects nothing.
+RETAIN = {
     "include/mmgr.h",
 }
 
@@ -178,7 +178,7 @@ def consumers(header_rel):
 
 def plan_one(header, take_conditional, allow_orphan):
     hrel = rel(header)
-    if hrel in KEEP:
+    if hrel in RETAIN:
         return None, "entry point, left alone"
     lines = read(header)
     yanks = header_includes(lines, take_conditional)
@@ -219,9 +219,9 @@ def apply(plan, go, manifest):
                 owed += 1
         print("    -> %-56s %s" % (crel, ", ".join(new)))
 
-    keep = [l for i, l in enumerate(lines) if i not in {i for i, _t, _w in yanks}]
+    retain = [l for i, l in enumerate(lines) if i not in {i for i, _t, _w in yanks}]
     if go:
-        write(header, keep)
+        write(header, retain)
     print("  %-60s -%d include(s), %d owed by %d consumer(s)" % (hrel, len(texts), owed, len(cons)))
     return len(texts), owed
 

@@ -27,7 +27,7 @@ declared differently.
 
 Nothing detects this for you. There is no `#error` in the header and no way for it to tell that
 libc got there first, because by then the guards are already set and the shim's own `#ifndef` sees
-them and does nothing. Put the include first and keep it first.
+them and does nothing. Put the include first and retain it first.
 
 ## What is mapped
 
@@ -99,6 +99,6 @@ const char *const hit = EMBED_CALL(cellul.find, CatenaFinitaCfg,
                                   .ci = EMBED_FALSE);
 ```
 
-Direct calls name their arguments, carry their caps explicitly, keep libc's semantics out of the
+Direct calls name their arguments, carry their caps explicitly, retain libc's semantics out of the
 picture, and do not depend on include order anywhere in your build. The shim is for code you are not
 going to touch.

@@ -25,7 +25,7 @@
  *  @{ */
 
 // EMBED_STATIC_ASSERT and embed_word, for the scale below. Reached the same way every other file
-// here reaches them, and so this header stands on its own instead of on what included it
+// here reaches them, and so this header is on its own instead of on what included it
 #include "mmgr.h"
 
 #include "memoriam_praetereo/praet_praefinitum.h"
@@ -104,7 +104,7 @@
  * @brief The core that holds our timer.
  *
  * @note A field of PRAET_CLOCK_SOURCE at PRAET_CLOCK_OWN, and required once it is. Which core is
- *       the caller's call. This only needs to know the timer is somewhere it will keep its run.
+ *       the caller's call. This only needs to know the timer is somewhere it will retain its run.
  * @note What the number means is the platform's business. Zero, one, whatever a part calls its cores;
  *       nothing here reads it beyond the hand over to the port.
  */

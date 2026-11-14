@@ -14,7 +14,7 @@ extern void test_a_read_span_covers_the_buffer_it_was_given(void);
 extern void test_a_span_with_no_storage_is_not_ok(void);
 extern void test_what_follows_a_span_with_no_buffer_has_no_buffer(void);
 extern void test_a_narrowing_past_the_end_fails_rather_than_shortening(void);
-extern void test_a_narrowing_keeps_the_bytes_it_names(void);
+extern void test_a_narrowing_retains_the_bytes_it_names(void);
 extern void test_a_narrowing_carries_the_cursor(void);
 extern void test_reset_clears_the_sticky_overflow(void);
 extern void test_a_read_span_reports_what_was_written(void);
@@ -87,7 +87,7 @@ int main(void)
   run_test(test_a_span_with_no_storage_is_not_ok, "test_a_span_with_no_storage_is_not_ok", 53);
   run_test(test_what_follows_a_span_with_no_buffer_has_no_buffer, "test_what_follows_a_span_with_no_buffer_has_no_buffer", 66);
   run_test(test_a_narrowing_past_the_end_fails_rather_than_shortening, "test_a_narrowing_past_the_end_fails_rather_than_shortening", 75);
-  run_test(test_a_narrowing_keeps_the_bytes_it_names, "test_a_narrowing_keeps_the_bytes_it_names", 93);
+  run_test(test_a_narrowing_retains_the_bytes_it_names, "test_a_narrowing_retains_the_bytes_it_names", 93);
   run_test(test_a_narrowing_carries_the_cursor, "test_a_narrowing_carries_the_cursor", 104);
   run_test(test_reset_clears_the_sticky_overflow, "test_reset_clears_the_sticky_overflow", 118);
   run_test(test_a_read_span_reports_what_was_written, "test_a_read_span_reports_what_was_written", 133);

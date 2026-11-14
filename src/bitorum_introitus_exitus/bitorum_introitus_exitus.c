@@ -115,7 +115,7 @@ EMBED_INLINE void bitor_put(const BitorCtx *args)
     {
         // Explicit casts narrow the leftover bits into the uint8_t residue. left plus
         // writer->bit_count is under 8, and so the shift below stays inside the byte. A count past the
-        // @warning above can pass that, and the seven keeps its shift defined
+        // @warning above can pass that, and the seven retains its shift defined
         const uint8_t tail = (uint8_t)(work & ((1u << (left & 7u)) - 1u));
 
         writer->residue = (uint8_t)(writer->residue | (uint8_t)(tail << writer->bit_count));
@@ -159,7 +159,7 @@ EMBED_INLINE void bitor_align(const BitorCtx *args)
  *
  * @param[in] args Buffer out and its extent cap [BORROWS].
  * @return         A writer with no bytes written and no residue.
- * @note The returned writer keeps args->out, which must outlive it [BORROWS].
+ * @note The returned writer retains args->out, which must outlive it [BORROWS].
  * @warning args->out must not be null and args->cap must not be zero. Neither has a check outside a
  *          MMGR_DEBUG_CHECKS build, and a null out passes here. bitor_put writes through it
  *          on the first whole byte.

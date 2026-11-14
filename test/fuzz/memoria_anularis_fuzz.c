@@ -7,10 +7,10 @@
 /**
  * @file memoria_anularis_fuzz.c
  * @brief A libFuzzer harness over the ring. init with any sizes runs against the refusals it states. Then any
- *        sequence of puts, reads, single byte reads, peeks and consumes runs against a byte queue that keeps one
+ *        sequence of puts, reads, single byte reads, peeks and consumes runs against a byte queue that retains one
  *        byte reserved. The segment view runs against a claim and a release counter, and the loculi against a free
  *        and a pinned mask.
- *        A ring laid with a segment size carries no byte stream, and the model checks that too.
+ *        A ring positioned with a segment size carries no byte stream, and the model checks that too.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */
@@ -20,15 +20,15 @@
 
 #include <string.h>
 
-#define FUZZ_CAP_MOST 256u
+#define FUZZ_CAP_MAX 256u
 
 static mmgr_ring s_ring;
-static uint8_t s_buf[FUZZ_CAP_MOST];
+static uint8_t s_buf[FUZZ_CAP_MAX];
 
 /** @brief The model: the queued bytes, the segment counters and the loculus masks. */
 typedef struct
 {
-    uint8_t queue[FUZZ_CAP_MOST];
+    uint8_t queue[FUZZ_CAP_MAX];
     size_t queued;
     size_t capacity;
     int stream;
@@ -38,8 +38,8 @@ typedef struct
     size_t released;
     int claim_open;
     embed_word pinned;
-    const uint8_t *kept[MMGR_RING_LOCULI + 1u];
-    size_t kept_bytes[MMGR_RING_LOCULI + 1u];
+    const uint8_t *retained[MMGR_RING_LOCULI + 1u];
+    size_t retained_bytes[MMGR_RING_LOCULI + 1u];
 } RingModel;
 
 static RingModel s_model;
@@ -49,13 +49,13 @@ static int power_of_two(size_t count)
     return (count != 0u) && ((count & (count - 1u)) == 0u);
 }
 
-static int laid(FuzzInput *input)
+static int positioned(FuzzInput *input)
 {
-    const uint8_t kind = fuzz_byte(input);
+    const uint8_t type = fuzz_byte(input);
     memset(&s_model, 0, sizeof s_model);
-    if ((kind & 1u) == 0u)
+    if ((type & 1u) == 0u)
     {
-        const size_t capacity = fuzz_below(input, FUZZ_CAP_MOST + 1u);
+        const size_t capacity = fuzz_below(input, FUZZ_CAP_MAX + 1u);
         const size_t segment_count = fuzz_below(input, 70u);
         const embed_bool ready = EMBED_CALL(anularis.init, AnularisCfg, .ring = &s_ring, .buf = s_buf,
                                             .capacity = capacity, .segment_count = segment_count);
@@ -69,9 +69,9 @@ static int laid(FuzzInput *input)
         return expected;
     }
     const size_t segment_count = (size_t)1u << (fuzz_byte(input) % 5u);
-    const size_t segment_bytes = 1u + fuzz_below(input, FUZZ_CAP_MOST / segment_count);
+    const size_t segment_bytes = 1u + fuzz_below(input, FUZZ_CAP_MAX / segment_count);
     const size_t capacity =
-        segment_count * segment_bytes + fuzz_below(input, FUZZ_CAP_MOST - segment_count * segment_bytes + 1u);
+        segment_count * segment_bytes + fuzz_below(input, FUZZ_CAP_MAX - segment_count * segment_bytes + 1u);
     const embed_bool ready = EMBED_CALL(anularis.init, AnularisCfg, .ring = &s_ring, .buf = s_buf, .capacity = capacity,
                                         .segment_count = segment_count, .segment_bytes = segment_bytes);
     fuzz_check(ready != 0, "init with a segment size takes any capacity that holds the segments");
@@ -89,11 +89,11 @@ static size_t model_vacant(void)
 
 static void bytes_step(FuzzInput *input, uint8_t op)
 {
-    uint8_t moved[FUZZ_CAP_MOST + 8u];
+    uint8_t moved[FUZZ_CAP_MAX + 8u];
     switch (op % 5u)
     {
     case 0: {
-        const size_t bytes = fuzz_below(input, FUZZ_CAP_MOST);
+        const size_t bytes = fuzz_below(input, FUZZ_CAP_MAX);
         for (size_t at = 0u; at < bytes; at += 1u)
         {
             moved[at] = fuzz_byte(input);
@@ -109,7 +109,7 @@ static void bytes_step(FuzzInput *input, uint8_t op)
         break;
     }
     case 1: {
-        const size_t bytes = fuzz_below(input, FUZZ_CAP_MOST);
+        const size_t bytes = fuzz_below(input, FUZZ_CAP_MAX);
         memset(moved, 0xA5, sizeof moved);
         const size_t taken = EMBED_CALL(anularis.read, AnularisCfg, .ring = &s_ring, .dst = moved, .bytes = bytes);
         const size_t expected = (bytes < s_model.queued) ? bytes : s_model.queued;
@@ -220,7 +220,7 @@ static void loculi_step(FuzzInput *input, uint8_t op)
     switch (op % 4u)
     {
     case 0: {
-        const uint8_t *const region = s_buf + fuzz_below(input, FUZZ_CAP_MOST);
+        const uint8_t *const region = s_buf + fuzz_below(input, FUZZ_CAP_MAX);
         const size_t bytes = fuzz_below(input, 64u);
         const embed_bool taken = EMBED_CALL(anularis.loculus_hold, AnularisCfg, .ring = &s_ring, .index = index,
                                             .src = region, .bytes = bytes);
@@ -229,8 +229,8 @@ static void loculi_step(FuzzInput *input, uint8_t op)
         if (expected)
         {
             s_model.pinned |= (embed_word)1 << index;
-            s_model.kept[index] = region;
-            s_model.kept_bytes[index] = bytes;
+            s_model.retained[index] = region;
+            s_model.retained_bytes[index] = bytes;
         }
         break;
     }
@@ -262,15 +262,15 @@ static void loculi_step(FuzzInput *input, uint8_t op)
     }
     fuzz_check(EMBED_CALL(anularis.loculus_ready, AnularisCfg, .ring = &s_ring) == (all & ~s_model.pinned),
                "the ready loculi are the free ones not pinned");
-    const mmgr_ring_span *const kept =
+    const mmgr_ring_span *const retained =
         EMBED_CALL(anularis.loculus_keepout, AnularisCfg, .ring = &s_ring, .index = index);
     if (index >= MMGR_RING_LOCULI)
     {
-        fuzz_check(kept == NULL, "a keepout out of range is NULL");
+        fuzz_check(retained == NULL, "a keepout out of range is NULL");
     }
-    else if (s_model.kept[index] != NULL)
+    else if (s_model.retained[index] != NULL)
     {
-        fuzz_check((kept != NULL) && (kept->buf == s_model.kept[index]) && (kept->bytes == s_model.kept_bytes[index]),
+        fuzz_check((retained != NULL) && (retained->buf == s_model.retained[index]) && (retained->bytes == s_model.retained_bytes[index]),
                    "a keepout names the last region its loculus recorded");
     }
 }
@@ -278,7 +278,7 @@ static void loculi_step(FuzzInput *input, uint8_t op)
 int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     FuzzInput input = fuzz_input(data, size);
-    if (!laid(&input))
+    if (!positioned(&input))
     {
         return 0;
     }

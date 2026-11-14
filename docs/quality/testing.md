@@ -137,7 +137,7 @@ it - so what follows is what the cases are actually checking.
 `MMGR_ORACLE_LIBC` on, which replaces every entry that has a libc equivalent with that equivalent.
 Both runs have to be green. Where the two deliberately differ - a rounding rule C leaves to the
 implementation, a bound libc does not have, the platform's text for nan - the case is pinned
-against this library and stood down on the other run by `MMGR_SKIP_ON_ORACLE`, with the reason in
+against this library and was down on the other run by `MMGR_SKIP_ON_ORACLE`, with the reason in
 the call. Six cases do that today.
 
 **Nothing reads past its bound.** A poison pattern cannot catch a read, because a read leaves
@@ -174,7 +174,7 @@ selected.
 What is deliberately _not_ swept is start alignment. glibc sweeps it because its string functions
 peel - single bytes until the pointer reaches a word boundary, then whole words - so the alignment
 picks which code runs. Nothing here peels: every load in the scans is at whatever address it was
-handed. One case states that property, and no case hunts a bug that cannot exist. The bulk move in
+passed. One case states that property, and no case hunts a bug that cannot exist. The bulk move in
 `memoria_operor` does peel, and `test_memoria_operor` sweeps both offsets against every length there.
 
 ## Coverage

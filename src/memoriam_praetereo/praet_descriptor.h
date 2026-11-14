@@ -101,7 +101,7 @@ typedef enum
  * @param bytes_ Bytes moved.
  * @return       A DirectioMotusVerbi.
  * @note Integers, and so this has its answer at compile time. Both spans are offsets into one declared
- *       object, and where they came from makes them comparable at all. Two addresses handed in as
+ *       object, and where they came from makes them comparable at all. Two addresses passed in as
  *       pointers would have no order at compile time. The language does not define a compare of
  *       pointers into separate objects.
  * @note A write upward over a source means the high words must move first, and so the walk goes downward.
@@ -175,7 +175,7 @@ struct PraetDescriptor
  *       and a bare expression cannot sit there. The name of the end in the message is what
  *       replaces the member name the expression form prints.
  * @warning Reads sizeof(mmgr_pars_storage_##pool_), and so it holds for a span whose offset, length and
- *          width stand at compile time. Anything computed at run time has no bound from this and
+ *          width are at compile time. Anything computed at run time has no bound from this and
  *          no bound anywhere else.
  */
 #define PRAET_STEPS_FIT(what_, pool_, offset_, bytes_, mensura_)                                                       \
@@ -200,7 +200,7 @@ struct PraetDescriptor
  *       PraetAttach makes, applied to each end.
  * @note Both addresses advance, as memory to memory means. A side that stays put is a
  *       peripheral, and the name of one needs an address this has no way to take.
- * @note Emitted as initialized data with the owner in software's hands. A descriptor the engine does
+ * @note Emitted as initialized data with the owner in software's passes. A descriptor the engine does
  *       not hold is one the program may still write.
  * @note Two different pools are two separately declared objects, and so they cannot overlap and the
  *       direction settles as either. One pool at both ends collides on the enumerators this
@@ -292,7 +292,7 @@ struct PraetDescriptor
  * @param bytes_       Bytes to move.
  * @param mensura_       Bytes moved in one step, as a EgoSumMensura.
  * @param next_        The descriptor that runs after this one, or NULL.
- * @note Where the two spans overlap, the direction keeps the transfer from reads of bytes it
+ * @note Where the two spans overlap, the direction retains the transfer from reads of bytes it
  *       already wrote over. The offsets settle it here, once, and nothing asks again: a run of
  *       this descriptor has the answer in front of it.
  * @note Both spans are offsets into one declared object, and that leaves them comparable at all.
@@ -398,7 +398,7 @@ struct PraetDescriptor
  *       already treats a pool. The pool appears a second time so the extent comes from the
  *       declaration and not from a carried value. The enumerator below is the lock and this expression
  *       is the key.
- * @note The second statement is also what keeps the initializer legal. An address constant plus an
+ * @note The second statement is also what retains the initializer legal. An address constant plus an
  *       integer constant is still an address constant. The value read out of the pointer
  *       PraetPeripheralDeclare emits is not one at all, whatever a given compiler folds.
  * @warning A base plus an offset, and so one declared peripheral covers every register in its block.

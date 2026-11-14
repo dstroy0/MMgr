@@ -22,7 +22,7 @@ static const char *find_in(const char *hay, const char *needle, embed_bool ci)
 
 void test_two_rows_find_a_needle_late_in_a_long_haystack(void)
 {
-    static const char hay[] = "the quick brown fox jumps over the lazy dog and keeps on going past the end";
+    static const char hay[] = "the quick brown fox jumps over the lazy dog and retains on going past the end";
     const char *at = find_in(hay, "lazy", EMBED_FALSE);
 
     TEST_ASSERT_NOT_NULL(at);

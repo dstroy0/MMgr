@@ -139,7 +139,7 @@ void test_a_store_a_pass_must_not_land_lands_on_the_sink(void)
     TEST_ASSERT_EQUAL_PTR(&BLOCK->sink, sunk);
     embed_atomic_usize_store(sunk, 77u);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, 0u)),
-                                     "the cellblock's bytes stand as they were");
+                                     "the cellblock's bytes are as they were");
 }
 
 void test_a_word_whose_place_is_past_the_table_finds_no_owner(void)
@@ -181,26 +181,26 @@ void test_a_foot_is_counted_off_once_and_a_claim_not_permitted_touches_nothing(v
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&BLOCK->in_use));
 }
 
-void test_a_bump_the_gap_cannot_meet_leaves_the_boundary_moved_records_the_overrun_and_lays_its_words_on_the_sink(void)
+void test_a_bump_the_gap_cannot_meet_leaves_the_boundary_moved_records_the_overrun_and_positions_its_words_on_the_sink(void)
 {
     const CarcerTakeCtx take = {RACED_BYTES, s_one, 0u, carcer_all(1)};
     const uintptr_t answer = carcer_bumped(BLOCK, &take, carcer_all(1));
 
     TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)answer);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES, mmgr_series_cellularum_persistent_end(BLOCK),
-                                     "the end stands where the bump moved it");
+                                     "the end is where the bump moved it");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES,
                                      (size_t)embed_atomic_usize_load(&BLOCK->persistent_overrun),
                                      "the overrun records the bump's bytes");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, 0u)),
-                                     "no header was laid");
+                                     "no header was positioned");
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_in_use(s_one));
     const CarcerTakeCtx down = {RACED_BYTES, s_one, carcer_all(1), carcer_all(1)};
 
     TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &down, carcer_all(1)));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(((size_t)RACED_BYTES - (CARCER_HDR + RACED_BYTES)) & (size_t)MMGR_CARCER_HALF_MASK,
                                      mmgr_series_cellularum_temporary_top(BLOCK),
-                                     "the top stands where the bump moved it, below zero within its half");
+                                     "the top is where the bump moved it, below zero within its half");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES,
                                      (size_t)embed_atomic_usize_load(&BLOCK->temporary_overrun),
                                      "the overrun records the bump's bytes");
@@ -240,7 +240,7 @@ void test_a_bump_not_permitted_moves_nothing(void)
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(BLOCK));
 }
 
-void test_a_bump_that_lands_lays_its_header_and_owner_word_and_counts(void)
+void test_a_bump_that_lands_positions_its_header_and_owner_word_and_counts(void)
 {
     const CarcerTakeCtx take = {PAYLOAD, s_two, 0u, carcer_all(1)};
     const uintptr_t answer = carcer_bumped(BLOCK, &take, carcer_all(1));
@@ -315,7 +315,7 @@ void test_the_sweep_merges_free_runs_takes_the_first_that_fits_and_trims_the_end
                                      "the run reaching the end goes to the gap");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_word((2u * PAYLOAD) + CARCER_HDR, CARCER_FREE),
                                      (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, sweep.at)),
-                                     "the run is laid as one free cell");
+                                     "the run is positioned as one free cell");
     TEST_ASSERT_NOT_NULL(held);
 }
 
@@ -342,7 +342,7 @@ void test_the_downward_sweep_merges_free_runs_takes_the_last_that_fits_and_trims
                                      "the run from the top goes to the gap");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_word((2u * PAYLOAD) + CARCER_HDR, CARCER_FREE),
                                      (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, sweep.at)),
-                                     "the run is laid as one free cell");
+                                     "the run is positioned as one free cell");
     const CarcerPlaced placed = carcer_split(BLOCK, sweep, PAYLOAD, carcer_all(1));
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_off_of(BLOCK, one), placed.at,
@@ -350,17 +350,17 @@ void test_the_downward_sweep_merges_free_runs_takes_the_last_that_fits_and_trims
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, placed.size);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_word(PAYLOAD, CARCER_FREE),
                                      (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, sweep.at)),
-                                     "the rest is laid free below it, facing the gap");
+                                     "the rest is positioned free below it, facing the gap");
 }
 
-void test_a_sweep_not_permitted_reads_nothing_and_keeps_the_end(void)
+void test_a_sweep_not_permitted_reads_nothing_and_retains_the_end(void)
 {
     uint8_t *const one = cells.raced.persistent_buf_alloc(PAYLOAD, s_one);
     const size_t end = mmgr_series_cellularum_persistent_end(BLOCK);
     const CarcerSweep sweep = carcer_swept(BLOCK, PAYLOAD, RACED_BYTES, 0u, carcer_all(0));
 
     TEST_ASSERT_EQUAL_size_t(0u, sweep.found);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(end, sweep.boundary, "a walk of nothing leaves the end where it stands");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(end, sweep.boundary, "a walk of nothing leaves the end where it is");
     TEST_ASSERT_NOT_NULL(one);
 }
 
@@ -382,7 +382,7 @@ void test_a_sweep_takes_no_run_ending_above_its_bound(void)
     TEST_ASSERT_NOT_NULL(top);
 }
 
-void test_a_split_lays_the_rest_as_a_free_cell_and_keeps_a_run_too_small_to_split(void)
+void test_a_split_positions_the_rest_as_a_free_cell_and_retains_a_run_too_small_to_split(void)
 {
     uint8_t *const large = cells.raced.persistent_buf_alloc(4u * PAYLOAD, s_one);
     uint8_t *const held = cells.raced.persistent_buf_alloc(PAYLOAD, s_one);
@@ -414,7 +414,7 @@ void test_a_give_naming_another_owner_changes_nothing_and_is_told(void)
     TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, prisoner));
 }
 
-void test_a_give_answers_the_boundary_and_the_tier_the_cell_stood_at(void)
+void test_a_give_answers_the_boundary_and_the_tier_the_cell_was_at(void)
 {
     uint8_t *const low = cells.raced.persistent_buf_alloc(PAYLOAD, s_one);
     uint8_t *const high = cells.raced.persistent_buf_alloc(PAYLOAD, s_one);

@@ -96,7 +96,7 @@ void test_a_give_takes_the_same_bytes_off(void)
     TEST_ASSERT_EQUAL_size_t_MESSAGE(mmgr_align_up_buf(33u), hw_of(reader), "the give does not lower the peak");
 }
 
-void test_the_peak_is_the_most_held_at_once(void)
+void test_the_peak_is_the_max_held_at_once(void)
 {
     void *const first = counted.plain.persistent_buf_alloc(64u, reader);
     void *const second = counted.plain.persistent_buf_alloc(32u, reader);
@@ -124,7 +124,7 @@ void test_a_cell_given_back_below_the_end_counts_off_at_once(void)
     counted.plain.persistent_buf_release(pin, reader);
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(reader));
 
-    // both cells are the gap's again, and the next take lands where the wide one stood
+    // both cells are the gap's again, and the next take lands where the wide one was
     void *const again = counted.plain.persistent_buf_alloc(48u, reader);
 
     TEST_ASSERT_EQUAL_PTR(wide, again);
@@ -196,7 +196,7 @@ void test_two_owners_are_counted_apart(void)
     counted.plain.persistent_buf_release(read_cell, reader);
 }
 
-void test_a_maximum_security_give_counts_like_a_plain_one(void)
+void test_a_max_security_give_counts_like_a_plain_one(void)
 {
     void *const prisoner = counted.wiped.persistent_buf_alloc(24u, keys);
 
@@ -232,11 +232,11 @@ void test_a_temporary_take_counts_the_cell_to_its_owner(void)
 
 void test_temporary_cells_given_back_count_off_their_owners(void)
 {
-    void *const kept = counted.plain.temporary_buf_alloc(16u, reader);
+    void *const retained = counted.plain.temporary_buf_alloc(16u, reader);
     void *const read = counted.plain.temporary_buf_alloc(24u, reader);
     void *const written = counted.plain.temporary_buf_alloc(40u, writer);
 
-    TEST_ASSERT_NOT_NULL(kept);
+    TEST_ASSERT_NOT_NULL(retained);
     TEST_ASSERT_NOT_NULL(read);
     TEST_ASSERT_NOT_NULL(written);
     TEST_ASSERT_EQUAL_size_t(40u, in_use_of(reader));
@@ -245,7 +245,7 @@ void test_temporary_cells_given_back_count_off_their_owners(void)
     counted.plain.persistent_buf_release(written, writer);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(16u, in_use_of(reader), "the cell still held stays counted");
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(writer));
-    counted.plain.persistent_buf_release(kept, reader);
+    counted.plain.persistent_buf_release(retained, reader);
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(reader));
     TEST_ASSERT_EQUAL_size_t(40u, hw_of(reader));
 }
@@ -262,11 +262,11 @@ void test_a_temporary_cell_given_back_twice_counts_off_once(void)
 
 void test_a_give_naming_another_owner_is_refused_and_told(void)
 {
-    void *const kept = counted.plain.persistent_buf_alloc(32u, writer);
+    void *const retained = counted.plain.persistent_buf_alloc(32u, writer);
     void *const scratched = counted.plain.temporary_buf_alloc(16u, scratch);
     const size_t available = mmgr_buf_available(&counted_plain_ctx);
 
-    counted.plain.persistent_buf_release(kept, reader);
+    counted.plain.persistent_buf_release(retained, reader);
     TEST_ASSERT_EQUAL_size_t(1u, s_misnamed_count);
     TEST_ASSERT_EQUAL_PTR(reader, s_misnamed_named);
     TEST_ASSERT_EQUAL_PTR_MESSAGE(writer, s_misnamed_cell_owner, "told which owner the cell counts to");
@@ -277,14 +277,14 @@ void test_a_give_naming_another_owner_is_refused_and_told(void)
     TEST_ASSERT_EQUAL_size_t(2u, s_misnamed_count);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(16u, in_use_of(scratch), "a temporary cell is held the same way");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(available, mmgr_buf_available(&counted_plain_ctx), "and no cell left a tier");
-    counted.plain.persistent_buf_release(kept, writer);
+    counted.plain.persistent_buf_release(retained, writer);
     counted.plain.persistent_buf_release(scratched, scratch);
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(writer));
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(scratch));
     TEST_ASSERT_EQUAL_size_t(2u, s_misnamed_count);
 }
 
-void test_a_maximum_security_give_naming_another_owner_zeroes_nothing(void)
+void test_a_max_security_give_naming_another_owner_zeroes_nothing(void)
 {
     uint8_t *const secret = (uint8_t *)counted.wiped.persistent_buf_alloc(16u, keys);
 
@@ -309,16 +309,16 @@ void test_a_growth_naming_another_owner_is_refused_and_told(void)
 
 void test_a_cell_answers_the_owner_it_counts_to(void)
 {
-    void *const kept = counted.plain.persistent_buf_alloc(32u, writer);
+    void *const retained = counted.plain.persistent_buf_alloc(32u, writer);
     void *const scratched = counted.wiped.temporary_buf_alloc(16u, scratch);
 
-    TEST_ASSERT_EQUAL_PTR(writer, mmgr_owner_of_buf(&counted_plain_ctx, kept));
+    TEST_ASSERT_EQUAL_PTR(writer, mmgr_owner_of_buf(&counted_plain_ctx, retained));
     TEST_ASSERT_EQUAL_PTR(scratch, mmgr_owner_of_buf(&counted_wiped_ctx, scratched));
-    TEST_ASSERT_NULL_MESSAGE(mmgr_owner_of_buf(&counted_wiped_ctx, kept), "a cell of another cellblock answers none");
+    TEST_ASSERT_NULL_MESSAGE(mmgr_owner_of_buf(&counted_wiped_ctx, retained), "a cell of another cellblock answers none");
     TEST_ASSERT_NULL(mmgr_owner_of_buf(&counted_plain_ctx, NULL));
-    counted.plain.persistent_buf_release(kept, mmgr_owner_of_buf(&counted_plain_ctx, kept));
+    counted.plain.persistent_buf_release(retained, mmgr_owner_of_buf(&counted_plain_ctx, retained));
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(writer));
-    TEST_ASSERT_NULL_MESSAGE(mmgr_owner_of_buf(&counted_plain_ctx, kept), "a cell given back answers none");
+    TEST_ASSERT_NULL_MESSAGE(mmgr_owner_of_buf(&counted_plain_ctx, retained), "a cell given back answers none");
     counted.wiped.persistent_buf_release(scratched, scratch);
 }
 
@@ -335,7 +335,7 @@ void test_a_cell_given_back_twice_counts_off_once_and_tells_nothing(void)
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(writer));
 }
 
-void test_a_maximum_security_temporary_give_zeroes_the_cell_and_counts_it_off(void)
+void test_a_max_security_temporary_give_zeroes_the_cell_and_counts_it_off(void)
 {
     uint8_t *const prisoner = (uint8_t *)counted.wiped.temporary_buf_alloc(24u, keys);
 

@@ -8,7 +8,7 @@ For each module chosen, by name or by tag, and each toolchain present:
              run on the same inputs drawn from one seed; the harness's oracle judges every build on the same bytes
   ir         clang only: the library emitted as LLVM IR and lowered from it, its objects' instructions compared with the
              direct compile's function by function, and the behavior run again on the build lowered from the IR
-  gimple     gcc only: the optimized GIMPLE of the module's sources, kept beside the disassembly
+  gimple     gcc only: the optimized GIMPLE of the module's sources, retained beside the disassembly
   disasm     every object disassembled with llvm-objdump, a listing per function and its instruction count
   ghidra     every object of the module analyzed and decompiled by Ghidra headless in WSL, a .c per function
 
@@ -42,7 +42,7 @@ SPECIAL = {
     "memoriam_praetereo": (["src/memoriam_praetereo/memoriam_praetereo.c", "src/memoriam_praetereo/praet_ordo.c",
                             "src/memoriam_praetereo/praet_descriptor.c"],
                            ["MMGR_ENABLE_DMA=1", "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u",
-                            "PRAET_KEEPALIVE_MICROS=250u", "PRAET_RECOVERY=1", "PRAET_CLOCK_HZ=240000000u",
+                            "PRAET_RETAINALIVE_MICROS=250u", "PRAET_RECOVERY=1", "PRAET_CLOCK_HZ=240000000u",
                             "PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"]),
     "impensa_ancorae_acus": (["src/impensa_ancorae_acus/impensa_ancorae_acus_generic.c"], ["FUZZ_ANCORAE_BARRED=32u"]),
 }
@@ -86,7 +86,7 @@ class Toolchain:
 
 
 def shutil_which(program):
-    import shutil  # noqa: PLC0415  local, as this module keeps its imports to what every command needs
+    import shutil  # noqa: PLC0415  local, as this module retains its imports to what every command needs
     return shutil.which(program)
 
 
@@ -110,7 +110,7 @@ def msvc_env():
 def toolchains():
     chains = [
         Toolchain("clang", "clang", "gnu", []),
-        # GNU ld on PE-COFF keeps a weak default's offset in its section as an addend on every reference. A
+        # GNU ld on PE-COFF retains a weak default's offset in its section as an addend on every reference. A
         # definition that replaces the default then lands that many bytes off. A section for each definition puts
         # every default at offset 0
         Toolchain("gcc", "gcc", "gnu", ["-ffunction-sections", "-fdata-sections"] if os.name == "nt" else []),
@@ -240,7 +240,7 @@ def verify(root, run_root, names, tags, runs, seed, use_ghidra, objdump):
         for source in library:
             stem = os.path.splitext(os.path.basename(source))[0]
             ll = os.path.join(ir_folder, stem + ".ll")
-            # The use lists kept in the text, since the code generator breaks ties by them and the text drops them
+            # The use lists retained in the text, since the code generator breaks ties by them and the text drops them
             # by default
             clang.compile(root, source, ll, DEFINES, ["-S", "-emit-llvm", "-Xclang", "-emit-llvm-uselists"])
             lowered = os.path.join(ir_folder, stem + ".o")

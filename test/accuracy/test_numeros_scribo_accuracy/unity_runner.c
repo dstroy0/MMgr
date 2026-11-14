@@ -11,14 +11,14 @@
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_the_reference_formatting_this_suite_relies_on_behaves_as_assumed(void);
-extern void test_each_kind_alone_matches_the_reference_formatting(void);
+extern void test_each_type_alone_matches_the_reference_formatting(void);
 extern void test_a_spec_of_literals_and_values_comes_out_in_order(void);
 extern void test_build_takes_the_width_from_the_field_and_emit_from_the_value(void);
-extern void test_the_decimal_kind_pads_to_the_width_it_is_given(void);
-extern void test_the_fixed_kind_writes_exactly_the_decimals_its_width_names(void);
-extern void test_a_mismatched_spec_abandons_the_write_and_keeps_the_earlier_text(void);
+extern void test_the_decimal_type_pads_to_the_width_it_is_given(void);
+extern void test_the_fixed_type_writes_exactly_the_decimals_its_width_names(void);
+extern void test_a_mismatched_spec_abandons_the_write_and_retains_the_earlier_text(void);
 extern void test_a_run_of_appends_builds_the_same_string_as_one_spec(void);
-extern void test_the_string_kinds_escape_what_their_format_requires(void);
+extern void test_the_string_types_escape_what_their_format_requires(void);
 
 
 /*=======Mock Management=====*/
@@ -81,14 +81,14 @@ int main(void)
 {
   UnityBegin("test/accuracy/test_numeros_scribo_accuracy\\test_numeros_scribo_accuracy.c");
   run_test(test_the_reference_formatting_this_suite_relies_on_behaves_as_assumed, "test_the_reference_formatting_this_suite_relies_on_behaves_as_assumed", 100);
-  run_test(test_each_kind_alone_matches_the_reference_formatting, "test_each_kind_alone_matches_the_reference_formatting", 132);
+  run_test(test_each_type_alone_matches_the_reference_formatting, "test_each_type_alone_matches_the_reference_formatting", 132);
   run_test(test_a_spec_of_literals_and_values_comes_out_in_order, "test_a_spec_of_literals_and_values_comes_out_in_order", 222);
   run_test(test_build_takes_the_width_from_the_field_and_emit_from_the_value, "test_build_takes_the_width_from_the_field_and_emit_from_the_value", 264);
-  run_test(test_the_decimal_kind_pads_to_the_width_it_is_given, "test_the_decimal_kind_pads_to_the_width_it_is_given", 304);
-  run_test(test_the_fixed_kind_writes_exactly_the_decimals_its_width_names, "test_the_fixed_kind_writes_exactly_the_decimals_its_width_names", 343);
-  run_test(test_a_mismatched_spec_abandons_the_write_and_keeps_the_earlier_text, "test_a_mismatched_spec_abandons_the_write_and_keeps_the_earlier_text", 391);
+  run_test(test_the_decimal_type_pads_to_the_width_it_is_given, "test_the_decimal_type_pads_to_the_width_it_is_given", 304);
+  run_test(test_the_fixed_type_writes_exactly_the_decimals_its_width_names, "test_the_fixed_type_writes_exactly_the_decimals_its_width_names", 343);
+  run_test(test_a_mismatched_spec_abandons_the_write_and_retains_the_earlier_text, "test_a_mismatched_spec_abandons_the_write_and_retains_the_earlier_text", 391);
   run_test(test_a_run_of_appends_builds_the_same_string_as_one_spec, "test_a_run_of_appends_builds_the_same_string_as_one_spec", 437);
-  run_test(test_the_string_kinds_escape_what_their_format_requires, "test_the_string_kinds_escape_what_their_format_requires", 487);
+  run_test(test_the_string_types_escape_what_their_format_requires, "test_the_string_types_escape_what_their_format_requires", 487);
 
   return UNITY_END();
 }

@@ -44,7 +44,7 @@
 #endif
 
 /**
- * @brief Alignment a caller declares its own storage at before it hands those bytes to a module.
+ * @brief Alignment a caller declares its own storage at before it passes those bytes to a module.
  *
  * @note Nothing under src reads it. The tests, the benches and the region-edges example are what
  *       write EMBED_ALIGN(MMGR_ALIGN_BYTES) on their arrays. The default is 16.
@@ -104,7 +104,7 @@
  * @note Costs nothing. Measured byte-identical with and without, both for a direct call and for one
  *       through a dispatch table.
  * @warning The bound survives only where the compiler does not fold the call away. An entry reached
- *          through its dispatch table keeps it. The same entry inlined at a direct call collapses to an
+ *          through its dispatch table retains it. The same entry inlined at a direct call collapses to an
  *          offset into the pool, and the cell-level extent goes.
  * @warning Expands to nothing where EMBED_HAS_ATTRIBUTE(alloc_size) is 0, and arg_ plays no part. The
  *          diagnostics it would raise do not appear, and nothing reports that.
@@ -123,7 +123,7 @@
  *       linker two strong definitions of this symbol, and it refuses them by name. The enumerator
  *       guard cannot see across a unit boundary; this is what does.
  * @note The pool's own array stays static, and so it is this token and not the bytes that collide. That
- *       keeps the storage private to its unit while the name stays answerable across all of them.
+ *       retains the storage private to its unit while the name stays answerable across all of them.
  * @warning Costs one object per pool, in .bss or .data as the toolchain decides. Fixed and small,
  *          but not nothing on a part where pools are the point.
  */
@@ -154,12 +154,12 @@
  * @brief Fails the build when a second dresser claims a pool.
  *
  * @param[in] name_ Pool under claim.
- * @note Emitted by whatever lays state over a pool: a cellblock, a ring, anything that writes its
+ * @note Emitted by whatever positions state over a pool: a cellblock, a ring, anything that writes its
  *       own records into those bytes. It sits here and in none of them, because the rule is the
  *       pool's and not a dresser's. A copy in each would let the next dresser come with none.
  * @note Keyed on the pool alone, with no dresser's name in it. Every other symbol a site emits
  *       carries the site's name, and so two sites over one pool collide only there. Each would
- *       lay its own records over the same bytes in the belief that it owned them.
+ *       position its own records over the same bytes in the belief that it owned them.
  * @note Costs nothing. An enumerator emits no storage and settles while the unit compiles.
  * @warning Says one dresser claims a pool. It says nothing about a direct reach for the bytes,
  *          which is a separate question with separate guards.
@@ -177,7 +177,7 @@
  * @param[in] bytes_ Bytes in it.
  * @note A pool is a block of bytes, alone. Hand it to LocusCarcerum for a cellblock, to
  *       mmgr_anular_init for a ring, or to a memor entry to work on it as the bytes it is. A pool
- *       nobody hands anywhere is a pool that exists with no claim on it.
+ *       nobody passes anywhere is a pool that exists with no claim on it.
  * @note The count comes as name_##_bytes as well as the array. A consumer has the extent with no
  *       derivation. The assertion is what compares the two, and it has content only because the two
  *       come from separate places.
@@ -199,7 +199,7 @@
  * @brief Declares a pool whose bytes the system gives at run time: its name, with no storage and no size.
  *
  * @param[in] name_ Name of the pool.
- * @note The program asks the system for the bytes once, at the size it finds it needs, and hands them to the
+ * @note The program asks the system for the bytes once, at the size it finds it needs, and passes them to the
  *       dresser. MemoriaAnularis over this pool gives a ring whose address the linker settles, whose state
  *       names the bytes wherever the system put them.
  * @note For bytes that must come from the system. A graphics device that places a buffer over them
@@ -241,7 +241,7 @@
  * @note An expectation the library asserts is one a correct caller cannot break, and so the form here
  *       pays nothing for it. It expands to a sizeof, which type checks cond_ and never evaluates it.
  * @note A build that wants a failed expectation to report and stop defines its own ahead of this
- *       header, and the guard below stands down. The file test/support/mmgr_host_traps.h does this
+ *       header, and the guard below is down. The file test/support/mmgr_host_traps.h does this
  *       for the checks environment. It is where the stdio and stdlib that a report needs live.
  * @warning Not a runtime check, and nobody can read it as one. A failed expectation produces no
  *          diagnostic and no trap in this form.
@@ -258,15 +258,15 @@
  * @note Separate from MMGR_ASSERT because the two answer different questions. MMGR_ASSERT states an
  *       expectation a correct caller cannot break, and it is inert in the build that ships. This one
  *       marks a call that is illegal to make, and so it has to hold in that build too.
- * @note Reached where to go on would be worse than to stop. A release handed a prisoner from
+ * @note Reached where to go on would be worse than to stop. A release passed a prisoner from
  *       another cellblock is the case it exists for. The caller showed it does not know which
  *       cellblock owns that memory, and so its next release and its next allocation are both suspect.
- *       On a maximum security cellblock a quiet return would leave bytes unzeroed that the caller
+ *       On a max security cellblock a quiet return would leave bytes unzeroed that the caller
  *       believes are clear.
  * @note Does not return. Every call site rests on that basis and carries no fallback after it.
  * @note The stop is unconditional and the diagnostic is not. The form here halts and names nothing,
- *       as keeps this header free of libc.
- * @warning A build may define its own before it includes this header, and the form below then stands
+ *       as retains this header free of libc.
+ * @warning A build may define its own before it includes this header, and the form below then is
  *          down. A target that reports a fault through its own handler wants that. So does a test
  *          harness, which would otherwise hang on this form and never report a failure.
  * @warning This form spins. A target without abort has no other way to stop, and a halt is what a

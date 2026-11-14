@@ -58,7 +58,7 @@ void setUp(void)
 #if MMGR_VECTOR_BYTES != 0u
     for (size_t at = 0u; at < sizeof(s_bytes); at += 1u)
     {
-        // Explicit cast keeps the low byte of the product: that byte is the pattern
+        // Explicit cast retains the low byte of the product: that byte is the pattern
         s_bytes[at] = (uint8_t)((at * 11u) + 1u);
     }
 #endif
@@ -98,8 +98,8 @@ void test_a_vector_loaded_at_an_odd_address_is_put_back_whole(void)
     }
     mmgr_vector_put(out + 5, mmgr_vector_load(s_bytes + 3));
     TEST_ASSERT_EQUAL_MEMORY_MESSAGE(s_bytes + 3, out + 5, MMGR_VECTOR_BYTES, "the bytes come back as loaded");
-    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xccu, out[4], "the byte before the put stands");
-    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xccu, out[5u + MMGR_VECTOR_BYTES], "the byte after the put stands");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xccu, out[4], "the byte before the put is");
+    TEST_ASSERT_EQUAL_HEX8_MESSAGE(0xccu, out[5u + MMGR_VECTOR_BYTES], "the byte after the put is");
 #endif
 }
 

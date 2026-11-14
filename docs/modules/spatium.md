@@ -6,11 +6,11 @@ A bounded view over memory the span does not own, with a cursor and a flag that 
 
 - You are passing a buffer and a length to something and want them to travel together.
 - You are filling a fixed buffer through several steps and want to test once at the end.
-- You want the compiler to stop a buffer you may write from being handed where a read-only one belongs.
+- You want the compiler to stop a buffer you may write from being passed where a read-only one belongs.
 
 ## What it composes with
 
-`spat.from` borrows whatever @ref mod_confin_guide handed you. @ref mod_byteio_guide writes into that
+`spat.from` borrows whatever @ref mod_confin_guide passed you. @ref mod_byteio_guide writes into that
 storage and reads back out of it; @ref mod_verba_guide and @ref mod_cellul_guide work against the
 same bytes.
 
@@ -43,7 +43,7 @@ The extent is named differently in each deliberately. `const` alone would stop t
 two be confused wherever a name is read, and so the field names differ too, and a mix-up is a compile
 error and not a puzzle.
 
-## The two flags are not the same kind of thing
+## The two flags are not the same type of thing
 
 **`overflow` is a build failure.** What a writer emits and how big its buffer is are both settled
 before the build, and so the two are either compatible or the program is wrong. There is no runtime
@@ -51,7 +51,7 @@ condition under which a correct writer overruns a correctly sized span. `MMGR_AS
 nothing in a shipping build, an abort in `checks`. See @ref ref_error_handling.
 
 The flag is what a shipping build does with a wrong program, not a path to design for. It latches so
-that the first bad append stores nothing and every append after it is a no-op, which keeps a wrong
+that the first bad append stores nothing and every append after it is a no-op, which retains a wrong
 writer off the end of the buffer instead of walking down it. Read it to learn that something is
 broken, not to decide what to do next.
 
@@ -74,7 +74,7 @@ EMBED_CALL(byteio.raw, OctetusCfg, .w = &w, .src = body, .bytes = n);
 MMGR_ASSERT(EMBED_CALL(spat.ok, SpatiumCfg, .span = w), "frame does not fit buf");
 ```
 
-A take that reaches past the end leaves the cursor where it was. A caller that keeps reading after
+A take that reaches past the end leaves the cursor where it was. A caller that retains reading after
 a failure still knows where it is. `spat.reset` is the only call that clears a flag.
 
 ## The ten entries
@@ -109,7 +109,7 @@ is left, and nothing went wrong either. Past `cap` is the failure.
 **`produced` carries the fill span's `overflow` across as the read span's `err`.** Reading back a
 span that overran does not launder the failure.
 
-**`pos` keeps counting past `cap` once a span has overrun.** So the number left behind says how far
+**`pos` retains counting past `cap` once a span has overrun.** So the number left behind says how far
 past the end a wrong writer went, which is worth reading in a post-mortem. It is not a sizing pass:
 a length you have to measure by overrunning a buffer at run time is a length you already knew when
 you wrote the code, and the assert fires long before you get to read it.

@@ -14,7 +14,7 @@
  *       mask and one test answer any class, and the cost does not grow with how many ranges the
  *       class covers.
  * @note Covers code points 0 to 127 only. A byte of 0x80 or above is in no class here, and
- *       that keeps the table sixteen bytes and not thirty-two.
+ *       that retains the table sixteen bytes and not thirty-two.
  */
 #ifndef MMGR_ASCII_PERSONA_BITORUM_H
 #define MMGR_ASCII_PERSONA_BITORUM_H
@@ -72,7 +72,7 @@ typedef enum
  */
 typedef struct
 {
-    const MmgrAsciiClass kind; /**< Class to test against, below MMGR_ASCII_CLASSES. */
+    const MmgrAsciiClass type; /**< Class to test against, below MMGR_ASCII_CLASSES. */
     const uint8_t byte;        /**< Code point to look up; 0x80 and above are in no class. */
 } AsciiCfg;
 
@@ -88,12 +88,12 @@ typedef struct
 EMBED_TABLE_LAYOUT(AsciiPersonaBitorumNs, in);
 
 /**
- * @brief Returns whether args->byte has its bit set in the kind bitmap.
+ * @brief Returns whether args->byte has its bit set in the type bitmap.
  *
  * @param[in] args Class and byte to test [BORROWS].
  * @return         EMBED_TRUE when the bit holds, EMBED_FALSE otherwise.
  * @note Bytes 0x80 and above return EMBED_FALSE.
- * @warning args->kind must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
+ * @warning args->type must be below MMGR_ASCII_CLASSES, and nothing holds it there outside a
  *          MMGR_DEBUG_CHECKS build. It indexes the bitmap, and a byte under 0x80 then reads
  *          past the table.
  */

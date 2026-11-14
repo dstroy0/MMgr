@@ -7,13 +7,13 @@
  */
 /**
  * @file test_locus_carcerum_shared.c
- * @brief One cellblock reached from many threads at once. No cell handed to two, every count exact,
+ * @brief One cellblock reached from many threads at once. No cell passed to two, every count exact,
  *        and the cellblock whole once every thread gave back what it took.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-10-29
  *
  * @note Each thread fills every cell it holds with its own mark and reads the mark back before it
- *       gives the cell up. A cell handed to two threads at once carries the other thread's mark on
+ *       gives the cell up. A cell passed to two threads at once carries the other thread's mark on
  *       that read. The count of such reads is what the cases hold at zero.
  * @note The suite's own counts are atomic words too, added to by every thread and read once they end.
  */
@@ -33,7 +33,7 @@ LocusCarcerum(crowded, MMGR_MINIMUM_SECURITY(shared));
 static embed_atomic_u32 s_next_index = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_refused = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_overwritten = EMBED_ATOMIC_INIT(0u);
-static embed_atomic_usize s_kept = EMBED_ATOMIC_INIT(0u);
+static embed_atomic_usize s_retained = EMBED_ATOMIC_INIT(0u);
 // The owners every case takes for, declared with the cellblocks as the program's table
 #define CROWDED_OWNERS(owner_)                                                                                         \
     owner_(s_crowd, "crowd") owner_(s_scratch, "scratch") owner_(own_0, "own00") owner_(own_1, "own01")                \
@@ -44,8 +44,8 @@ static embed_atomic_usize s_kept = EMBED_ATOMIC_INIT(0u);
 MMGR_OWNERS(CROWDED_OWNERS)
 
 // the threads' own owners, one each, as the table holds them
-EMBED_STATIC_ASSERT(MMGR_HOST_THREADS_MOST == 16u, "the table declares one owner for each of sixteen threads");
-static const CellOwner *const s_own[MMGR_HOST_THREADS_MOST] = {
+EMBED_STATIC_ASSERT(MMGR_HOST_THREADS_MAX == 16u, "the table declares one owner for each of sixteen threads");
+static const CellOwner *const s_own[MMGR_HOST_THREADS_MAX] = {
     &mmgr_owner_table[mmgr_owner_place_own_0],  &mmgr_owner_table[mmgr_owner_place_own_1],
     &mmgr_owner_table[mmgr_owner_place_own_2],  &mmgr_owner_table[mmgr_owner_place_own_3],
     &mmgr_owner_table[mmgr_owner_place_own_4],  &mmgr_owner_table[mmgr_owner_place_own_5],
@@ -68,7 +68,7 @@ void setUp(void)
     embed_atomic_u32_store(&s_next_index, 0u);
     embed_atomic_usize_store(&s_refused, 0u);
     embed_atomic_usize_store(&s_overwritten, 0u);
-    embed_atomic_usize_store(&s_kept, 0u);
+    embed_atomic_usize_store(&s_retained, 0u);
     owner_ready(s_crowd);
     owner_ready(s_scratch);
 }
@@ -143,7 +143,7 @@ static void contend_temporary_with(const CellOwner *owner, embed_bool giving)
     const uint8_t mark = (uint8_t)(index + 1u);
     size_t refused = 0u;
     size_t overwritten = 0u;
-    size_t kept = 0u;
+    size_t retained = 0u;
     for (size_t round = 0u; round < CONTEND_ROUNDS; round++)
     {
         uint8_t *held[CONTEND_HELD];
@@ -170,13 +170,13 @@ static void contend_temporary_with(const CellOwner *owner, embed_bool giving)
             }
             else
             {
-                kept += (held[at] != NULL) ? mmgr_align_up_buf(wanted[at]) : 0u;
+                retained += (held[at] != NULL) ? mmgr_align_up_buf(wanted[at]) : 0u;
             }
         }
     }
     (void)embed_atomic_usize_fetch_add(&s_refused, refused);
     (void)embed_atomic_usize_fetch_add(&s_overwritten, overwritten);
-    (void)embed_atomic_usize_fetch_add(&s_kept, kept);
+    (void)embed_atomic_usize_fetch_add(&s_retained, retained);
 }
 
 static void contend_temporary(void)
@@ -189,7 +189,7 @@ static void contend_temporary_shared_owner(void)
     contend_temporary_with(s_crowd, EMBED_TRUE);
 }
 
-static void contend_temporary_kept(void)
+static void contend_temporary_retained(void)
 {
     contend_temporary_with(s_crowd, EMBED_FALSE);
 }
@@ -213,15 +213,15 @@ void test_every_entry_leaves_the_gap_equal_to_what_the_tiers_leave(void)
 void test_threads_taking_and_giving_at_once_never_share_a_cell(void)
 {
     // a take refused while sixteen threads hold cells is the pool's size, and the case holds what the
-    // tier promises: no cell handed to two
-    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MOST));
+    // tier promises: no cell passed to two
+    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MAX));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
-                                     "a cell was handed to two threads at once");
+                                     "a cell was passed to two threads at once");
 }
 
 void test_threads_taking_and_giving_at_once_leave_the_series_cellularum_whole(void)
 {
-    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MOST));
+    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MAX));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_persistent_end(&crowded_shared_ctx),
                                      "every cell given back returns the tier to the gap");
     TEST_ASSERT_EQUAL_size_t(SHARED_BYTES, crowded.shared.buf_available());
@@ -230,10 +230,10 @@ void test_threads_taking_and_giving_at_once_leave_the_series_cellularum_whole(vo
 void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(void)
 {
     // a take refused once the gap runs out is the pool's size. The case holds what the tier promises:
-    // no cell handed to two, and the tier whole once every cell goes back
-    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary, MMGR_HOST_THREADS_MOST));
+    // no cell passed to two, and the tier whole once every cell goes back
+    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary, MMGR_HOST_THREADS_MAX));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
-                                     "a temporary cell was handed to two threads at once");
+                                     "a temporary cell was passed to two threads at once");
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(&crowded_shared_ctx));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(SHARED_BYTES, mmgr_series_cellularum_temporary_top(&crowded_shared_ctx),
                                      "the gives return the whole tier");
@@ -242,7 +242,7 @@ void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(v
 
 void test_an_owner_shared_by_every_thread_is_counted_back_to_nothing(void)
 {
-    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MOST));
+    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MAX));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd), "a take or give was counted twice or not at all");
     TEST_ASSERT_TRUE(mmgr_owner_hw(s_crowd) > 0u);
     TEST_ASSERT_TRUE(mmgr_owner_hw(s_crowd) <= SHARED_BYTES);
@@ -250,15 +250,15 @@ void test_an_owner_shared_by_every_thread_is_counted_back_to_nothing(void)
 
 void test_an_owner_for_each_thread_is_counted_back_to_nothing(void)
 {
-    for (size_t at = 0u; at < MMGR_HOST_THREADS_MOST; at++)
+    for (size_t at = 0u; at < MMGR_HOST_THREADS_MAX; at++)
     {
         owner_ready(s_own[at]);
     }
-    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_own_owner, MMGR_HOST_THREADS_MOST));
+    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_own_owner, MMGR_HOST_THREADS_MAX));
     // a thread whose every take the gap refused has a peak of 0, and the tier promises it no take; the
     // threads together took cells
     size_t peaks = 0u;
-    for (size_t at = 0u; at < MMGR_HOST_THREADS_MOST; at++)
+    for (size_t at = 0u; at < MMGR_HOST_THREADS_MAX; at++)
     {
         TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_in_use(s_own[at]));
         peaks += mmgr_owner_hw(s_own[at]);
@@ -271,24 +271,24 @@ void test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_not
 {
     // every temporary take counts to the owner it names. The single give counts the cell off the
     // owner its footer names whatever owner the give carries
-    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_shared_owner, MMGR_HOST_THREADS_MOST));
+    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_shared_owner, MMGR_HOST_THREADS_MAX));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
-                                     "a temporary cell was handed to two threads at once");
+                                     "a temporary cell was passed to two threads at once");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd),
                                      "a temporary take or give was counted twice or not at all");
     TEST_ASSERT_TRUE(mmgr_owner_hw(s_crowd) > 0u);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(SHARED_BYTES, crowded.shared.buf_available(), "every cell returned to the gap");
 }
 
-void test_temporary_cells_kept_across_threads_count_to_their_owner(void)
+void test_temporary_cells_retained_across_threads_count_to_their_owner(void)
 {
-    // the threads keep every cell they receive, and the owner counts each payload the tier holds
-    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_kept, MMGR_HOST_THREADS_MOST));
+    // the threads retain every cell they receive, and the owner counts each payload the tier holds
+    TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_retained, MMGR_HOST_THREADS_MAX));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
-                                     "a temporary cell was handed to two threads at once");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE((size_t)embed_atomic_usize_load(&s_kept), mmgr_owner_in_use(s_crowd),
+                                     "a temporary cell was passed to two threads at once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE((size_t)embed_atomic_usize_load(&s_retained), mmgr_owner_in_use(s_crowd),
                                      "the owner counts every payload the tier holds");
     TEST_ASSERT_TRUE_MESSAGE(SHARED_BYTES - mmgr_series_cellularum_temporary_top(&crowded_shared_ctx) >=
-                                 (size_t)embed_atomic_usize_load(&s_kept),
-                             "the tier holds the kept payloads and their words");
+                                 (size_t)embed_atomic_usize_load(&s_retained),
+                             "the tier holds the retained payloads and their words");
 }

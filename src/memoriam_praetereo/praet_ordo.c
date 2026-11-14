@@ -42,10 +42,10 @@
 #define PRAET_TRANSFER_STATUSES (PRAET_ERROR | PRAET_STALLED | PRAET_ABANDONED | PRAET_SCRUBBED | PRAET_MEASURED)
 
 /**
- * @brief Every bit the entries below take out of a flag word they keep.
+ * @brief Every bit the entries below take out of a flag word they retain.
  *
  * @note The union of what submit, kick, completed, resolve and the settle clear in service mask away.
- *       Those five keep the rest of the word. So the two assertions under this settle at compile time
+ *       Those five retain the rest of the word. So the two assertions under this settle at compile time
  *       what no run could. A clear cannot reach a bit outside the map, and cannot reach the region
  *       descriptor at all.
  * @note The detach path in service is not in this list, because it does not clear a word. It assigns
@@ -153,7 +153,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
     context->bound[channel] = bound;
     context->bound_bytes[channel] = bytes;
 #else
-    // A build with no recovery records nothing about a transfer, and so it has nowhere to keep these and
+    // A build with no recovery records nothing about a transfer, and so it has nowhere to retain these and
     // nothing that would read them. The pool was still named at the attach, and the compiler still
     // proved it exists
     (void)bound;
@@ -209,7 +209,7 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel)
     // channel reaches, and a submit has no business with a second statement of it
     praet_ordo_write_flags(context, channel,
                            (was & PRAET_WITHOUT(PRAET_CORE_MASK | PRAET_TRANSFER_STATUSES)) | (uint32_t)PRAET_BUSY);
-    context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
+    context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_RETAINALIVE_MICROS;
 #if PRAET_RECOVERY
     // The address comes from what the channel attached over. A submit states how far into it the
     // transfer starts, and PraetSubmit is what proved that offset and length fit before this ran
@@ -241,7 +241,7 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel)
     // A channel that moves again has no stall, and so the status comes off with the same kick that
     // pushes the window out
     praet_ordo_write_flags(context, channel, context->flags[channel] & PRAET_WITHOUT(PRAET_STALLED));
-    context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
+    context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_RETAINALIVE_MICROS;
 
 #if PRAET_RECOVERY
     // A position that went backwards is nonsense from the port, and to take it would shrink the
@@ -323,7 +323,7 @@ static uint32_t praet_boundary_crc(const PraetOrdo *context, embed_word channel)
     const embed_word first = sampled - remainder;
     const embed_word length = context->length[channel];
     // The sum runs at int width and the compare runs there, and so it cannot wrap. It comes back narrower only
-    // on the arm where it is at most the length, which is an embed_word already
+    // on the arm where it is at max the length, which is an embed_word already
     const embed_word last = ((first + word_bytes) > length) ? length : (embed_word)(first + word_bytes);
     const uint8_t *const bytes = context->start[channel];
 
@@ -458,7 +458,7 @@ static embed_bool praet_ordo_take_progress(PraetOrdo *context)
         }
 
         context->position[channel] = (reached > context->length[channel]) ? context->length[channel] : reached;
-        context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
+        context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_RETAINALIVE_MICROS;
         praet_ordo_write_flags(context, channel, context->flags[channel] & PRAET_WITHOUT(PRAET_STALLED));
         moved = EMBED_TRUE;
     }

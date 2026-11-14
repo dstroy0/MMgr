@@ -14,7 +14,7 @@
  * @note Bit order is the whole contract here. The header states least significant first, and a
  *       writer that reversed a byte's bits produces the same byte count, the same overflow point and
  *       the same length, and so nothing below compares lengths alone.
- * @note Widths that straddle a byte are the interesting ones. A width of 8 and a residue of 0 keeps
+ * @note Widths that straddle a byte are the interesting ones. A width of 8 and a residue of 0 retains
  *       every bit in the byte it started in, and a defect in the merge never surfaces there, and so the
  *       sequences below are built from widths that leave a residue.
  * @note Contract checks on a bit count above 64, on a null buffer and on a capacity of zero live in
@@ -28,7 +28,7 @@
 #include "unity.h"
 
 /**
- * @brief Expands to 4096u, the most bits any case here writes into one stream.
+ * @brief Expands to 4096u, the max bits any case here writes into one stream.
  *
  * @note The longest case is 64 appends of up to 64 bits. The reference holds one array element per
  *       bit, and this bounds that array.
@@ -72,13 +72,13 @@ typedef struct
  * @note This is the whole reference for what a put contributes. The header states least significant
  *       first, and that ordering is the loop below, alone.
  * @note A width of 0 appends nothing, as a put of no bits has to.
- * @warning The caller keeps the total under MMGR_ACCURACY_BITOR_MAX_BITS. Nothing here bounds it.
+ * @warning The caller retains the total under MMGR_ACCURACY_BITOR_MAX_BITS. Nothing here bounds it.
  */
 static void accuracy_stream_append(AccuracyBitStream *stream, uint64_t value, unsigned width)
 {
     for (unsigned position = 0u; position < width; position++)
     {
-        // Explicit cast narrows the extracted bit to the uint8_t element that holds it. The mask keeps
+        // Explicit cast narrows the extracted bit to the uint8_t element that holds it. The mask retains
         // one bit, as the element carries
         stream->bit[stream->count] = (uint8_t)((value >> position) & 1u);
         stream->count++;
@@ -93,7 +93,7 @@ static void accuracy_stream_append(AccuracyBitStream *stream, uint64_t value, un
  * @return            Bytes written, with a partial last byte as one.
  * @note The layout is the single one the header describes: bit n of the stream is bit n modulo 8 of byte n
  *       over 8. A partial last byte carries zeros above its bits, as align writes.
- * @note Called after every stream is complete. A pack at the end keeps the residue the module
+ * @note Called after every stream is complete. A pack at the end retains the residue the module
  *       carries out of the reference.
  * @warning packed must be writable for the byte count this returns.
  */
@@ -296,7 +296,7 @@ void test_a_single_put_of_every_width_lands_where_the_reference_puts_it(void)
  *       out of a residue and a fresh value. That join is the single one piece of arithmetic
  *       no other case here exercises.
  * @note The widths run 1 through 17 and repeat, which never settles on a multiple of eight. A run of
- *       widths that all divide eight keeps the residue empty and the merge unused.
+ *       widths that all divide eight retains the residue empty and the merge unused.
  * @note Sixty four appends a run and thirty two runs. So the join runs at every residue
  *       length from 0 to 7 many times over, at values that differ every time.
  */
@@ -348,7 +348,7 @@ void test_a_run_of_puts_across_byte_boundaries_lands_where_the_reference_puts_it
  * @note The cases above compare packed bytes. This one goes the other way. It takes the buffer apart
  *       a bit at a time to build each value again, as a reader of this format would do.
  * @note A pair of defects that cancel in the pack comparison still fails here. One such pair is a
- *       reversal on the way in that the reference undoes. The values are the ones the case handed
+ *       reversal on the way in that the reference undoes. The values are the ones the case passed
  *       the writer and nothing derived them again.
  */
 void test_the_bits_read_back_out_rebuild_the_values_that_were_written(void)

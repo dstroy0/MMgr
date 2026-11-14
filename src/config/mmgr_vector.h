@@ -23,7 +23,7 @@
  *       wider register in a later build widens every walk here with no edit. Every arm of every gate
  *       has a definition. A mask holds one bit a byte, the first byte lowest.
  * @warning mmgr_vector_load and mmgr_vector_put take any address, for a walk over bytes with a
- *          count, which keeps every read within them. A walk over text ended by a zero, whose cap
+ *          count, which retains every read within them. A walk over text ended by a zero, whose cap
  *          may reach far past the text, loads through mmgr_vector_load_aligned alone. That load
  *          takes an address a multiple of MMGR_VECTOR_BYTES. An aligned lane never crosses a page.
  *          A read past the text's end stays in the page the text ends in, as the word walk's does.

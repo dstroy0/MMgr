@@ -26,11 +26,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FUZZ_CAP_MOST 96u
+#define FUZZ_CAP_MAX 96u
 #define FUZZ_PAD 16u
 
-static char s_out[FUZZ_CAP_MOST + FUZZ_PAD];
-static char s_expected[FUZZ_CAP_MOST + FUZZ_PAD];
+static char s_out[FUZZ_CAP_MAX + FUZZ_PAD];
+static char s_expected[FUZZ_CAP_MAX + FUZZ_PAD];
 
 /** @brief The model's writer: a buffer, its cap and the offset reached. */
 typedef struct
@@ -83,7 +83,7 @@ static void texts(FuzzInput *input)
     memset(text, 'x', sizeof text);
     const size_t bytes = fuzz_below(input, 40u);
     drawn_text(input, text, bytes);
-    const size_t cap = fuzz_below(input, FUZZ_CAP_MOST + 1u);
+    const size_t cap = fuzz_below(input, FUZZ_CAP_MAX + 1u);
     const size_t at = fuzz_below(input, cap + 2u);
     ModelWriter writer = {cap, at};
 
@@ -142,7 +142,7 @@ static void texts(FuzzInput *input)
         }
         compare_written(&writer,
                         EMBED_CALL(verba_textus.xml, VerbaTextusCfg, .out = s_out, .cap = cap, .at = at, .text = text),
-                        "xml writes the four entities and every other byte as it stands");
+                        "xml writes the four entities and every other byte as it is");
         break;
     case 4:
         model_piece(&writer, "\"", 1u);
@@ -159,9 +159,9 @@ static void texts(FuzzInput *input)
             }
             else if ((byte == 8u) || (byte == 9u) || (byte == 10u) || (byte == 12u) || (byte == 13u))
             {
-                static const char letters[14] = {0, 0, 0, 0, 0, 0, 0, 0, 'b', 't', 'n', 0, 'f', 'r'};
+                static const char characters[14] = {0, 0, 0, 0, 0, 0, 0, 0, 'b', 't', 'n', 0, 'f', 'r'};
                 escape[0] = '\\';
-                escape[1] = letters[byte];
+                escape[1] = characters[byte];
                 model_piece(&writer, escape, 1u);
                 model_piece(&writer, escape + 1u, 1u);
             }
@@ -203,7 +203,7 @@ static void integers(FuzzInput *input)
     const uint8_t base = fuzz_byte(input);
     const uint8_t min = (uint8_t)(fuzz_byte(input) % 24u);
     const uint8_t columns = (uint8_t)(fuzz_byte(input) % 30u);
-    const size_t cap = fuzz_below(input, FUZZ_CAP_MOST + 1u);
+    const size_t cap = fuzz_below(input, FUZZ_CAP_MAX + 1u);
     const size_t at = fuzz_below(input, cap + 2u);
     char text[64];
     ModelWriter writer = {cap, at};
@@ -277,8 +277,8 @@ static void integers(FuzzInput *input)
 
 static double drawn_real(FuzzInput *input)
 {
-    const uint8_t kind = fuzz_byte(input);
-    switch (kind & 3u)
+    const uint8_t type = fuzz_byte(input);
+    switch (type & 3u)
     {
     case 0: {
         const int64_t whole = (int64_t)(fuzz_word(input) % 2000001u) - 1000000;
@@ -379,32 +379,32 @@ static void reals(FuzzInput *input)
     if ((fuzz_byte(input) & 1u) == 0u)
     {
         const uint8_t decimals = (uint8_t)(fuzz_byte(input) % 22u);
-        const unsigned int kept = (decimals > MMGR_FIXED_MAX_DECIMALS) ? MMGR_FIXED_MAX_DECIMALS : decimals;
-        const size_t end = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = s_out, .cap = FUZZ_CAP_MOST,
+        const unsigned int retained = (decimals > MMGR_FIXED_MAX_DECIMALS) ? MMGR_FIXED_MAX_DECIMALS : decimals;
+        const size_t end = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = s_out, .cap = FUZZ_CAP_MAX,
                                       .real = real, .decimals = decimals);
         if (nan || inf || (fabs(real) >= 18446744073709551616.0))
         {
             return;
         }
-        char expected[FUZZ_CAP_MOST];
-        exact_fixed(real, kept, expected, sizeof expected);
-        if (strlen(expected) + 1u > FUZZ_CAP_MOST)
+        char expected[FUZZ_CAP_MAX];
+        exact_fixed(real, retained, expected, sizeof expected);
+        if (strlen(expected) + 1u > FUZZ_CAP_MAX)
         {
             return;
         }
-        s_out[(end < FUZZ_CAP_MOST) ? end : 0u] = '\0';
+        s_out[(end < FUZZ_CAP_MAX) ? end : 0u] = '\0';
         if (strcmp(s_out, expected) != 0)
         {
-            fprintf(stderr, "fixed %a to %u places wrote \"%s\", exact \"%s\"\n", real, kept, s_out, expected);
+            fprintf(stderr, "fixed %a to %u places wrote \"%s\", exact \"%s\"\n", real, retained, s_out, expected);
         }
         fuzz_check(strcmp(s_out, expected) == 0, "fixed is the value rounded half away from zero");
         return;
     }
     const uint8_t sig = (uint8_t)(fuzz_byte(input) % 22u);
-    const unsigned int kept = (sig == 0u) ? 1u : ((sig > MMGR_G_MAX_SIG) ? MMGR_G_MAX_SIG : sig);
+    const unsigned int retained = (sig == 0u) ? 1u : ((sig > MMGR_G_MAX_SIG) ? MMGR_G_MAX_SIG : sig);
     const size_t end =
-        EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = s_out, .cap = FUZZ_CAP_MOST, .real = real, .sig = sig);
-    fuzz_check(end < FUZZ_CAP_MOST, "g fits a double in the buffer");
+        EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = s_out, .cap = FUZZ_CAP_MAX, .real = real, .sig = sig);
+    fuzz_check(end < FUZZ_CAP_MAX, "g fits a double in the buffer");
     s_out[end] = '\0';
     if (nan)
     {
@@ -412,18 +412,18 @@ static void reals(FuzzInput *input)
         return;
     }
     char rounded[64];
-    snprintf(rounded, sizeof rounded, "%.*e", (int)kept - 1, real);
+    snprintf(rounded, sizeof rounded, "%.*e", (int)retained - 1, real);
     const double read_back = strtod(s_out, NULL);
     double expected = strtod(rounded, NULL);
-    // A value exactly on a half at the digit kept may round either way, as the header states no rule for g.
+    // A value exactly on a half at the digit retained may round either way, as the header states no rule for g.
     // The value one step away from zero rounds the half away, and either answer is the value rounded to its digits
     char exact[96];
-    snprintf(exact, sizeof exact, "%.*e", (int)kept + 40, real);
-    const char *const beyond = strchr(exact, '.') != NULL ? strchr(exact, '.') + kept : NULL;
+    snprintf(exact, sizeof exact, "%.*e", (int)retained + 40, real);
+    const char *const beyond = strchr(exact, '.') != NULL ? strchr(exact, '.') + retained : NULL;
     if ((beyond != NULL) && (beyond[0] == '5') && (strspn(beyond + 1, "0") == strcspn(beyond + 1, "e")))
     {
         char away[64];
-        snprintf(away, sizeof away, "%.*e", (int)kept - 1, nextafter(real, copysign(INFINITY, real)));
+        snprintf(away, sizeof away, "%.*e", (int)retained - 1, nextafter(real, copysign(INFINITY, real)));
         const double away_value = strtod(away, NULL);
         if (memcmp(&read_back, &away_value, sizeof read_back) == 0)
         {
@@ -432,14 +432,14 @@ static void reals(FuzzInput *input)
     }
     if (memcmp(&read_back, &expected, sizeof read_back) != 0)
     {
-        fprintf(stderr, "g %a to %u digits wrote \"%s\", the rounded value is \"%s\"\n", real, kept, s_out, rounded);
+        fprintf(stderr, "g %a to %u digits wrote \"%s\", the rounded value is \"%s\"\n", real, retained, s_out, rounded);
     }
     fuzz_check(memcmp(&read_back, &expected, sizeof read_back) == 0, "g reads back as the value rounded to its digits");
 }
 
 static void ends(FuzzInput *input)
 {
-    const size_t cap = fuzz_below(input, FUZZ_CAP_MOST + 1u);
+    const size_t cap = fuzz_below(input, FUZZ_CAP_MAX + 1u);
     const size_t at = fuzz_below(input, cap + 2u);
     memset(s_out, '.', sizeof s_out);
     const size_t length = EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = s_out, .cap = cap, .at = at);
@@ -450,7 +450,7 @@ static void ends(FuzzInput *input)
                "ok is the offset below the cap");
 }
 
-/** @brief Where a line's flush hands its bytes: what it took, and how many more it takes before it refuses. */
+/** @brief Where a line's flush passes its bytes: what it took, and how many more it takes before it refuses. */
 typedef struct
 {
     char taken[1024];
@@ -473,14 +473,14 @@ static int line_sink(void *context, const char *bytes, size_t size)
 
 /**
  * @brief Any sequence of line writes against the stream of what each write formats. With a flush that takes
- *        everything, the bytes handed on and the bytes the line holds are the stream. With no flush, or one that
+ *        everything, the bytes passed on and the bytes the line holds are the stream. With no flush, or one that
  *        refuses, they are the stream as far as the last write that went whole. A line that ran out of room
- *        stands full.
+ *        is full.
  */
 static void verba_linea_fuzzed(FuzzInput *input)
 {
     static char stream[2048];
-    static char buffer[FUZZ_CAP_MOST + FUZZ_PAD];
+    static char buffer[FUZZ_CAP_MAX + FUZZ_PAD];
     static LineSink sink;
     const size_t capacity = fuzz_below(input, 40u);
     const uint8_t mode = (uint8_t)(fuzz_byte(input) % 3u);
@@ -522,9 +522,9 @@ static void verba_linea_fuzzed(FuzzInput *input)
             piece_bytes = (size_t)snprintf(piece, sizeof piece, "%s", text);
             break;
         case 2: {
-            const size_t most = fuzz_below(input, sizeof text);
-            took = mmgr_line_put_most(&line, text, most);
-            piece_bytes = (strlen(text) < most) ? strlen(text) : most;
+            const size_t max = fuzz_below(input, sizeof text);
+            took = mmgr_line_put_max(&line, text, max);
+            piece_bytes = (strlen(text) < max) ? strlen(text) : max;
             memcpy(piece, text, piece_bytes);
             break;
         }
@@ -583,7 +583,7 @@ static void verba_linea_fuzzed(FuzzInput *input)
         fuzz_check(sink.bytes + held <= streamed, "a line holds no more than was written");
     }
     fuzz_check(memcmp(sink.taken, stream, (sink.bytes < whole) ? sink.bytes : whole) == 0,
-               "the bytes handed on are the stream in order");
+               "the bytes passed on are the stream in order");
     if (!refused_take && (sink.bytes < whole))
     {
         fuzz_check(memcmp(buffer, stream + sink.bytes, whole - sink.bytes) == 0,

@@ -1,10 +1,10 @@
 /-!
 # LocusCarcerum, the bounds the lookups and the spans test
 
-A span of a movable cell (`carcer_span_read`) fits under two conditions. Its offset is at most the cell's size, and
-its bytes at most the size less the offset. The test never forms `offset + bytes`, which can wrap. The theorem is that a span it
+A span of a movable cell (`carcer_span_read`) fits under two conditions. Its offset is at max the cell's size, and
+its bytes at max the size less the offset. The test never forms `offset + bytes`, which can wrap. The theorem is that a span it
 passes lies inside the cell. A pointer is the cellblock's (`mmgr_who_owns_buf`) where it lies at or past the base and
-below the base and the size. A high-water mark (`embed_atomic_usize_raise`) only rises, and stands at or past every
+below the base and the size. A high-water mark (`embed_atomic_usize_raise`) only rises, and is at or past every
 count it reached.
 -/
 
@@ -43,7 +43,7 @@ def raise (mark count : Nat) : Nat := if mark < count then count else mark
 theorem raise_ge_count (mark count : Nat) : count ≤ raise mark count := by unfold raise; split <;> omega
 theorem raise_ge_mark (mark count : Nat) : mark ≤ raise mark count := by unfold raise; split <;> omega
 
-/-- Raises in turn: the mark after all of them stands at or past each count raised to. -/
+/-- Raises in turn: the mark after all of them is at or past each count raised to. -/
 def raises (mark : Nat) : List Nat → Nat
   | [] => mark
   | c :: rest => raises (raise mark c) rest

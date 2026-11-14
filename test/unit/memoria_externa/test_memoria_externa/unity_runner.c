@@ -25,7 +25,7 @@ extern void test_a_reserve_above_free_internal_memory_refuses_every_request(void
 extern void test_init_points_the_pair_at_the_first_buffer(void);
 extern void test_the_two_indexes_never_agree(void);
 extern void test_reading_an_index_does_not_move_it(void);
-extern void test_swap_hands_back_the_index_it_moved_to(void);
+extern void test_swap_passes_back_the_index_it_moved_to(void);
 extern void test_a_swap_of_a_swap_is_where_it_started(void);
 
 
@@ -106,7 +106,7 @@ int main(void)
   run_test(test_init_points_the_pair_at_the_first_buffer, "test_init_points_the_pair_at_the_first_buffer", 282);
   run_test(test_the_two_indexes_never_agree, "test_the_two_indexes_never_agree", 302);
   run_test(test_reading_an_index_does_not_move_it, "test_reading_an_index_does_not_move_it", 329);
-  run_test(test_swap_hands_back_the_index_it_moved_to, "test_swap_hands_back_the_index_it_moved_to", 348);
+  run_test(test_swap_passes_back_the_index_it_moved_to, "test_swap_passes_back_the_index_it_moved_to", 348);
   run_test(test_a_swap_of_a_swap_is_where_it_started, "test_a_swap_of_a_swap_is_where_it_started", 368);
 
   return UNITY_END();

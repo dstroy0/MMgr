@@ -123,7 +123,7 @@ typedef struct
  *                      Zero is due immediately.
  * @param progress      Read by a poll reaction. Bytes the polled channel moved by then, as a
  *                      controller's rest count would say. Zero reports nothing and leaves the
- *                      last figure in place, as most scenarios do.
+ *                      last figure in place, as max scenarios do.
  * @note A reaction that refuses delivers no completion whatever the other members hold. A reaction
  *       that both refuses and reports a completion is not a state hardware reaches.
  * @note progress is last deliberately. The generated scenarios initialize these positionally. A
@@ -209,7 +209,7 @@ typedef struct
  *
  * @param[in] scenario Scenario the engine runs until the next arm [BORROWS].
  * @note Called before each case. The scenario outlives the run, since the engine reads its steps
- *       from the hooks and keeps no copy.
+ *       from the hooks and retains no copy.
  */
 void praet_engine_arm(const PraetScenario *scenario);
 

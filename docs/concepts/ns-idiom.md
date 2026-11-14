@@ -32,7 +32,7 @@ if (EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = w) &&
 }
 ```
 
-The library keeps the free functions because they are what a debugger, a linker map and a `nm`
+The library retains the free functions because they are what a debugger, a linker map and a `nm`
 listing show you, and a namespace built out of macros would show nothing.
 
 Naming the members also means an entry cannot be called with its arguments in the wrong order, and

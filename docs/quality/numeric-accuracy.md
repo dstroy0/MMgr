@@ -73,11 +73,11 @@ number, where ten to the same power is not a number at all.
 Both halves were needed. Neither alone was enough, and one alone was harmful.
 
 That got to 20.9% exact with a worst case of 8 ulp - correct in the sense of never catastrophic,
-and still wrong most of the time. Getting the rest needed the exactness that was there all along.
+and still wrong the majority of the time. Getting the rest needed the exactness that was there all along.
 
 ## Where the exactness comes from
 
-A finite double is `mant * 2^e` with the mantissa at most 53 bits and the scale between -1074 and 971. That is not an approximation of the value, it **is** the value. The old code threw it away on
+A finite double is `mant * 2^e` with the mantissa at max 53 bits and the scale between -1074 and 971. That is not an approximation of the value, it **is** the value. The old code threw it away on
 the first line by putting it into a double and doing arithmetic.
 
 The temptation is to conclude that an exact decimal conversion needs arbitrary precision. It does
@@ -87,19 +87,19 @@ expansion. The requirement is enough bits to decide the rounding, and that is 53
 one below it, and one bit saying whether anything at all is set under that.
 
 128 bits carries all three with 74 to spare, and it never grows, because normalizing after each
-step keeps the fraction in place and pushes the growth into an `int` exponent.
+step retains the fraction in place and pushes the growth into an `int` exponent.
 
 ## What is in the module
 
-The engine is `src/transformo`, and it is a module instead of something the parser keeps to itself.
+The engine is `src/transformo`, and it is a module instead of something the parser retains to itself.
 It was written inside `cellularum_laboro` because that is where a decimal first had to become a
 double, but turning a mantissa and an exponent into the value they name is not a parsing problem -
 the render side has the same problem in the other direction and should not solve it twice. Its
 entries are `mmgr_muto_*`.
 
 `src/pow5/pow5.h` is 360 bytes: nine powers of five and nine reciprocals, as 128 bit fractions with
-their own binary exponents. Any decimal exponent below 512 is the product of at most nine of them.
-A loop that ran four hundred times runs nine. The reciprocals are what keep a negative exponent a
+their own binary exponents. Any decimal exponent below 512 is the product of at max nine of them.
+A loop that ran four hundred times runs nine. The reciprocals are what retain a negative exponent a
 multiply and not a division.
 
 They are truncated and not rounded, deliberately. A truncated entry is never above the true
@@ -150,7 +150,7 @@ live there:
   multiplies; forty thousand random and strobed values did not produce one and never would. The
   operands were solved for. A carry that is written and never executed is a carry nobody knows
   works.
-- An exact tie handed to the rounding directly, instead of hunting for a decimal that lands
+- An exact tie passed to the rounding directly, instead of hunting for a decimal that lands
   exactly halfway between two doubles.
 - The normalize path for a fraction with an empty high word, which the conversion never produces
   because it guards the mantissa first.

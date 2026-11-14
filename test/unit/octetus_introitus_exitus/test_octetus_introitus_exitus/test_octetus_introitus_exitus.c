@@ -117,7 +117,7 @@ void test_put_be_writes_only_the_bytes_it_was_given(void)
     }
 }
 
-void test_put_be_keeps_only_the_low_bytes(void)
+void test_put_be_retains_only_the_low_bytes(void)
 {
     mmgr_span w = fill();
 

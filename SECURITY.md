@@ -2,12 +2,12 @@
 
 ## What this library is responsible for
 
-MMgr hands out bounded views over storage a caller supplied. Its security properties are therefore
+MMgr passes out bounded views over storage a caller supplied. Its security properties are therefore
 narrow and worth stating exactly, because the gap between what it does and what a reader assumes it
 does is where the bugs live.
 
 **It does bound its own reads and writes.** Every entry takes a capacity or a read cap and stops
-there. A span that runs out of room latches `overflow` and keeps latching it; a short read latches
+there. A span that runs out of room latches `overflow` and retains latching it; a short read latches
 `err`. Neither is cleared by a later call. A long run of appends is checked once at the end, never
 after every one.
 
@@ -20,7 +20,7 @@ initialized: the pool macro emits the storage and its alignment, `LocusCarcerum(
 state as data, and no call inspects a base and a length while the program runs.
 
 A cellblock can no longer disagree with the storage behind it, because both come from the same
-declaration. The pool asserts its own `sizeof` against the byte count it was handed, and
+declaration. The pool asserts its own `sizeof` against the byte count it was passed, and
 `MMGR_CARCER_BODY` asserts the same `sizeof` is a power of two and holds at least one cell. A
 mismatch fails the build.
 
@@ -28,12 +28,12 @@ What is still taken as written is everything reached through a pointer the libra
 An address the caller supplies is used as given.
 
 **It does not protect against a caller holding a stale pointer.** Interim storage is released by
-mark and never by pointer. Nothing is reallocated and nothing moves. A pointer handed out after a mark
+mark and never by pointer. Nothing is reallocated and nothing moves. A pointer passed out after a mark
 is dead the moment that mark is released - and it still points at readable memory.
 
 **A cellblock is shared on atomic words.** Each boundary is one atomic word, a take is one fetch-add on
 it through the cellblock's turnstiles, a give is one fetch-or on the cell's owner word, every count is an atomic word, and no entry takes a
-lock. A cell is never handed to two contexts, and every byte given back comes off the tiers once the
+lock. A cell is never passed to two contexts, and every byte given back comes off the tiers once the
 cells above it are given back; a temporary mark is still good only to the caller that took it, since
 a rewind drops every temporary cell taken since the mark whoever took it. The ring in
 `memoria_anularis` is single-producer single-consumer, and it is not safe for more.

@@ -107,7 +107,7 @@ void test_find_absent(void)
     TEST_ASSERT_EQUAL_INT(-1, hit("", "a", EMBED_FALSE));
 }
 
-void test_find_ci_folds_only_letters(void)
+void test_find_ci_folds_only_characters(void)
 {
     TEST_ASSERT_EQUAL_INT(-1, hit("a_b", "a?b", EMBED_TRUE));
     TEST_ASSERT_EQUAL_INT(-1, hit("a@b", "a`b", EMBED_TRUE));
@@ -347,7 +347,7 @@ void test_find_takes_a_needle_length_the_caller_knows(void)
                                               .other = "bc", .other_cap = 3u, .other_len = 2u));
 }
 
-void test_init_hands_back_its_arguments(void)
+void test_init_passes_back_its_arguments(void)
 {
     const CatenaFinitaCfg made = EMBED_CALL(cellul.init, CatenaFinitaCfg, .src = "a", .cap = 2u);
 
@@ -378,13 +378,13 @@ static embed_word word_of(const char *s)
     return EMBED_CALL(word.load, ScrutWordCfg, .at = s);
 }
 
-void test_step_word_keeps_going_while_equal(void)
+void test_step_word_retains_going_while_equal(void)
 {
     const char *a = "abcdefghij";
     TEST_ASSERT_EQUAL_INT_MESSAGE(MMGR_SWAR_GO,
                                   EMBED_CALL(cellul.step_word, VerboProgrediorCfg, .word_left = word_of(a),
                                              .word_right = word_of(a), .ci = EMBED_FALSE, .end_wins = EMBED_FALSE),
-                                  "identical words with no terminator say keep going");
+                                  "identical words with no terminator say retain going");
 }
 
 void test_step_word_stops_on_a_difference(void)
@@ -922,7 +922,7 @@ void test_underflow_and_overflow(void)
         0.0, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e-1000", .end = &mmgr_cellul_nowhere));
     TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(
         -0.0, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "-1e-1000", .end = &mmgr_cellul_nowhere),
-        "and keeps its sign");
+        "and retains its sign");
 
     const double up = EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "1e400", .end = &mmgr_cellul_nowhere);
     TEST_ASSERT_TRUE_MESSAGE(up > 1.0e308, "past the top is an infinity");
@@ -1041,7 +1041,7 @@ void test_the_ends_of_the_range_through_the_table(void)
         0.0, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "4.9e-330", .end = &mmgr_cellul_nowhere));
     TEST_ASSERT_EQUAL_DOUBLE_MESSAGE(
         -0.0, EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = "-1e-330", .end = &mmgr_cellul_nowhere),
-        "and keeps its sign on the way");
+        "and retains its sign on the way");
 }
 
 void test_a_subnormal_that_rounds_up_into_the_normals(void)

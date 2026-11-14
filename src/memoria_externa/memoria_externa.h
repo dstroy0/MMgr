@@ -39,7 +39,7 @@ EMBED_ENUM_BYTE(mmgr_place, PLACE_DRAM = 0, /**< Internal memory. */
  *
  * @note fill_index is the only member. The buffers it indexes live elsewhere.
  * @note The two roles are one bit. The drain index is this one's complement. A swap is a flip and
- *       there is no second member to keep in step.
+ *       there is no second member to retain in step.
  * @warning What holds fill_index to 0 or 1 is the set in mmgr_pingpong_init and the flip in
  *          mmgr_pingpong_swap. A pair that did not go through mmgr_pingpong_init carries whatever its
  *          storage contained, and no call here tests the value.
@@ -52,7 +52,7 @@ typedef struct
 /**
  * @brief Arguments for every exter call, where each call reads only the members it needs.
  *
- * @note The caller supplies free_dram and free_psram and they stand as given.
+ * @note The caller supplies free_dram and free_psram and they are as given.
  * @note place reads the six figures. The pingpong entries read pingpong alone.
  */
 typedef struct
@@ -113,7 +113,7 @@ void mmgr_pingpong_init(const ExternaCfg *args);
  * @return         0 or 1.
  * @note Does not modify args->pingpong.
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it.
- * @warning Reports fill_index as it stands. On a pair that has not been through mmgr_pingpong_init
+ * @warning Reports fill_index as it is. On a pair that has not been through mmgr_pingpong_init
  *          that is whatever its storage contained, and this call does not bound it to 0 or 1.
  */
 uint8_t mmgr_pingpong_fill_index(const ExternaCfg *args);

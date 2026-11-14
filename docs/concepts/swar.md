@@ -41,7 +41,7 @@ Read it a lane at a time:
   a lane that contained zero in those bits does not.
 - `| w` puts the top bits back, and so bit 7 of each lane is now set exactly when the lane was nonzero,
   either because the add carried, or because the byte was `0x80` or above to begin with.
-- `~` inverts it, and `& HIGH` keeps one bit per lane. The result is the answer: a set bit for
+- `~` inverts it, and `& HIGH` retains one bit per lane. The result is the answer: a set bit for
   every lane that contained zero.
 
 No branch, no loop, eight bytes answered. `strlen` over a long string becomes one of these per word

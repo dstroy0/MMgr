@@ -10,8 +10,8 @@
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_the_byte_arithmetic_this_suite_relies_on_is_itself_right(void);
-extern void test_a_big_endian_append_lays_every_byte_where_the_reference_puts_it(void);
-extern void test_a_big_endian_read_returns_the_value_its_bytes_stand_for(void);
+extern void test_a_big_endian_append_positions_every_byte_where_the_reference_puts_it(void);
+extern void test_a_big_endian_read_returns_the_value_its_bytes_are_for(void);
 extern void test_a_value_written_and_read_at_the_same_width_comes_back(void);
 extern void test_a_raw_append_copies_its_bytes_unchanged(void);
 extern void test_a_length_prefixed_read_points_at_the_run_and_advances_past_both(void);
@@ -80,8 +80,8 @@ int main(void)
 {
   UnityBegin("test/accuracy/test_octetus_introitus_exitus_accuracy\\test_octetus_introitus_exitus_accuracy.c");
   run_test(test_the_byte_arithmetic_this_suite_relies_on_is_itself_right, "test_the_byte_arithmetic_this_suite_relies_on_is_itself_right", 132);
-  run_test(test_a_big_endian_append_lays_every_byte_where_the_reference_puts_it, "test_a_big_endian_append_lays_every_byte_where_the_reference_puts_it", 181);
-  run_test(test_a_big_endian_read_returns_the_value_its_bytes_stand_for, "test_a_big_endian_read_returns_the_value_its_bytes_stand_for", 230);
+  run_test(test_a_big_endian_append_positions_every_byte_where_the_reference_puts_it, "test_a_big_endian_append_positions_every_byte_where_the_reference_puts_it", 181);
+  run_test(test_a_big_endian_read_returns_the_value_its_bytes_are_for, "test_a_big_endian_read_returns_the_value_its_bytes_are_for", 230);
   run_test(test_a_value_written_and_read_at_the_same_width_comes_back, "test_a_value_written_and_read_at_the_same_width_comes_back", 259);
   run_test(test_a_raw_append_copies_its_bytes_unchanged, "test_a_raw_append_copies_its_bytes_unchanged", 312);
   run_test(test_a_length_prefixed_read_points_at_the_run_and_advances_past_both, "test_a_length_prefixed_read_points_at_the_run_and_advances_past_both", 358);

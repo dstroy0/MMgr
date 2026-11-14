@@ -29,7 +29,7 @@ void test_emit_a_literal(void)
     TEST_ASSERT_EQUAL_STRING("hello", b);
 }
 
-void test_emit_mixes_kinds(void)
+void test_emit_mixes_types(void)
 {
     char b[64];
     const mmgr_fval fields[] = {MMGR_VSTR("x="), MMGR_VU32(42u), MMGR_VCH(' '), MMGR_VI64(-7)};
@@ -53,7 +53,7 @@ void test_emit_default_width_when_unstated(void)
     const mmgr_fval fields[] = {MMGR_VHEX(0xDEADu)};
 
     EMBED_CALL(numer.emit, NumerosCfg, .out = b, .cap = sizeof b, .vals = fields, .nvals = 1u);
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("dead", b, "an unstated width means the kind's default, not zero");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("dead", b, "an unstated width means the type's default, not zero");
 }
 
 void test_emit_takes_as_many_values_as_it_is_given(void)
@@ -102,10 +102,10 @@ void test_emit_append_starts_at_a_cursor_the_caller_threads(void)
     TEST_ASSERT_EQUAL_STRING("head:tail", b);
 }
 
-void test_emit_refuses_a_value_of_a_kind_with_nothing_to_format(void)
+void test_emit_refuses_a_value_of_a_type_with_nothing_to_format(void)
 {
     char b[16];
-    const mmgr_fval fields[] = {{.kind = MMGR_FK_LIT}};
+    const mmgr_fval fields[] = {{.type = MMGR_FK_LIT}};
 
     TEST_ASSERT_EQUAL_size_t(
         0u, EMBED_CALL(numer.emit, NumerosCfg, .out = b, .cap = sizeof b, .vals = fields, .nvals = 1u));
@@ -124,11 +124,11 @@ void test_emit_escapes(void)
     TEST_ASSERT_EQUAL_STRING("a&lt;b", b);
 }
 
-void test_emit_rejects_an_unknown_kind(void)
+void test_emit_rejects_an_unknown_type(void)
 {
     char b[32];
     mmgr_fval bad = MMGR_VU32(1u);
-    bad.kind = 200u;
+    bad.type = 200u;
     TEST_ASSERT_EQUAL_size_t(0u,
                              EMBED_CALL(numer.emit, NumerosCfg, .out = b, .cap = sizeof b, .vals = &bad, .nvals = 1u));
     TEST_ASSERT_EQUAL_STRING("", b);
@@ -154,7 +154,7 @@ void test_build_renders_a_spec(void)
     TEST_ASSERT_EQUAL_STRING("id=42", out);
 }
 
-void test_build_rejects_a_value_of_the_wrong_kind(void)
+void test_build_rejects_a_value_of_the_wrong_type(void)
 {
     char out[64];
     static const mmgr_field spec[] = {MMGR_U32, MMGR_END};
@@ -162,7 +162,7 @@ void test_build_rejects_a_value_of_the_wrong_kind(void)
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(
         0u, EMBED_CALL(numer.build, NumerosCfg, .out = out, .cap = sizeof out, .spec = spec, .vals = v, .nvals = 1u),
-        "kind mismatch is refused");
+        "type mismatch is refused");
     TEST_ASSERT_EQUAL_STRING("", out);
 }
 
@@ -203,7 +203,7 @@ void test_build_of_a_spec_with_only_literals(void)
     TEST_ASSERT_EQUAL_STRING("hello!", out);
 }
 
-void test_build_covers_every_kind(void)
+void test_build_covers_every_type(void)
 {
     char out[128];
     static const mmgr_field spec[] = {MMGR_STR, MMGR_U32, MMGR_U64, MMGR_I64, MMGR_CH, MMGR_JSON, MMGR_XML, MMGR_END};
@@ -218,7 +218,7 @@ void test_build_covers_every_kind(void)
                                 .other_cap = 10u, .ci = EMBED_FALSE));
 }
 
-void test_build_covers_the_width_bearing_kinds(void)
+void test_build_covers_the_width_bearing_types(void)
 {
     char out[128];
     static const mmgr_field spec[] = {{MMGR_FK_DEC, 4, 0, NULL}, {MMGR_FK_HEX, 4, 0, NULL}, {MMGR_FK_OCT, 0, 0, NULL},
@@ -243,7 +243,7 @@ void test_build_of_a_null_string_value(void)
     char out[64];
     static const mmgr_field spec[] = {MMGR_STR, MMGR_END};
     mmgr_fval v[1];
-    v[0].kind = MMGR_FK_STR;
+    v[0].type = MMGR_FK_STR;
     v[0].as.text = NULL;
     v[0].width = 0;
 
@@ -262,12 +262,12 @@ void test_build_overflow_leaves_an_empty_buffer(void)
     TEST_ASSERT_EQUAL_STRING("", out);
 }
 
-void test_build_rejects_an_unknown_kind(void)
+void test_build_rejects_an_unknown_type(void)
 {
     char out[64];
     static const mmgr_field spec[] = {{200u, 0, 0, NULL}, MMGR_END};
     mmgr_fval v[1];
-    v[0].kind = 200u;
+    v[0].type = 200u;
     v[0].width = 0;
     TEST_ASSERT_EQUAL_size_t(
         0u, EMBED_CALL(numer.build, NumerosCfg, .out = out, .cap = sizeof out, .spec = spec, .vals = v, .nvals = 1u));
@@ -326,7 +326,7 @@ void test_emit_append_guards_its_arguments(void)
         0u, EMBED_CALL(numer.emit_append, NumerosCfg, .out = out, .cap = (size_t)0, .vals = s_none, .nvals = 0u));
 }
 
-void test_emit_covers_the_width_bearing_kinds(void)
+void test_emit_covers_the_width_bearing_types(void)
 {
     char out[128];
     const mmgr_fval fields[] = {MMGR_VOCTW(8u, 3), MMGR_VGW(1.25, 3), MMGR_VFIXW(2.5, 2), MMGR_VDECW(7u, 4)};
@@ -401,7 +401,7 @@ void test_an_append_that_does_not_fit_puts_the_terminator_back(void)
     TEST_ASSERT_EQUAL_STRING_MESSAGE("abc", out, "a failed append left the buffer without its terminator");
 }
 
-void test_the_emit_path_carries_every_kind(void)
+void test_the_emit_path_carries_every_type(void)
 {
     char out[192];
     const mmgr_fval fields[] = {MMGR_VSTR("s"), MMGR_VU32(1u),   MMGR_VU64(2u),    MMGR_VI64(-3),

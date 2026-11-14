@@ -53,7 +53,7 @@
  *
  * @param[in] value Value to take apart.
  * @return          Its eight bytes as a uint64_t.
- * @note Goes through memcpy and not a union or a pointer cast. That keeps this independent of how
+ * @note Goes through memcpy and not a union or a pointer cast. That retains this independent of how
  *       the library reads a double's bits, and breaks no type rule to do it.
  */
 static uint64_t accuracy_bits_of(double value)
@@ -70,7 +70,7 @@ static uint64_t accuracy_bits_of(double value)
  * @param[out] out Destination buffer [BORROWS].
  * @param[in]  at  Offset the last entry reported.
  * @return         The length the terminator landed at.
- * @note Every case writes its fields and then finishes. One place for that keeps the cases as a
+ * @note Every case writes its fields and then finishes. One place for that retains the cases as a
  *       plain read of the values and widths they check.
  * @warning The capacity is MMGR_ACCURACY_VERBA_BUFFER here, and so out must be a buffer of that
  *          size. The single case that uses a smaller buffer terminates it itself.
@@ -191,7 +191,7 @@ void test_the_references_this_suite_relies_on_behave_as_assumed(void)
 /**
  * @brief Checks the unsigned and signed base ten entries against snprintf.
  *
- * @note The extremes of both types are in the set. The most negative signed value is the single one input with
+ * @note The extremes of both types are in the set. The max negative signed value is the single one input with
  *       no positive counterpart, and a magnitude from its sign flip wraps back to itself.
  * @note Four entries write base ten and differ in what they pad with and where the width comes from.
  *       Each has its own check, since a table that pointed two of them at one function would pass
@@ -269,7 +269,7 @@ void test_the_base_ten_entries_match_the_reference(void)
  * @note The padding rules are where these entries differ from each other. The case checks that a
  *       width narrower than the value makes the field wider and does not cut the value.
  * @note The case checks that base sixteen comes out lower case, which the header states. A reference
- *       from the upper case conversion would disagree at every letter digit.
+ *       from the upper case conversion would disagree at every character digit.
  * @note Base eight is in the set. The entry that takes a base writes ten for anything other
  *       than eight or sixteen by its own rule. A base that fell through to ten silently would look
  *       correct for every value below eight.
@@ -333,7 +333,7 @@ void test_the_padded_and_based_entries_match_the_reference(void)
  *       that comes back through strtod has to carry the same bits. A single wrong digit anywhere in
  *       the run gives a different double.
  * @note Nothing here compares against a reference text, and so the module is free to write the digits
- *       in whatever form it picks. The check is that the number those digits stand for is the
+ *       in whatever form it picks. The check is that the number those digits are for is the
  *       number that went in.
  * @note The values straddle both form boundaries in both directions, cover both signs, and include
  *       the extremes a binary64 carries along with a subnormal.

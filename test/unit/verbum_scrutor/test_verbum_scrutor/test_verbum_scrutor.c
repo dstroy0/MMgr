@@ -170,7 +170,7 @@ void test_eq_ignoring_case_matches_either_case(void)
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(
         0u, lanes(EMBED_CALL(lane.eq, ScrutLaneCfg, .word = all((uint8_t)'{'), .byte = (uint8_t)'[', .ci = EMBED_TRUE)),
-        "the fold leaked past the letters");
+        "the fold leaked past the characters");
 }
 
 void test_xor_reports_the_lanes_that_differ(void)
@@ -280,14 +280,14 @@ void test_words_is_the_load_count(void)
     TEST_ASSERT_EQUAL_size_t(2u, EMBED_CALL(word.count, ScrutWordCfg, .bytes = MMGR_SWAR_BYTES * 2u));
 }
 
-void test_bytes_below_keeps_the_first_n_lanes(void)
+void test_bytes_below_retains_the_first_n_lanes(void)
 {
     TEST_ASSERT_EQUAL_HEX64((uint64_t)(embed_word) ~(embed_word)0,
                             (uint64_t)EMBED_CALL(mask.bytes_below, ScrutMaskCfg, .bytes = MMGR_SWAR_BYTES));
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(
         (uint64_t)(embed_word) ~(embed_word)0,
         (uint64_t)EMBED_CALL(mask.bytes_below, ScrutMaskCfg, .bytes = MMGR_SWAR_BYTES + 99u),
-        "asking for more lanes than there are keeps them all");
+        "asking for more lanes than there are retains them all");
 
     const embed_word one = EMBED_CALL(mask.bytes_below, ScrutMaskCfg, .bytes = 1u);
     TEST_ASSERT_EQUAL_size_t(1u, lanes(one & MMGR_VERBUM_SCRUTOR_HIGH));
@@ -309,20 +309,20 @@ void test_lanes_below_is_the_high_bit_of_bytes_below(void)
     }
 }
 
-void test_tail_mask_keeps_everything_but_the_last_word(void)
+void test_tail_mask_retains_everything_but_the_last_word(void)
 {
     const size_t cap = (MMGR_SWAR_BYTES * 2u) + 1u;
 
     TEST_ASSERT_EQUAL_size_t(MMGR_SWAR_BYTES, lanes(EMBED_CALL(mask.tail, ScrutMaskCfg, .bytes = cap, .wi = 0u)));
     TEST_ASSERT_EQUAL_size_t(MMGR_SWAR_BYTES, lanes(EMBED_CALL(mask.tail, ScrutMaskCfg, .bytes = cap, .wi = 1u)));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, lanes(EMBED_CALL(mask.tail, ScrutMaskCfg, .bytes = cap, .wi = 2u)),
-                                     "the last word of a ragged cap keeps only the bytes that are there");
+                                     "the last word of a ragged cap retains only the bytes that are there");
 }
 
 void test_tail_mask_past_the_end_is_empty(void)
 {
     TEST_ASSERT_EQUAL_HEX64_MESSAGE(0u, (uint64_t)EMBED_CALL(mask.tail, ScrutMaskCfg, .bytes = 20u, .wi = 20u),
-                                    "a word index past the span has no bytes left in it to keep");
+                                    "a word index past the span has no bytes left in it to retain");
 }
 
 void test_lanes_before_drops_everything_from_the_first_hit_on(void)
@@ -384,7 +384,7 @@ void test_alpha_is_exact_where_the_gates_are_not(void)
     TEST_ASSERT_EQUAL_HEX64(0u, (uint64_t)EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = all((uint8_t)'@')));
 }
 
-void test_fold_lower_touches_letters_and_nothing_else(void)
+void test_fold_lower_touches_characters_and_nothing_else(void)
 {
     for (uint32_t c = 0; c < 256u; c++)
     {
@@ -402,7 +402,7 @@ void test_run_of_one_is_the_mask_itself(void)
         (uint64_t)EMBED_CALL(mask.run, ScrutMaskCfg, .mask = MMGR_VERBUM_SCRUTOR_HIGH, .bytes = 1u));
 }
 
-void test_run_keeps_only_the_lanes_a_run_starts_at(void)
+void test_run_retains_only_the_lanes_a_run_starts_at(void)
 {
     const embed_word full = MMGR_VERBUM_SCRUTOR_HIGH;
 

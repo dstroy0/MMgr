@@ -20,7 +20,7 @@ ninja -C build_esp32s3 -j 2
 idf.py -B build_esp32s3 -p COM4 flash
 ```
 
-Substitute `esp32c6` and its port for the RISC-V part. Each target keeps its own sdkconfig: the
+Substitute `esp32c6` and its port for the RISC-V part. Each target retains its own sdkconfig: the
 default is one shared file, and the two do not agree on CPU frequency, and so configuring one leaves the
 other's build directory pointing at a config that no longer matches the part it was built for.
 
@@ -95,9 +95,9 @@ Cycles per byte at n=2048 on the S3, start of the work to now:
 
 The module's .text grew from 6506 to 8550 at -O2 on Xtensa for all of it.
 
-## Every timed result must be kept
+## Every timed result must be retained
 
-`DBENCH_KEEP` stores each result to a volatile sink. A result that is computed and dropped is a call
+`DBENCH_RETAIN` stores each result to a volatile sink. A result that is computed and dropped is a call
 the optimizer may delete outright, and under LTO it does: the first run of the dispatch measurement
 reported `0.00` cycles for both arms because both loops had been removed.
 
@@ -120,7 +120,7 @@ with the easy needle and n=16 with the hostile one.
 occurs; `find` searches for one whose first byte is not in the haystack's alphabet at all. MMgr
 costs the same either way - 13400.7 cycles at n=2048 against 13400.8 - because the chain settles
 every start position in a word arithmetically. ROM `strstr` does not: 18474 against 20394. For that reason
-the chain keeps its third `has_zero` instead of anchoring on one byte and verifying the other,
+the chain retains its third `has_zero` instead of anchoring on one byte and verifying the other,
 which would be about 20% cheaper and would buy it by becoming data dependent exactly where libc
 already is.
 

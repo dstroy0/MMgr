@@ -136,7 +136,7 @@ def Model.phase (s : Model) : Phase :=
   | .waiting e => if s.wakes = e then .sleeping else .done
   | .done => .done
 
-/-- The model state a real state maps to: asleep is in wait on the count as it stands. -/
+/-- The model state a real state maps to: asleep is in wait on the count as it is. -/
 def toModel (s : Real) : Model :=
   ⟨s.word, s.wakes, match s.waiter with
     | .ready => .ready
@@ -163,7 +163,7 @@ theorem toReal_phase (s : Model) : (toReal s).phase = s.phase := by
     | waiting e => by_cases h : wakes = e <;> simp [toReal, Model.phase, Real.phase, h]
     | _ => simp [toReal, Model.phase, Real.phase]
 
-/-- The model's invariant: a count a waiter read is never past the count as it stands, as the count only grows. -/
+/-- The model's invariant: a count a waiter read is never past the count as it is, as the count only grows. -/
 theorem epoch_le {bits : Nat → Nat} {seen first : Nat} {s : Model} (h : ModelReach bits seen first s) :
     ∀ e, (s.waiter = .read e ∨ s.waiter = .waiting e) → e ≤ s.wakes := by
   induction h with

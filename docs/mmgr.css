@@ -7,7 +7,7 @@
   The palette comes from the mark in docs/assets/mark.svg: the blue of the two tiers is the link
   and accent color, and the gold of the boundary line is the color of a label, a cost and the rule
   under a page title. The surfaces are cool greys, light and dark. IBM Plex Sans and IBM Plex Mono
-  are one family drawn together, so an identifier inside a sentence keeps the sentence's color and
+  are one family drawn together, so an identifier inside a sentence retains the sentence's color and
   weight and does not look pasted in.
 
   Prose has a measure: a paragraph, a list and a note stop at --mg-prose. A table, a code fragment
@@ -376,7 +376,7 @@ div.title,
     color: var(--mg-bright);
     font-weight: 600;
     line-height: 1.25;
-    letter-spacing: -0.01em;
+    character-spacing: -0.01em;
     text-wrap: balance;
 }
 
@@ -399,7 +399,7 @@ div.title,
     font-size: var(--mg-t-title);
     font-weight: 600;
     text-transform: none;
-    letter-spacing: -0.012em;
+    character-spacing: -0.012em;
     color: var(--mg-bright);
     margin: 0;
     padding-bottom: var(--mg-s2);
@@ -518,7 +518,7 @@ hr {
     font-size: 1.1rem;
     font-weight: 600;
     color: var(--mg-bright);
-    letter-spacing: 0.01em;
+    character-spacing: 0.01em;
     line-height: 1.2;
     white-space: nowrap;
 }
@@ -710,7 +710,7 @@ table.doxtable {
     max-width: 100%;
 }
 
-/* Notes and warnings. The left rule carries the color of the kind; the word is set as a sentence
+/* Notes and warnings. The left rule carries the color of the type; the word is set as a sentence
    and not as a label. */
 dl.note,
 dl.warning,
@@ -749,7 +749,7 @@ dl.post dt {
     font-family: var(--mg-sans);
     font-size: var(--mg-t-small);
     font-weight: 600;
-    letter-spacing: 0;
+    character-spacing: 0;
     text-transform: none;
     margin-bottom: 0.15em;
 }
@@ -759,7 +759,7 @@ dl.par dt {
     font-family: var(--mg-sans);
     font-size: var(--mg-t-small);
     font-weight: 600;
-    letter-spacing: 0;
+    character-spacing: 0;
     text-transform: none;
     color: var(--mg-bright);
 }
@@ -840,7 +840,7 @@ span.mlabel {
     font-family: var(--mg-mono);
     font-size: 0.72rem;
     font-weight: 500;
-    letter-spacing: 0;
+    character-spacing: 0;
     text-transform: none;
 }
 
@@ -856,7 +856,7 @@ table.memberdecls {
     font-family: var(--mg-sans);
     font-size: var(--mg-t-small);
     font-weight: 600;
-    letter-spacing: 0;
+    character-spacing: 0;
     text-transform: none;
     color: var(--mg-dim);
     border-bottom: 1px solid var(--mg-rule);
@@ -923,7 +923,7 @@ div.toc h3 {
     font-family: var(--mg-sans);
     font-size: var(--mg-t-small);
     font-weight: 600;
-    letter-spacing: 0;
+    character-spacing: 0;
     text-transform: none;
     color: var(--mg-dim);
     margin: 0 0 0.5em;

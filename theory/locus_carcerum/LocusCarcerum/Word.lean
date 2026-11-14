@@ -5,8 +5,8 @@ The persistent end in the low half of one word and the temporary top in the high
 A bump up adds its need to the word; a bump down subtracts its need shifted into the high half, modulo the
 word. Under the two caps the C states, a bump up never carries into the top's half. A bump down's borrow
 leaves the word and does not touch the end's half. The in-flight bound: every bump up reads the end at or
-below the most bytes a cellblock may hold before its read-modify-write. Between that read and its
-read-modify-write at most the lanes in flight move the end, so the end stays in its half.
+below the max bytes a cellblock may hold before its read-modify-write. Between that read and its
+read-modify-write at max the lanes in flight move the end, so the end stays in its half.
 -/
 
 namespace LocusCarcerum.Word
@@ -38,7 +38,7 @@ theorem bumpUp_no_carry (M E T n : Nat) (h : E + n < M) :
   rw [hw]
   exact ⟨low_encode M (E + n) T h, high_encode M (E + n) T h⟩
 
-/-- A word reduced modulo the whole word `M * M`: the high half folds, the low half stands. -/
+/-- A word reduced modulo the whole word `M * M`: the high half folds, the low half is. -/
 theorem encode_mod_square (M E T : Nat) (hE : E < M) :
     encode M E T % (M * M) = encode M E (T % M) := by
   have hM : 0 < M := Nat.lt_of_le_of_lt (Nat.zero_le E) hE
@@ -60,7 +60,7 @@ theorem encode_mod_square (M E T : Nat) (hE : E < M) :
   rw [hsplit, Nat.mul_add_mod, Nat.mod_eq_of_lt hsmall]
 
 /-- A bump down of need `n ≤ M`. The word takes `n` shifted into the high half away, modulo the word. The
-borrow leaves the word, the end stands, and the top is `T - n` within its half. -/
+borrow leaves the word, the end is, and the top is `T - n` within its half. -/
 theorem bumpDown_borrow_leaves (M E T n : Nat) (hE : E < M) (hn : n ≤ M) :
     low M ((encode M E T + (M * M - n * M)) % (M * M)) = E ∧
     high M ((encode M E T + (M * M - n * M)) % (M * M)) = (T + M - n) % M := by
@@ -78,21 +78,21 @@ theorem bumpDown_within (M T n : Nat) (hT : T < M) (hn : n ≤ T) : (T + M - n) 
   have h : T + M - n = (T - n) + M := by omega
   rw [h, Nat.add_mod_right, Nat.mod_eq_of_lt (by omega)]
 
-/-- The in-flight bound. A bump up reads the end at `pre ≤ most` before its read-modify-write. The bumps that
-add to the end between that read and the read-modify-write are at most `lanes` in flight, each of at most
-`most_need`. The bump's own need is at most `most_need`. With `most + (lanes + 1) * most_need < M` the end after
+/-- The in-flight bound. A bump up reads the end at `pre ≤ max` before its read-modify-write. The bumps that
+add to the end between that read and the read-modify-write are at max `lanes` in flight, each of at max
+`max_need`. The bump's own need is at max `max_need`. With `max + (lanes + 1) * max_need < M` the end after
 the read-modify-write is within the half. -/
-theorem in_flight_within (M most most_need lanes pre between n : Nat) (hpre : pre ≤ most)
-    (hbetween : between ≤ lanes * most_need) (hn : n ≤ most_need)
-    (hcap : most + (lanes + 1) * most_need < M) : pre + between + n < M := by
+theorem in_flight_within (M max max_need lanes pre between n : Nat) (hpre : pre ≤ max)
+    (hbetween : between ≤ lanes * max_need) (hn : n ≤ max_need)
+    (hcap : max + (lanes + 1) * max_need < M) : pre + between + n < M := by
   rw [Nat.succ_mul] at hcap
   omega
 
-/-- The C's caps on a 64-bit word. A half of 32 bits, the most bytes `2 ^ 31`, the most need `16 + 2 ^ 24`, and
+/-- The C's caps on a 64-bit word. A half of 32 bits, the max bytes `2 ^ 31`, the max need `16 + 2 ^ 24`, and
 up to 126 bumps in flight beside the one that decides. -/
 theorem caps_64 : 2 ^ 31 + (126 + 1) * (16 + 2 ^ 24) < 2 ^ 32 := by decide
 
-/-- The C's caps on a 32-bit word. A half of 16 bits, the most bytes `2 ^ 15`, the most need `16 + 2 ^ 8`, and
+/-- The C's caps on a 32-bit word. A half of 16 bits, the max bytes `2 ^ 15`, the max need `16 + 2 ^ 8`, and
 up to 119 bumps in flight beside the one that decides. -/
 theorem caps_32 : 2 ^ 15 + (119 + 1) * (16 + 2 ^ 8) < 2 ^ 16 := by decide
 
@@ -126,18 +126,18 @@ theorem need_guarded (W A S s h : Nat) (hA : 0 < A) (hs : s ≤ S) (hW : S + A +
   have hr := (round_guarded W A S s hA hs (by omega)).2
   omega
 
-/-- The C's guard on a 64-bit word: the most bytes `2 ^ 31`, an alignment of 8 and a header of 16 stay below the
+/-- The C's guard on a 64-bit word: the max bytes `2 ^ 31`, an alignment of 8 and a header of 16 stay below the
 word. -/
 theorem guard_64 : 2 ^ 31 + 8 + 16 ≤ 2 ^ 64 := by decide
 
-/-- The C's guard on a 32-bit word: the most bytes `2 ^ 15`, an alignment of 8 and a header of 16 stay below the
+/-- The C's guard on a 32-bit word: the max bytes `2 ^ 15`, an alignment of 8 and a header of 16 stay below the
 word. -/
 theorem guard_32 : 2 ^ 15 + 8 + 16 ≤ 2 ^ 32 := by decide
 
 /-! ## The bump down in flight
 
 A bump down subtracts its need from the top with no read of the end before it. The bumps down in flight are at
-most the turnstiles' lanes `L`, each of at most `m`. A top that the bumps in flight take below zero wraps modulo
+max the turnstiles' lanes `L`, each of at max `m`. A top that the bumps in flight take below zero wraps modulo
 the half `M`. The wrapped top reads past the cellblock's size `S`, so the check after the bump refuses it.
 The bound `S + L * m < M` is the static assert of the C. -/
 
@@ -153,11 +153,11 @@ theorem bumpDown_in_flight_within (M S T d : Nat) (hd : d ≤ T) (hT : T ≤ S) 
     (T + M - d) % M = T - d ∧ T - d ≤ S :=
   ⟨bumpDown_within M T d (by omega) hd, by omega⟩
 
-/-- The lanes of the C on a 64-bit word: `EMBED_TURNSTILE_LANES`, 64 lanes, the most bytes `2 ^ 31` and the most
+/-- The lanes of the C on a 64-bit word: `EMBED_TURNSTILE_LANES`, 64 lanes, the max bytes `2 ^ 31` and the max
 need `16 + 2 ^ 24` stay below the half of `2 ^ 32`. -/
 theorem lanes_64 : 2 ^ 31 + 64 * (16 + 2 ^ 24) < 2 ^ 32 := by decide
 
-/-- The lanes of the C on a 32-bit word: `EMBED_TURNSTILE_LANES`, 64 lanes, the most bytes `2 ^ 15` and the most
+/-- The lanes of the C on a 32-bit word: `EMBED_TURNSTILE_LANES`, 64 lanes, the max bytes `2 ^ 15` and the max
 need `16 + 2 ^ 8` stay below the half of `2 ^ 16`. -/
 theorem lanes_32 : 2 ^ 15 + 64 * (16 + 2 ^ 8) < 2 ^ 16 := by decide
 

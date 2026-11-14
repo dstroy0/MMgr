@@ -23,11 +23,11 @@ extern "C"
     /**
      * @brief Sends one character to the serial port, which is where Unity writes.
      *
-     * @param[in] letter Character to send, as Unity hands it over.
+     * @param[in] character Character to send, as Unity passes it over.
      * @note UNITY_OUTPUT_CHAR names this. Unity emits a character at a time and never a line, and so
      *       buffering is the port's business.
      */
-    void device_putchar(int letter);
+    void device_putchar(int character);
 
     /**
      * @brief The suite's own entry, the generated runner's main under another name.
@@ -39,9 +39,9 @@ extern "C"
     int praet_suite_main(void);
 }
 
-void device_putchar(int letter)
+void device_putchar(int character)
 {
-    Serial.write((uint8_t)letter);
+    Serial.write((uint8_t)character);
 }
 
 /**
@@ -53,7 +53,7 @@ void device_putchar(int letter)
  *       repeats of the same answer.
  */
 /**
- * @brief What the run reported, kept to tell a listener that arrived late.
+ * @brief What the run reported, retained to tell a listener that arrived late.
  */
 static int s_failed;
 

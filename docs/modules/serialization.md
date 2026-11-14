@@ -7,7 +7,7 @@ Byte and wire serialization over spans.
 Building or parsing a binary frame where the layout is fixed and the byte order is part of the spec.
 
 Six entries over @ref mod_spat_guide's two span types. Three append into a span being filled: `put`
-for one byte, `put_be` for a value big end first, `raw` for a run as it stands. Three read out of one:
+for one byte, `put_be` for a value big end first, `raw` for a run as it is. Three read out of one:
 `take_be` for a value, `rd_str` for a length-prefixed run, `mpint_fixed` for an integer
 right-aligned into a fixed field.
 
@@ -32,7 +32,7 @@ Fields sit `bytes` apart, and the span carries the cursor, and so nothing here n
 
 **The appends answer nothing and the takes all answer.** This is the complete failure model. An append
 that does not fit is a build failure: what a writer emits and how big its buffer is are both fixed
-before the build, and so it asserts, stores nothing, and latches the span's `overflow` to keep a wrong
+before the build, and so it asserts, stores nothing, and latches the span's `overflow` to retain a wrong
 program off the end. A short read is a runtime fact about whatever sent the bytes, and so it sets `err`,
 leaves the cursor alone and returns `EMBED_FALSE` for a caller to act on. See @ref ref_error_handling.
 
@@ -44,7 +44,7 @@ seven is three, and only an odd final byte is ever written alone. `take_be` is t
 field may start anywhere in the span. The cost does vary with the field width, because the number of
 stores does.
 
-**`rd_str` copies nothing.** It points `blob` into the span's own bytes, and so what it hands back lives
+**`rd_str` copies nothing.** It points `blob` into the span's own bytes, and so what it passes back lives
 exactly as long as the buffer does. A length that is read but not followed by its payload puts the
 cursor back where it started: a partial read is not a read.
 

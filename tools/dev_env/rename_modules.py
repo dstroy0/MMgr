@@ -44,16 +44,16 @@ def load_table():
         if not line or line.startswith("#"):
             continue
         parts = line.split("\t")
-        kind = parts[0]
-        if kind == "MODULE":
+        type = parts[0]
+        if type == "MODULE":
             modules.append({"old": parts[1], "latin": parts[2], "stem": parts[3], "pascal": parts[4]})
-        elif kind == "INFIX":
+        elif type == "INFIX":
             infixes[parts[1]] = parts[2]
-        elif kind == "VERB":
+        elif type == "VERB":
             verbs.append((parts[1], parts[2]))
-        elif kind == "TYPE":
+        elif type == "TYPE":
             types[parts[1]] = parts[2]
-        elif kind == "NS":
+        elif type == "NS":
             namespaces.append({"otype": parts[1], "oinst": parts[2], "ntype": parts[3], "ninst": parts[4]})
     # Longest first: scratch_alloc must come before alloc, or alloc matches inside it.
     verbs.sort(key=lambda kv: -len(kv[0]))

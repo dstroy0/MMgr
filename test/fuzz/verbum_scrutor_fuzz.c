@@ -43,7 +43,7 @@ static embed_word mask_of(const int *marked)
     return word_of(bytes);
 }
 
-static int letter(uint8_t byte)
+static int character(uint8_t byte)
 {
     return ((byte >= 'A') && (byte <= 'Z')) || ((byte >= 'a') && (byte <= 'z'));
 }
@@ -101,17 +101,17 @@ static void lane_entries(FuzzInput *input)
     for (size_t at_lane = 0u; at_lane < LANES; at_lane += 1u)
     {
         marked[at_lane] =
-            (lanes[at_lane] == byte) || (ci && letter(lanes[at_lane]) && ((uint8_t)(lanes[at_lane] ^ 0x20u) == byte));
+            (lanes[at_lane] == byte) || (ci && character(lanes[at_lane]) && ((uint8_t)(lanes[at_lane] ^ 0x20u) == byte));
     }
     fuzz_check(EMBED_CALL(lane.eq, ScrutLaneCfg, .word = tested, .byte = byte, .ci = (embed_bool)ci) == mask_of(marked),
-               "eq marks the lanes equal to the byte, a letter of either case with ci");
+               "eq marks the lanes equal to the byte, a character of either case with ci");
     for (size_t at_lane = 0u; at_lane < LANES; at_lane += 1u)
     {
         const uint8_t diff = (uint8_t)(lanes[at_lane] ^ others[at_lane]);
-        made[at_lane] = (ci && letter(lanes[at_lane])) ? (uint8_t)(diff & ~0x20u) : diff;
+        made[at_lane] = (ci && character(lanes[at_lane])) ? (uint8_t)(diff & ~0x20u) : diff;
     }
     fuzz_check(EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = tested, .val = val, .ci = (embed_bool)ci) == word_of(made),
-               "xor_ is the lane difference, the case bit cleared on letters with ci");
+               "xor_ is the lane difference, the case bit cleared on characters with ci");
     for (size_t at_lane = 0u; at_lane < LANES; at_lane += 1u)
     {
         marked[at_lane] = (lanes[at_lane] & fam) == (byte & fam);
@@ -132,9 +132,9 @@ static void lane_entries(FuzzInput *input)
                "any_digit marks 0x30 to 0x3F");
     for (size_t at_lane = 0u; at_lane < LANES; at_lane += 1u)
     {
-        marked[at_lane] = letter(lanes[at_lane]);
+        marked[at_lane] = character(lanes[at_lane]);
     }
-    fuzz_check(EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = tested) == mask_of(marked), "alpha marks the letters");
+    fuzz_check(EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = tested) == mask_of(marked), "alpha marks the characters");
 
     const embed_word lane_mask = drawn_mask(input);
     uint8_t mask_lanes[LANES];

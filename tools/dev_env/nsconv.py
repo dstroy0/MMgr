@@ -258,7 +258,7 @@ def _statement_before(s, pos, mask):
 # Macros that evaluate an argument more than once. A call lifted out of one of these is the
 # loop-condition mistake in a macro: DBENCH_OP(label, n, expr) runs expr n times to time it.
 # A call lifted above it runs once and the benchmark then times an addition. DBENCH_BULK
-# hands its expr to the same DBENCH_CYCLES loop, and a bench with that call lifted would time
+# passes its expr to the same DBENCH_CYCLES loop, and a bench with that call lifted would time
 # `sink += Ns.n`.
 REPEATING = ("DBENCH_OP", "DBENCH_BULK", "DBENCH_CYCLES")
 

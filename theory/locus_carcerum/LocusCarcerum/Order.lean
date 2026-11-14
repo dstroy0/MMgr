@@ -20,7 +20,7 @@ passes are below `open`: `Manifold.Open.passes_below_open`, carried here as `pas
 wait on one such lane ends with the pass ended: `Manifold.Drain.drain_lane_complete`, carried here as
 `drain_ends_pass`.
 
-The fences stand in one total order `S`. C11's fence rule ([atomics.order], the rule for two seq_cst fences). Take
+The fences are in one total order `S`. C11's fence rule ([atomics.order], the rule for two seq_cst fences). Take
 a write `A` before fence `X` in its thread, and a fence `Y` before read `B` in another. Where `X` precedes `Y` in
 `S`, `B` reads `A` or a later write.
 
@@ -35,9 +35,9 @@ open EmbeddedTypes.Manifold
 
 /-- A pass's lane is below the open count the drain reads: the drain's loop over the lanes below `open` reaches
 every lane a pass holds. -/
-theorem pass_lane_below_open (most : Nat) (h : 1 ≤ most) {s : Open.State} (r : Open.Reach most s) (l : Nat)
+theorem pass_lane_below_open (max : Nat) (h : 1 ≤ max) {s : Open.State} (r : Open.Reach max s) (l : Nat)
     (hl : s.lane l = .pass) : l < s.count :=
-  (Open.passes_below_open most h r).1 l hl
+  (Open.passes_below_open max h r).1 l hl
 
 /-- The drain's wait on a lane a pass held at the fence ends with that pass over. The lane reads free or closed,
 or the drain reads it until the pass is over. -/

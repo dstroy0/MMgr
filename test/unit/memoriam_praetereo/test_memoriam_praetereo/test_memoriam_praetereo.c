@@ -4,7 +4,7 @@
 /**
  * @file test_memoriam_praetereo.c
  * @brief Exercises the praet dispatch table and the schedule against the unported build, where every
- *        hardware hook keeps its refusing default.
+ *        hardware hook retains its refusing default.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-30
  */
@@ -124,10 +124,10 @@ void test_no_two_praet_entries_share_a_function(void)
 }
 
 /**
- * @brief Checks that a channel open fails while the hardware hook keeps its default.
+ * @brief Checks that a channel open fails while the hardware hook retains its default.
  *
  * @note A port layer replaces mmgr_praet_hw_open through weak linkage. This suite links no port, and so
- *       the default that refuses stands and an unported build fails visibly and does not appear to work.
+ *       the default that refuses is and an unported build fails visibly and does not appear to work.
  */
 void test_an_unported_build_refuses_to_open_a_channel(void)
 {
@@ -137,7 +137,7 @@ void test_an_unported_build_refuses_to_open_a_channel(void)
 }
 
 /**
- * @brief Checks that a transfer submit fails while the hardware hook keeps its default.
+ * @brief Checks that a transfer submit fails while the hardware hook retains its default.
  *
  * @note Submitted against a channel that never opened, the state an unported build is
  *       always in.
@@ -206,7 +206,7 @@ void test_an_unported_build_reports_no_completion(void)
 /**
  * @brief Checks that the progress hook's default reports no movement, and a running channel stalls.
  *
- * @note praet_hw_progress keeps its weak default here, as the four mmgr_praet_hw_ hooks do. It
+ * @note praet_hw_progress retains its weak default here, as the four mmgr_praet_hw_ hooks do. It
  *       answers zero, and any channel nothing moves reads stalled once its keepalive window passes,
  *       with its position where the submit left it.
  * @note Reached through praet_ordo_poll, which calls the hook from the unit that defines the default.
@@ -221,7 +221,7 @@ void test_an_unported_build_reports_no_progress_and_stalls(void)
     TEST_ASSERT_TRUE_MESSAGE(PraetSubmit(s_schedule, 0, s_transfer_pool, 0u, 32u),
                              "a settled channel refused a transfer");
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
 
     const uint32_t after = praet_ordo_flags(&s_schedule, PRAET_TEST_CHANNEL);

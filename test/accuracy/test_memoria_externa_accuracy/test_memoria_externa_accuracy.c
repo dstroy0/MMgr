@@ -161,7 +161,7 @@ void test_the_reference_policy_this_suite_relies_on_is_itself_right(void)
     TEST_ASSERT_EQUAL_INT_MESSAGE(PLACE_PSRAM, accuracy_policy_place(10u, EMBED_FALSE, 5u, 100u, 50u, 0u),
                                   "a small request that will not fit internal memory falls back to external");
     TEST_ASSERT_EQUAL_INT_MESSAGE(PLACE_PSRAM, accuracy_policy_place(10u, EMBED_FALSE, 100u, 100u, 50u, 95u),
-                                  "the reserve keeps a request out of internal memory");
+                                  "the reserve retains a request out of internal memory");
     TEST_ASSERT_EQUAL_INT_MESSAGE(PLACE_FAIL, accuracy_policy_place(10u, EMBED_FALSE, 100u, 5u, 50u, 95u),
                                   "a request the reserve blocks and external memory will not take fails");
 }
@@ -253,7 +253,7 @@ void test_a_request_larger_than_the_free_bytes_is_refused_at_the_top_of_the_rang
 /**
  * @brief Checks that the two buffer indexes are always each other's complement.
  *
- * @note The pair keeps one member and derives the other, and the claim is that the two never name the
+ * @note The pair retains one member and derives the other, and the claim is that the two never name the
  *       same buffer. A producer and a consumer with the same index write and read the same bytes
  *       at once, the failure the whole arrangement exists to prevent.
  * @note Checked after the initial state and after every swap in a long run. That tests the property

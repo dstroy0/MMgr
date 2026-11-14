@@ -18,12 +18,12 @@
 
 #include <string.h>
 
-#define FUZZ_CAP_MOST 64u
+#define FUZZ_CAP_MAX 64u
 
 /** @brief The model of a writer: the bytes it wrote, its residue bits and whether it overflowed. */
 typedef struct
 {
-    uint8_t out[FUZZ_CAP_MOST];
+    uint8_t out[FUZZ_CAP_MAX];
     size_t cap;
     size_t written;
     uint8_t residue;
@@ -79,11 +79,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     FuzzInput input = fuzz_input(data, size);
     BitModel model;
-    uint8_t out[FUZZ_CAP_MOST + 1u];
+    uint8_t out[FUZZ_CAP_MAX + 1u];
 
     memset(&model, 0, sizeof model);
     memset(out, 0xA5, sizeof out);
-    model.cap = 1u + fuzz_below(&input, FUZZ_CAP_MOST);
+    model.cap = 1u + fuzz_below(&input, FUZZ_CAP_MAX);
 
     mmgr_bitor writer = EMBED_CALL(bitio.init, BitorumCfg, .out = out, .cap = model.cap);
     while (fuzz_left(&input))

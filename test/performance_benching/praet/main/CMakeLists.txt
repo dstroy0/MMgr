@@ -3,7 +3,7 @@
 #
 # The library builds straight into this component and does not come in as an IDF component.
 # MMgr's root CMakeLists is a plain CMake project and does not register itself as one. That
-# keeps the desktop build untouched: nothing here reaches back into it.
+# retains the desktop build untouched: nothing here reaches back into it.
 get_filename_component(MMGR_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../.." ABSOLUTE)
 
 file(GLOB_RECURSE MMGR_SRCS "${MMGR_ROOT}/src/*.c")

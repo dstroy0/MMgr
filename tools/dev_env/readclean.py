@@ -14,7 +14,7 @@ a function called `verify` as a check, an `ok` member as an outcome, a `_reset` 
 something. With those names replaced, only what the statements actually do remains. Anything
 that then looks wrong IS wrong, and not a mismatch the reader was ready to miss.
 
-WHAT BLIND KEEPS, AND WHY IT IS NOT A GENERIC RENAMER. This tree has one shape, and the shape is
+WHAT BLIND RETAINS, AND WHY IT IS NOT A GENERIC RENAMER. This tree has one shape, and the shape is
 grammar and not vocabulary. An entry is a function-pointer member of an `<X>Ns` table, operands
 are members of `<X>V`, and state comes out of `MMGR_<X>_BORROW` at `<X>_OFF_*` offsets under a
 static_assert. A blind over that would leave text no one can check conformity against. So the
@@ -36,7 +36,7 @@ regex: `//.*$` truncates "http://x", and a non-greedy /*...*/ eats a "/*" inside
 
 Usage:
     python tools/dev_env/readclean.py code   PATH [PATH ...]
-    python tools/dev_env/readclean.py blind  PATH [PATH ...] [--legend FILE] [--keep NAME,...]
+    python tools/dev_env/readclean.py blind  PATH [PATH ...] [--legend FILE] [--retain NAME,...]
     python tools/dev_env/readclean.py claims PATH [PATH ...]
 
 A PATH is a module header (its .c comes with it), a single file, or a directory.
@@ -280,7 +280,7 @@ def resolve(rel):
 
 
 def paths(rel):
-    """A module header pairs with its .c; anything else (a test .c, a suite dir) stands alone."""
+    """A module header pairs with its .c; anything else (a test .c, a suite dir) is alone."""
     p = resolve(rel)
     if os.path.isdir(p):
         return sorted(os.path.join(p, n) for n in os.listdir(p) if n.endswith((".c", ".h")) and n != "unity_runner.c")
@@ -318,14 +318,14 @@ class Blinder(object):
     filed under the wrong category still reads as a name with nothing to assume about it.
     """
 
-    def __init__(self, keep):
-        self.keep = keep
+    def __init__(self, retain):
+        self.retain = retain
         self.table = {}
         self.n = {}
 
-    def _next(self, kind):
-        self.n[kind] = self.n.get(kind, 0) + 1
-        return "%s%d" % (kind, self.n[kind])
+    def _next(self, type):
+        self.n[type] = self.n.get(type, 0) + 1
+        return "%s%d" % (type, self.n[type])
 
     def _object(self, stem):
         """The generic identity for a module's object stem, shared by all of its role types.
@@ -339,13 +339,13 @@ class Blinder(object):
         return self.table[key]
 
     def rename(self, name):
-        if name in SAFE or name in self.keep:
+        if name in SAFE or name in self.retain:
             return name
         if name in self.table:
             return self.table[name]
 
         out = None
-        # A role type: keep the suffix, blind the stem, and keep every role of one module together.
+        # A role type: retain the suffix, blind the stem, and retain every role of one module together.
         for suf in ROLE_SUFFIX:
             if name.endswith(suf) and len(name) > len(suf) and name[0].isupper():
                 out = self._object(name[: -len(suf)]) + suf
@@ -365,14 +365,14 @@ class Blinder(object):
                 out = "%s_%s_H" % (m.group(1), self._object(m.group(2)))
         if out is None:
             # A carved region: `SHA256_OFF_W` and `SHA256_CTX(w)` are the offset and the cast that
-            # reads it. The module stem goes blind; which region it is becomes a letter. "The second
+            # reads it. The module stem goes blind; which region it is becomes a character. "The second
             # region" is the only thing about it a reader should trust.
             m = re.match(r"^([A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*?)_OFF_([A-Z0-9_]+)$", name)
             if m:
                 out = "%s_OFF_%s" % (self._object(m.group(1)), self._region(m.group(1), m.group(2)))
         if out is None and name.isupper() and "_" in name:
             # The cast that reads a region, beside the offset that locates it. `SHA256_CTX(w)` and
-            # `SHA256_OFF_CTX` name the same region, and so they take the same letter: `X1_A(w)` at
+            # `SHA256_OFF_CTX` name the same region, and so they take the same character: `X1_A(w)` at
             # `X1_OFF_A`. A fall through to the generic macro bucket would give them unrelated numbers.
             # That would hide the single thing worth a check: that each cast reads the offset it belongs to.
             for cut in range(len(name) - 1, 0, -1):
@@ -410,7 +410,7 @@ class Blinder(object):
         return seen[region]
 
     def whole(self, text):
-        """`text` blinded in one pass. A literal and a directive stand apart from a name.
+        """`text` blinded in one pass. A literal and a directive are apart from a name.
 
         Not line by line. Three things in a C file look like identifiers and are not:
 
@@ -436,16 +436,16 @@ class Blinder(object):
         # goes into the table ahead of the general pass, or it falls through and reads as another local.
         for e in ENTRY_MEMBER.finditer(text):
             nm = e.group(1)
-            if mask[e.start()] and nm not in self.table and nm not in SAFE and nm not in self.keep:
+            if mask[e.start()] and nm not in self.table and nm not in SAFE and nm not in self.retain:
                 self.table[nm] = self._next("e")
 
         # A REGION MACRO takes its name from the region its BODY reads, whatever its own form: sha256.c
-        # writes `SHA256_FS(w)` over `SHA256_OFF_STATE`. A letter read off the macro's suffix files FS
+        # writes `SHA256_FS(w)` over `SHA256_OFF_STATE`. A character read off the macro's suffix files FS
         # as a region of its own. The cast and the offset it reads then come out as X1_C and X1_OFF_B,
         # and whether each cast reads the offset it belongs to is the question.
         for d in REGION_MACRO.finditer(text):
             nm, body = d.group(1), d.group(2)
-            if not mask[d.start()] or nm in self.table or nm in SAFE or nm in self.keep:
+            if not mask[d.start()] or nm in self.table or nm in SAFE or nm in self.retain:
                 continue
             off = re.search(r"\b([A-Z][A-Z0-9_]*?)_OFF_([A-Z0-9_]+)\b", body)
             if off:
@@ -508,7 +508,7 @@ def show_claims(p, _state):
 def main():
     args = sys.argv[1:]
     mode = args[0] if args and args[0] in ("code", "blind", "claims") else "code"
-    legend, keep, rels = None, set(), []
+    legend, retain, rels = None, set(), []
     i = 0
     while i < len(args):
         a = args[i]
@@ -517,9 +517,9 @@ def main():
         elif a == "--legend":
             i += 1
             legend = args[i]
-        elif a == "--keep":
+        elif a == "--retain":
             i += 1
-            keep = {x.strip() for x in args[i].split(",") if x.strip()}
+            retain = {x.strip() for x in args[i].split(",") if x.strip()}
         elif a.startswith("-"):
             print("unknown flag %s" % a, file=sys.stderr)
             return 2
@@ -530,7 +530,7 @@ def main():
         print(__doc__)
         return 2
 
-    state = {"blinder": Blinder(keep)}
+    state = {"blinder": Blinder(retain)}
     show = {"code": show_code, "blind": show_blind, "claims": show_claims}[mode]
     seen = 0
     for rel in rels:

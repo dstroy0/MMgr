@@ -5,14 +5,14 @@
 // #include of a suite into its runner and reads no #if, and therefore a suite naming windows.h on one arm and
 // pthread.h on the other would hand the runner both.
 
-#define MMGR_HOST_THREADS_MOST 16u
+#define MMGR_HOST_THREADS_MAX 16u
 
 // Runs count threads, each with one call of each, and waits for every one to end. 1 where every thread
-// started and ended, 0 where the system refused one or count passed MMGR_HOST_THREADS_MOST.
+// started and ended, 0 where the system refused one or count passed MMGR_HOST_THREADS_MAX.
 int mmgr_host_threads_run(void (*each)(void), unsigned int count);
 
 // Gives the rest of this thread's time slice to another thread. A wait loop calls it on each turn. Thus a
-// thread that waits does not keep a core from the thread that it waits for, on a host with fewer cores than
+// thread that waits does not retain a core from the thread that it waits for, on a host with fewer cores than
 // threads.
 void mmgr_host_threads_yield(void);
 

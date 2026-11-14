@@ -34,7 +34,7 @@ MODULE	swar	verbum_scrutor	scrut	VerbumScrutor
 # directory: protomem declares mmgr_mem_*, membuild declares mmgr_sb_*, bitio declares mmgr_bitw_*.
 #
 # An infix that NAMES ITS MODULE collapses to that module's stem. An infix that names a distinct
-# CONCEPT inside the module keeps its own identity, because collapsing it would merge two things
+# CONCEPT inside the module retains its own identity, because collapsing it would merge two things
 # that are not the same thing. tools/dev_env checked this rather than assuming it: collapsing
 # rawmemcpy's three onto one stem merged seven symbol pairs including the aligned and the unaligned
 # load, and collapsing cspan onto span merged the const and non-const constructors.
@@ -96,7 +96,7 @@ VERB	release	buf_release
 # ================================================================================================
 # TYPES   old  new
 # ================================================================================================
-# The data typedefs keep the existing lowercase mmgr_ convention - they are the public C API types
+# The data typedefs retain the existing lowercase mmgr_ convention - they are the public C API types
 # and the prefix is what namespaces them. They take the STEM rather than the long Latin, because the
 # symbol pass already produced mmgr_confin_set, and a type spelled mmgr_confinium beside a function
 # spelled mmgr_confin_set_add reads as two different modules.

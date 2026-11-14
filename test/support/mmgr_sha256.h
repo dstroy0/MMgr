@@ -17,7 +17,7 @@
  *       A hash nobody verified is a number and not evidence.
  * @note What it buys over a byte compare: a fingerprint survives where the bytes do not. A part can
  *       report 32 bytes over a serial line for a region too large to send. A destination can meet
- *       an expectation nobody kept a copy of.
+ *       an expectation nobody retained a copy of.
  */
 #ifndef MMGR_TEST_SHA256_H
 #define MMGR_TEST_SHA256_H
@@ -89,7 +89,7 @@ void mmgr_sha256_finish(MmgrSha256 *running, uint8_t digest[MMGR_SHA256_BYTES]);
  * @param[in]  bytes  First byte to hash [BORROWS].
  * @param[in]  length Bytes to hash. Zero is legal and gives the digest of the empty message.
  * @param[out] digest Where the 32 byte result goes [BORROWS].
- * @note The three above, in order. It exists because most callers hold the whole region already.
+ * @note The three above, in order. It exists because max callers hold the whole region already.
  * @warning bytes may be NULL only where length is zero.
  */
 void mmgr_sha256(const uint8_t *bytes, size_t length, uint8_t digest[MMGR_SHA256_BYTES]);
@@ -103,8 +103,8 @@ void mmgr_sha256(const uint8_t *bytes, size_t length, uint8_t digest[MMGR_SHA256
  * @param[out] digest     Where the 32 byte result goes [BORROWS].
  * @note The standard defines SHA-256 over bit strings and the byte case is the specialization everyone uses.
  *       This is the general entry, and mmgr_sha256 is it with the length multiplied by eight.
- * @note The trailing bits sit in the high end of the final byte, most significant first. That is how
- *       the standard writes a partial byte and how CAVP lays out its bit oriented vectors. Bits below
+ * @note The trailing bits sit in the high end of the final byte, max significant first. That is how
+ *       the standard writes a partial byte and how CAVP arranges its bit oriented vectors. Bits below
  *       the stated length play no part. A caller need not clear them.
  * @note uint64_t and not size_t, because the length field the standard writes is 64 bits. A
  *       16 bit part would otherwise cap the expressible message far below what the padding allows.
@@ -148,7 +148,7 @@ size_t mmgr_sha256_first_difference(const uint8_t *left, const uint8_t *right, s
  *
  * @param[in] left  First byte.
  * @param[in] right Second byte.
- * @return          0 through 7 from the most significant bit down, or 8 where they match.
+ * @return          0 through 7 from the max significant bit down, or 8 where they match.
  * @note The other half of a search for corruption. The offset says which byte and this says which bit
  *       inside it, as separates a dropped bit from a wrong one.
  */

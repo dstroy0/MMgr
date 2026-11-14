@@ -41,7 +41,7 @@ C++ compiler. The dispatch tables are plain structs of function pointers and wor
 ## Why is MinSizeRel not -Os?
 
 Because `-Os` declines to inline the small branch-free entries that _are_ this library, and the calls
-it saves space on are the calls that cost the most. The top-level `CMakeLists.txt` rewrites `-Os` to
+it saves space on are the calls that cost the max. The top-level `CMakeLists.txt` rewrites `-Os` to
 `-O2` for that configuration. An embedded build reaching for `MinSizeRel` wants small, not
 slow-and-small.
 
@@ -87,7 +87,7 @@ compile instead of overflowing quietly. Use `strlcpy`, which takes the size. @re
 
 Measured: the open-coded fold was 3.609 cycles against 3.680 for `__builtin_ctzll`, and
 `__builtin_popcountll` compiles to a libgcc call on baseline x86-64. They were not faster, and
-avoiding them keeps the scan path free of per-compiler `#ifdef`s. @ref concept_swar.
+avoiding them retains the scan path free of per-compiler `#ifdef`s. @ref concept_swar.
 
 ## Is it AGPL even if I only link it?
 

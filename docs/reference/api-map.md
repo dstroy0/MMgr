@@ -57,14 +57,14 @@ function reached two ways. See @ref concept_ns_idiom.
 value as plain arguments, and the header includes `mmgr.h` alone, and therefore a C++ translation unit reaches
 them without the designated initializers the module's tables are written with.
 
-`proximus_operor` has one table, `proxim`, and keeps its three **strategies** apart in the entry
+`proximus_operor` has one table, `proxim`, and retains its three **strategies** apart in the entry
 names instead: `load` and `put` are unaligned, `al_load` and `al_put` are aligned, and the may-alias
 part is `mmgr_migro_word`, the type they all move. Merging them is a miscompile the compiler cannot
-report, and so the naming keeps them apart. `aequus` and `migro` are backend prefixes inside the `.c`
+report, and so the naming retains them apart. `aequus` and `migro` are backend prefixes inside the `.c`
 and a type name: neither is a table a caller reaches for.
 
 `verbum_scrutor` splits the other way: three tables, `lane`, `mask`, `word`, over one module, named
-for what each operates on, while every function keeps the module's own `scrut` infix.
+for what each operates on, while every function retains the module's own `scrut` infix.
 
 `pow5` has no stem because it exposes only data: the two tables of powers of five a decimal
 conversion needs. See @ref qa_numeric for what it is for.

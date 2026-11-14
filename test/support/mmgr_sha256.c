@@ -292,7 +292,7 @@ static void mmgr_sha256_finish_with(MmgrSha256 *running, uint8_t marker, uint64_
 
     for (unsigned index = 0u; index < 8u; index++)
     {
-        // Explicit casts narrow each word to the four bytes it occupies, most significant first
+        // Explicit casts narrow each word to the four bytes it occupies, max significant first
         digest[(index * 4u) + 0u] = (uint8_t)((running->state[index] >> 24) & 0xFFu);
         digest[(index * 4u) + 1u] = (uint8_t)((running->state[index] >> 16) & 0xFFu);
         digest[(index * 4u) + 2u] = (uint8_t)((running->state[index] >> 8) & 0xFFu);
@@ -319,7 +319,7 @@ void mmgr_sha256_bits(const uint8_t *bytes, uint64_t bit_length, uint8_t digest[
     MmgrSha256 running;
 
     // Whole bytes go in the ordinary way. The remainder is under eight bits, in the high end of one
-    // more byte. That is how the standard writes a partial final byte and how CAVP lays out its bit
+    // more byte. That is how the standard writes a partial final byte and how CAVP arranges its bit
     // oriented vectors
     const size_t whole = (size_t)(bit_length / 8u);
     const unsigned spare = (unsigned)(bit_length % 8u);
@@ -333,10 +333,10 @@ void mmgr_sha256_bits(const uint8_t *bytes, uint64_t bit_length, uint8_t digest[
         return;
     }
 
-    // Keep the spare high bits, drop everything under them, and set the terminator in the next bit
-    // down. Explicit casts keep the mask and the result at byte width through the integer promotions
-    const uint8_t kept = (uint8_t)(bytes[whole] & (uint8_t)(0xFFu << (8u - spare)));
-    const uint8_t marker = (uint8_t)(kept | (uint8_t)(0x80u >> spare));
+    // Retain the spare high bits, drop everything under them, and set the terminator in the next bit
+    // down. Explicit casts retain the mask and the result at byte width through the integer promotions
+    const uint8_t retained = (uint8_t)(bytes[whole] & (uint8_t)(0xFFu << (8u - spare)));
+    const uint8_t marker = (uint8_t)(retained | (uint8_t)(0x80u >> spare));
 
     mmgr_sha256_finish_with(&running, marker, bit_length, digest);
 }
@@ -411,7 +411,7 @@ unsigned mmgr_sha256_first_bit_difference(uint8_t left, uint8_t right)
 
     for (unsigned bit = 0u; bit < 8u; bit++)
     {
-        // Most significant first, and so the answer counts the way the byte reads on paper
+        // Max significant first, and so the answer counts the way the byte reads on paper
         if ((differing & (uint8_t)(0x80u >> bit)) != 0u)
         {
             return bit;

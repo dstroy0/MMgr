@@ -14,12 +14,12 @@
  *       the sticky flag. A caller may append a whole message and test once at the end.
  * @note mmgr_byteio_put, mmgr_byteio_put_be and mmgr_byteio_raw return nothing. What a writer emits
  *       and how big its buffer is are both fixed before the build. So a write past the end means the
- *       program is wrong. Those three assert, store nothing, and latch overflow to keep a wrong
+ *       program is wrong. Those three assert, store nothing, and latch overflow to retain a wrong
  *       program off the end. None of that leaves a caller anything to act on.
  * @note mmgr_byteio_take_be and mmgr_byteio_rd_str answer EMBED_FALSE when the bytes are not there,
  *       set the read span's err, and leave the cursor and the output where they were. A reader
  *       takes whatever arrives. A short read is a runtime fact and not a build
- *       failure. The cursor does not advance on failure, because a caller that keeps reading still
+ *       failure. The cursor does not advance on failure, because a caller that retains reading still
  *       needs it to mean something.
  * @note mmgr_byteio_mpint_fixed is neither of those. It writes a whole field and does not append,
  *       and answers whether the integer fit, and so its own declaration carries the contract.
@@ -72,7 +72,7 @@ typedef struct
 typedef struct
 {
     void (*put)(const OctetusCfg *args);               /**< Appends one byte. */
-    void (*put_be)(const OctetusCfg *args);            /**< Appends bytes of a value, most significant first. */
+    void (*put_be)(const OctetusCfg *args);            /**< Appends bytes of a value, max significant first. */
     void (*raw)(const OctetusCfg *args);               /**< Appends a run of bytes as they are. */
     embed_bool (*take_be)(const OctetusCfg *args);     /**< Reads a big endian value and advances past it. */
     embed_bool (*rd_str)(const OctetusCfg *args);      /**< Reads a length-prefixed run and points at it. */
@@ -90,7 +90,7 @@ EMBED_TABLE_LAYOUT(OctetusIntroitusExitusNs, put, put_be, raw, take_be, rd_str, 
 void mmgr_byteio_put(const OctetusCfg *args);
 
 /**
- * @brief Appends the low args->bytes of args->value to args->write_span, most significant byte first.
+ * @brief Appends the low args->bytes of args->value to args->write_span, max significant byte first.
  *
  * @param[in,out] args Span, value and byte count [BORROWS].
  * @note The value reverses once and then goes out at the widest step the count allows. A count of
@@ -127,7 +127,7 @@ embed_bool mmgr_byteio_take_be(const OctetusCfg *args);
  *        run behind it.
  *
  * @param[in,out] args Span, and where to report the run and its length [BORROWS].
- * @return             EMBED_TRUE when the length and its run both lay within the span.
+ * @return             EMBED_TRUE when the length and its run both position within the span.
  * @note No copy. args->blob points into the span's own bytes, and so it lives only as long as
  *       they do [BORROWS].
  * @note The cursor advances past the length and the run together. A caller reading a sequence of

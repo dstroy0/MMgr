@@ -11,7 +11,7 @@ extern void test_types_header_is_self_contained(void);
 extern void test_fixed_width_types_are_their_widths(void);
 extern void test_word_matches_the_configured_width(void);
 extern void test_index_fits_the_register_that_carries_it(void);
-extern void test_packed_enum_keeps_its_declared_width(void);
+extern void test_packed_enum_retains_its_declared_width(void);
 extern void test_bool_constants(void);
 
 
@@ -84,7 +84,7 @@ int main(void)
   run_test(test_fixed_width_types_are_their_widths, "test_fixed_width_types_are_their_widths", 10);
   run_test(test_word_matches_the_configured_width, "test_word_matches_the_configured_width", 22);
   run_test(test_index_fits_the_register_that_carries_it, "test_index_fits_the_register_that_carries_it", 27);
-  run_test(test_packed_enum_keeps_its_declared_width, "test_packed_enum_keeps_its_declared_width", 34);
+  run_test(test_packed_enum_retains_its_declared_width, "test_packed_enum_retains_its_declared_width", 34);
   run_test(test_bool_constants, "test_bool_constants", 39);
 
   return UNITY_END();

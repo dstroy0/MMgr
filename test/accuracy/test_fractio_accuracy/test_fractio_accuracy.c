@@ -61,7 +61,7 @@
  * @brief Reads the bits of a double and does not go through the library.
  *
  * @note A union is the reinterpretation this suite needs and the one fractio performs internally.
- *       The union declared here keeps the comparison independent of the module whose output it reads.
+ *       The union declared here retains the comparison independent of the module whose output it reads.
  */
 typedef union {
     double value;  /**< The double to read. */
@@ -71,7 +71,7 @@ typedef union {
 /**
  * @brief One pattern and the three fields the binary64 format puts in it.
  *
- * @note Every row below comes from the format by hand, which lets a row stand as an
+ * @note Every row below comes from the format by hand, which lets a row are as an
  *       expectation on its own.
  */
 typedef struct
@@ -125,7 +125,7 @@ static uint64_t accuracy_bits_of(double value)
 }
 
 /**
- * @brief Returns the double a bit pattern stands for.
+ * @brief Returns the double a bit pattern is for.
  *
  * @param[in] bits Pattern to interpret.
  * @return         The same storage read as a double.

@@ -6,12 +6,12 @@ keepouts.
 ## When to reach for it
 
 - One context produces and exactly one consumes.
-- An interrupt hands bytes to a task, or a task hands buffers to a driver.
+- An interrupt passes bytes to a task, or a task passes buffers to a driver.
 - You want that handover without a lock.
 
 ## What it composes with
 
-It moves what @ref mod_confin_guide handed out. The segment view passes whole buffers **by index**,
+It moves what @ref mod_confin_guide passed out. The segment view passes whole buffers **by index**,
 and nothing is copied across the boundary.
 
 ## Three things over the same bytes
@@ -24,7 +24,7 @@ The producer fills a segment and publishes its index; the consumer reads that in
 when done. The bytes never move.
 
 **Loculi.** `loculus_ready`, `loculus_next`, `loculus_hold`, `loculus_keepout`, `loculus_drop`,
-`loculus_mark`. A numbered hold that records a region to keep out of, for a reader walking bytes in
+`loculus_mark`. A numbered hold that records a region to retain out of, for a reader walking bytes in
 place. Their free and pinned masks are one machine word each, and so `MMGR_RING_LOCULI_MAX` is
 `EMBED_WORD_BITS`. `MMGR_RING_LOCULI` is the build knob under that ceiling, and a static assert names
 it if it is set higher; a build with no use for them sets it to `0` and gets the keepout storage back.
@@ -93,10 +93,10 @@ fits.
 **`peek` copies what you ask for regardless of whether it arrived.** Read `available` first. A count above
 the ring's capacity is clamped there, since one lap is all two runs can express.
 
-**Nothing is ever zeroed.** A loculus keeps its bytes after a drop. A restream can run again over
+**Nothing is ever zeroed.** A loculus retains its bytes after a drop. A restream can run again over
 the same region. Bytes read are not scrubbed behind the cursor either.
 
-**Capacity must be a power of two.** The index wrap is a mask. `nsegs` likewise, and at most `cap`.
+**Capacity must be a power of two.** The index wrap is a mask. `nsegs` likewise, and at max `cap`.
 
 **The buffer is aligned before the ring gets it.** The ring does not check and has no way to.
 
@@ -114,7 +114,7 @@ type it records are all defined in its own `.c`, which is also where the atomics
 
 # Memoria externa: DRAM or PSRAM {#mod_exter_guide}
 
-Decides where a buffer should live when there is more than one kind of memory.
+Decides where a buffer should live when there is more than one type of memory.
 
 @note Compiled only when `MMGR_ENABLE_EXTRAM` is set. It defaults off, and its test suite is
 skipped loudly and not silently.
@@ -194,14 +194,14 @@ returns a wrong value on others. A load without the may-alias marking lets the o
 against a store it genuinely conflicts with, and the reordering is legal, because you told the
 compiler the pointers could not alias.
 
-This is also why `tools/dev_env/names.tsv` keeps three infixes for one module. Collapsing them onto
+This is also why `tools/dev_env/names.tsv` retains three infixes for one module. Collapsing them onto
 one stem merged seven symbol pairs, including the aligned and the unaligned load.
 
 ## Gotchas
 
 **`aequus` does not check.** It is a promise you are making and not a request to verify.
 
-**Unaligned is not always slower.** On x86-64 `proxim.u32` is one `mov`. The distinction matters most
+**Unaligned is not always slower.** On x86-64 `proxim.u32` is one `mov`. The distinction matters max
 on parts where it is not.
 
 ## Reference

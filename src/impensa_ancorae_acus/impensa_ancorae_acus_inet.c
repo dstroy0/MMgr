@@ -17,7 +17,7 @@
 /**
  * @brief Cost of each byte value, indexed by the byte itself.
  *
- * @note Lower means rarer, and cellul_pick_rows keeps the lowest cost it finds.
+ * @note Lower means rarer, and cellul_pick_rows retains the lowest cost it finds.
  * @note 255 marks the NUL and the colon, and so neither is ever chosen as a sieve offset.
  * @note Also above 1: the digits, 'a' to 'f', 'A' to 'F', and 37 '%', 46 '.', 47 '/', 91 '[', 93 ']'.
  */

@@ -44,7 +44,7 @@ uint8_t nondet_byte(void);
 void prove_reached(void);
 
 #define PROVE_DONE() prove_reached()
-/** @brief The machine-code arm's assumption: the executor keeps only the paths where cond holds. */
+/** @brief The machine-code arm's assumption: the executor retains only the paths where cond holds. */
 void prove_assume(int holds);
 
 /** @brief The machine-code arm's failure: a path that reaches it with cond false is a counterexample. */
@@ -61,7 +61,7 @@ void prove_failed(const char *what);
     } while (0)
 #endif
 
-/** @brief A cell's header word as LocusCarcerum lays it: a word rounded up to the alignment, ahead of the payload. */
+/** @brief A cell's header word as LocusCarcerum positions it: a word rounded up to the alignment, ahead of the payload. */
 #define PROVE_CELL_HEADER ((sizeof(embed_atomic_usize) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
 
 /**

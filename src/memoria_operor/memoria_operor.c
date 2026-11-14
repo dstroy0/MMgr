@@ -215,7 +215,7 @@ EMBED_INLINE void memor_move_up(MemorMoveCtx *args)
  * @return          Bytes to step one at a time before whole aligned words are readable.
  * @note Normally zero. This library expects memory that arrives aligned, and an aligned address
  *       is already on a boundary. The call computes the count and does not assume it, because a
- *       region entry takes whatever address a caller hands it.
+ *       region entry takes whatever address a caller passes it.
  * @warning at serves as an address and never as a read. A bytes larger than the region there
  *          passes here with no catch. The answer stops at bytes, and so it is a safe number of steps
  *          only when bytes is.
@@ -251,7 +251,7 @@ EMBED_INLINE embed_word memor_diff_lanes(embed_word difference)
  * @note Compares whole words with nothing but an inequality test, and resolves which lane differs
  *       once, after the loop finds the word that does. Which lane it is cannot matter until a
  *       word differs, and no word differs on all but one iteration of a scan.
- * @note The count stands before the loop, and so lanes past it can only fall in the last word.
+ * @note The count is before the loop, and so lanes past it can only fall in the last word.
  *       mask.lanes_below works on that word alone, once, and not on every iteration.
  * @note The sign follows the bytes that differ, and so the result orders the two regions.
  * @warning Both args->src and args->other must be readable for args->bytes rounded up to a whole word.
@@ -283,7 +283,7 @@ EMBED_INLINE embed_iword memor_cmp(const MemorScanCtx *args)
         {
             const size_t first_diff = at + mmgr_vector_mask_first(differing);
 
-            // Explicit casts widen both bytes to embed_iword so the difference keeps its sign
+            // Explicit casts widen both bytes to embed_iword so the difference retains its sign
             return (embed_iword)args->src[first_diff] - (embed_iword)args->other[first_diff];
         }
         // Advance separated from the test above so the loop body carries no side effect
@@ -291,8 +291,8 @@ EMBED_INLINE embed_iword memor_cmp(const MemorScanCtx *args)
     }
 #endif
     // Two loops and not one that carries the test. With the choice written inside the body, the
-    // compiler keeps a branch per word and the loop costs what the unaligned one costs. Lifted
-    // out, each loop holds one kind of load, and the aligned one is a single instruction a word
+    // compiler retains a branch per word and the loop costs what the unaligned one costs. Lifted
+    // out, each loop holds one type of load, and the aligned one is a single instruction a word
     if (level)
     {
         while (at != full)
@@ -305,7 +305,7 @@ EMBED_INLINE embed_iword memor_cmp(const MemorScanCtx *args)
                 const size_t first_diff =
                     at + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = memor_diff_lanes(src_word ^ other_word));
 
-                // Explicit casts widen both bytes to embed_iword so the difference keeps its sign
+                // Explicit casts widen both bytes to embed_iword so the difference retains its sign
                 return (embed_iword)args->src[first_diff] - (embed_iword)args->other[first_diff];
             }
             // Advance separated from the test above so the loop body carries no side effect
@@ -324,7 +324,7 @@ EMBED_INLINE embed_iword memor_cmp(const MemorScanCtx *args)
                 const size_t first_diff =
                     at + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = memor_diff_lanes(src_word ^ other_word));
 
-                // Explicit casts widen both bytes to embed_iword so the difference keeps its sign
+                // Explicit casts widen both bytes to embed_iword so the difference retains its sign
                 return (embed_iword)args->src[first_diff] - (embed_iword)args->other[first_diff];
             }
             // Advance separated from the test above so the loop body carries no side effect
@@ -344,7 +344,7 @@ EMBED_INLINE embed_iword memor_cmp(const MemorScanCtx *args)
         {
             const size_t first_diff = at + EMBED_CALL(lane.first, ScrutLaneCfg, .mask = differing_lanes);
 
-            // Explicit casts widen both bytes to embed_iword so the difference keeps its sign
+            // Explicit casts widen both bytes to embed_iword so the difference retains its sign
             return (embed_iword)args->src[first_diff] - (embed_iword)args->other[first_diff];
         }
     }
@@ -357,7 +357,7 @@ EMBED_INLINE embed_iword memor_cmp(const MemorScanCtx *args)
  * @param[in] args Region, count and the byte sought [BORROWS].
  * @return         Address of the match, or NULL when the byte does not occur [BORROWS].
  * @note Scans whole words with no mask at all, then masks the one short word at the end. The count
- *       stands before the loop, and so lanes past it can only fall in that last word.
+ *       is before the loop, and so lanes past it can only fall in that last word.
  * @note The broadcast of the sought byte happens once, ahead of the walk. The lane.eq entry answers
  *       the same question but rebuilds the broadcast from a byte on every call, which is a multiply
  *       per word.

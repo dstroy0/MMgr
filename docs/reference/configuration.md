@@ -30,12 +30,12 @@ exists to reach them.
 
 No knob sets a size here. **The size is in the declaration**:
 `ParsMemoriaeInternae(work, 4096)` states the extent where the storage exists, and
-`sizeof` is asserted against the count it was handed so the two cannot disagree.
+`sizeof` is asserted against the count it was passed so the two cannot disagree.
 
 | knob                |              default | what it changes                                          |
 | ------------------- | -------------------: | -------------------------------------------------------- |
 | `MMGR_ALIGN_BYTES`  |                 `16` | alignment every pool declaration puts on its storage     |
-| `MMGR_CARCER_ALIGN` | `sizeof(embed_word)` | **derived.** The alignment every cell is handed out at   |
+| `MMGR_CARCER_ALIGN` | `sizeof(embed_word)` | **derived.** The alignment every cell is passed out at   |
 | `MMGR_EXTRAM_ATTR`  |                empty | placement an external pool carries. The port supplies it |
 
 `MMGR_EXTRAM_ATTR` is named here and filled by the port, because which section a part puts external
@@ -49,18 +49,18 @@ for reading the high-water marks.
 
 | knob                           | default | what it changes                                                    |
 | ------------------------------ | ------: | ------------------------------------------------------------------ |
-| `MMGR_CARCER_OWNERS`           |   `128` | the most owners a program's owner table holds                      |
+| `MMGR_CARCER_OWNERS`           |   `128` | the max owners a program's owner table holds                      |
 | `MMGR_MOVABLE_SETTLE_PERCENT`  |    `25` | the fragmentation at which a cellblock's mover sorts               |
 | `MMGR_MOVABLE_READ_MS`         |   `100` | the milliseconds between the mover's readings                      |
 | `MMGR_MOVABLE_QUIET_READINGS`  |     `3` | the readings in a row of low occupancy before it locks a turnstile |
-| `MMGR_MOVABLE_BACKOFF_MOST_MS` | `25600` | the longest it waits after a sort it backed off from               |
+| `MMGR_MOVABLE_BACKOFF_MAX_MS` | `25600` | the longest it waits after a sort it backed off from               |
 
 A cellblock is shared by every context that reaches it, with no switch and no lock. Every boundary,
 every cell's claim and every count is an atomic word from `embedded_types`, moved in one step each, and
 no context waits for another. The same build serves a host thread, a part's task and a GPU thread.
 
-An owner's own counts, its bytes in use and its peak, are kept in the `CellOwner` record the program's
-owner table holds. `MMGR_OWNERS` lays the table once, as data, from the program's list of owners, and
+An owner's own counts, its bytes in use and its peak, are retained in the `CellOwner` record the program's
+owner table holds. `MMGR_OWNERS` positions the table once, as data, from the program's list of owners, and
 defines each owner's const pointer into it, which the owner's module names on every take, give and growth.
 A list longer than `MMGR_CARCER_OWNERS` fails the build. See @ref concept_ownership.
 
@@ -71,7 +71,7 @@ A list longer than `MMGR_CARCER_OWNERS` fails the build. See @ref concept_owners
 | `MMGR_DEBUG_CHECKS`      |                  `0` | compiles in the checks, and selects the trapping assert |
 | `MMGR_ASSERT(cond, msg)` | a type-checked no-op | what a broken precondition does                         |
 
-The default `MMGR_ASSERT` keeps its expression type-checked with `sizeof` and then discards it: it
+The default `MMGR_ASSERT` retains its expression type-checked with `sizeof` and then discards it: it
 cannot rot and costs nothing.
 
 `MMGR_DEBUG_CHECKS=1` is all it takes to trap: `test/support/mmgr_host_traps.h` then supplies `MMGR_ASSERT`, as
@@ -97,14 +97,14 @@ a build answers them. From CMake, pass them as one list in `MMGR_PRAET_KNOBS`, w
 library and every suite over it:
 
 ```
--DMMGR_PRAET_KNOBS="PRAET_CHANNELS=8u;PRAET_SETTLE_MICROS=40u;PRAET_KEEPALIVE_MICROS=250u;PRAET_RECOVERY=1;PRAET_CLOCK_HZ=240000000u;PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"
+-DMMGR_PRAET_KNOBS="PRAET_CHANNELS=8u;PRAET_SETTLE_MICROS=40u;PRAET_RETAINALIVE_MICROS=250u;PRAET_RECOVERY=1;PRAET_CLOCK_HZ=240000000u;PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"
 ```
 
 | knob                     |            default when unset | what it changes                                                 |
 | ------------------------ | ----------------------------: | --------------------------------------------------------------- |
 | `PRAET_CHANNELS`         |                           `8` | logical channels one context carries                            |
 | `PRAET_SETTLE_MICROS`    |                           `0` | microseconds the engine takes to come up after an attach        |
-| `PRAET_KEEPALIVE_MICROS` |                        `1000` | microseconds a moving channel may go unkicked before it stalls  |
+| `PRAET_RETAINALIVE_MICROS` |                        `1000` | microseconds a moving channel may go unkicked before it stalls  |
 | `PRAET_RECOVERY`         |                           `0` | whether a stalled transfer can be backed out or scrubbed        |
 | `PRAET_CLOCK_HZ`         |                     `1000000` | ticks per second of the clock the deadlines are scaled from     |
 | `PRAET_CLOCK_SOURCE`     | derived from the architecture | `PRAET_CLOCK_CALLER` or `PRAET_CLOCK_OWN`                       |
@@ -112,7 +112,7 @@ library and every suite over it:
 
 Each unset knob takes its default and raises a warning naming itself. After every knob has been
 read, `praet_iudex.h` stops the build once if any of them was unset. Define `MMGR_ACCEPT_DEFAULTS` to
-build on the defaults and keep the warnings as the record.
+build on the defaults and retain the warnings as the record.
 
 ## Scanning and text
 
@@ -151,7 +151,7 @@ prove the rest once. Measured with a two byte needle, cycles for the whole call:
 | RISC-V chain | 124 | 488 | 13393 |
 | RISC-V sieve | 219 | 680 | 17059 |
 
-The chain wins at every length on both parts: nothing needs setting. The knob is kept because
+The chain wins at every length on both parts: nothing needs setting. The knob is retained because
 a measurement proves nothing about an unmeasured length; zero sends every needle through the sieve.
 
 Case folding always goes through the sieve: the chain compares raw bytes.
@@ -201,5 +201,5 @@ These are build options and never preprocessor defines.
 
 One more thing the build does that is worth knowing: `MinSizeRel` normally means `-Os`, and `-Os`
 declines to inline the small branch-free entries that _are_ this library, and the calls it saves
-space on are the calls that cost the most. The top-level `CMakeLists.txt` rewrites `-Os` to `-O2`
+space on are the calls that cost the max. The top-level `CMakeLists.txt` rewrites `-Os` to `-O2`
 for that configuration. An embedded build reaching for `MinSizeRel` wants small, not slow-and-small.

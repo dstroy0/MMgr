@@ -7,7 +7,7 @@ open questions are settled, which are measured, and which are still yours to ans
 `test/performance_benching/praet/`
 
 Sections marked **planned** describe work that is not in the tree. Everything else carries a
-citation and describes the tree as it stands on the date at the foot.
+citation and describes the tree as it is on the date at the foot.
 
 ## What a channel is today
 
@@ -85,7 +85,7 @@ Two conditions on that result, both measured. The bound survives only where the 
 away, which the dispatch table convention already guarantees
 (`include/mmgr.h:106-108`). And link-time optimization removes it: with `MMGR_LTO` on, the
 default (`CMakeLists.txt:18`), the allocator inlines across the translation unit boundary and the
-cell-level extent is gone. A check build has to turn it off. The shipping build keeps it.
+cell-level extent is gone. A check build has to turn it off. The shipping build retains it.
 
 ## The state word and closing a channel
 
@@ -98,7 +98,7 @@ polls the busy bit. A second call is the normal path.
 
 A state word carries the four-state core in its low bits with flags above it, in one machine word.
 `close` writes the request, the word reports the result, and the poll reads the word, and so `close`
-keeps its signature and the caller has something to poll. That makes the state word the completion
+retains its signature and the caller has something to poll. That makes the state word the completion
 mechanism for teardown.
 
 Exclusion on that word is a compile-time setting with three values, and a part pays for what it
@@ -171,7 +171,7 @@ fault at the instruction that caused it.
 
 Three arms, separated by what each may do when it fails. Correctness runs scripted engines against
 fixed expectations and fails the build. Optimization reports cycles per submit and bytes of state
-per channel, and never gates, the standing the bench results already have. Examination
+per channel, and never gates, the located the bench results already have. Examination
 reports which states and transitions the correctness arm reached, and is what shows that arm has
 holes.
 
@@ -215,7 +215,7 @@ external pool on a part whose engine cannot address external memory has no answe
 
 Warnings are the product of the check build. Its objects are discarded, and so its flags are free of
 what the shipping build needs. It compiles everything with warnings not fatal and fails once at the
-end, which hands a whole list to the user in one pass. Three things decide whether that list is
+end, which passes a whole list to the user in one pass. Three things decide whether that list is
 worth reading. Ninja needs `-k 0`, or one hard error truncates it. Warnings are complete and hard
 errors are not, since a translation unit stops at its first hard error. Diagnostics from a header
 reached by many translation units repeat unless the collector deduplicates on file and line.
@@ -235,7 +235,7 @@ Done: a channel declared over a pool, and `MMGR_PRAET_CHANNELS` removed, as `Pra
 
 These were tried and rejected. Each is recorded so it is not proposed again.
 
-**A claim flag kept at run time.** A `claimed` member in a pool struct records that something took
+**A claim flag retained at run time.** A `claimed` member in a pool struct records that something took
 the pool and stops nothing, and it puts run-time state in a library that settles this before the
 program runs. The compile-time literal does the same work for no bytes.
 
@@ -277,7 +277,7 @@ Where a user states a budget, the two sides stay separate. The user's list is a 
 declarations are the fact, and the assertion compares them. A pool declared and not listed, listed
 and not declared, or listed at the wrong size fails the build. Neither side is the oracle for the
 other, the same reason the pool's own assertion compares `sizeof` against the count it was
-handed (`include/mmgr.h:197`).
+passed (`include/mmgr.h:197`).
 
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
 **Date:** 2026-09-22

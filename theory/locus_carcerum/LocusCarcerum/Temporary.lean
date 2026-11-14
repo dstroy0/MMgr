@@ -5,23 +5,23 @@ import LocusCarcerum.Spill
 /-!
 # LocusCarcerum, the temporary tier as the persistent tier mirrored
 
-The temporary tier is its cells laid end to end from the top up to the cellblock's size. They are the same cells
-as the persistent tier's, read in the same order. The two tiers differ in where their base stands. The persistent
+The temporary tier is its cells positioned end to end from the top up to the cellblock's size. They are the same cells
+as the persistent tier's, read in the same order. The two tiers differ in where their base is. The persistent
 tier's base is at offset 0, and its boundary the end of its last cell. The temporary tier's base is at the
 cellblock's size, and its boundary the start of its first cell. Every operation of the persistent tier is an
 operation of the temporary tier with that one change.
 
 The sweep joins every run of free cells into one, as `Layout.merge` does for both tiers, and returns the free run
 at the boundary. That is the run that reaches the end for the persistent tier (`Layout.trimEnd`), and the run that
-starts at the top for the temporary tier (`trimStart`). A take the gap cannot meet lays its cell over the free run
+starts at the top for the temporary tier (`trimStart`). A take the gap cannot meet positions its cell over the free run
 that holds it farthest from the gap. That is the first from offset 0 for the persistent tier (`Spill.firstFit`), and
 the last before the size for the temporary tier (`lastFit`). The cell lands at the run's end away from the gap and
-the rest stays free toward it. That is `Take.laid` for the persistent tier, and `laidHigh` for the temporary tier,
-which is `Take.laid` reversed.
+the rest stays free toward it. That is `Take.positioned` for the persistent tier, and `positionedHigh` for the temporary tier,
+which is `Take.positioned` reversed.
 
-The theorems are the persistent tier's, mirrored. The sweep keeps every busy cell in order and every owner's count,
+The theorems are the persistent tier's, mirrored. The sweep retains every busy cell in order and every owner's count,
 never raises the tier's bytes, and leaves no free cell at the boundary. The run `lastFit` finds is free, holds the
-take, and no run nearer the base holds it. A take laid over the run keeps the tier's bytes and raises its owner's
+take, and no run nearer the base holds it. A take positioned over the run retains the tier's bytes and raises its owner's
 count by what the cell carries, and no other owner's.
 -/
 
@@ -155,37 +155,37 @@ theorem lastFit_nearest (want : Nat) (l low high : List Cell) (run : Cell)
         exact lastFit_none want rest hr
       · simp at h
 
-/-- A take of `want` by `owner` laid over the free run `run` at its end away from the gap, the rest free toward the
+/-- A take of `want` by `owner` positioned over the free run `run` at its end away from the gap, the rest free toward the
 gap. -/
-def laidHigh (want owner : Nat) (run : Cell) : List Cell :=
+def positionedHigh (want owner : Nat) (run : Cell) : List Cell :=
   if want + H + A ≤ run.size then [⟨run.size - want - H, false, 0⟩, ⟨want, true, owner⟩]
   else [⟨run.size, true, owner⟩]
 
-/-- The temporary tier lays a cell as the persistent tier does, reversed. -/
-theorem laidHigh_reverse (want owner : Nat) (run : Cell) :
-    laidHigh H A want owner run = (laid H A want owner run).reverse := by
-  unfold laidHigh laid
+/-- The temporary tier positions a cell as the persistent tier does, reversed. -/
+theorem positionedHigh_reverse (want owner : Nat) (run : Cell) :
+    positionedHigh H A want owner run = (positioned H A want owner run).reverse := by
+  unfold positionedHigh positioned
   split <;> simp
 
-theorem laidHigh_len (want owner : Nat) (run : Cell) : len H (laidHigh H A want owner run) = foot H run := by
-  unfold laidHigh
+theorem positionedHigh_len (want owner : Nat) (run : Cell) : len H (positionedHigh H A want owner run) = foot H run := by
+  unfold positionedHigh
   split <;> simp [len, foot] <;> omega
 
-theorem laidHigh_count (want owner o : Nat) (run : Cell) (hfree : run.busy = false) :
-    count o (laidHigh H A want owner run) = count o [run] + (if owner = o then carried H A want run else 0) := by
-  unfold laidHigh carried
+theorem positionedHigh_count (want owner o : Nat) (run : Cell) (hfree : run.busy = false) :
+    count o (positionedHigh H A want owner run) = count o [run] + (if owner = o then carried H A want run else 0) := by
+  unfold positionedHigh carried
   split <;> by_cases ho : owner = o <;> simp [count, hfree, ho]
 
 /-- A spill over the last run that fits in the swept temporary tier. -/
 def spilledDown (want owner : Nat) (low : List Cell) (run : Cell) (high : List Cell) : List Cell :=
-  low ++ laidHigh H A want owner run ++ high
+  low ++ positionedHigh H A want owner run ++ high
 
 theorem spillDown_len (want owner : Nat) (l low high : List Cell) (run : Cell)
     (h : lastFit want (sweepDown H l) = some (low, run, high)) :
     len H (spilledDown H A want owner low run high) = len H (sweepDown H l) := by
   obtain ⟨e, _, _⟩ := lastFit_spec want _ low high run h
   rw [e]; unfold spilledDown
-  simp [len_append, laidHigh_len, len]
+  simp [len_append, positionedHigh_len, len]
 
 theorem spillDown_count (want owner o : Nat) (l low high : List Cell) (run : Cell)
     (h : lastFit want (sweepDown H l) = some (low, run, high)) :
@@ -195,11 +195,11 @@ theorem spillDown_count (want owner o : Nat) (l low high : List Cell) (run : Cel
   have hs := sweepDown_count H o l
   rw [e] at hs
   unfold spilledDown
-  rw [count_append, count_append, laidHigh_count H A want owner o run hb, ← hs, count_append]
+  rw [count_append, count_append, positionedHigh_count H A want owner o run hb, ← hs, count_append]
   simp [count, hb]
   omega
 
-/-- A bump at the top: the cell laid before the first. -/
+/-- A bump at the top: the cell positioned before the first. -/
 def bumpedDown (want owner : Nat) (l : List Cell) : List Cell := ⟨want, true, owner⟩ :: l
 
 theorem bumpDown_len (want owner : Nat) (l : List Cell) :

@@ -16,7 +16,7 @@ name: Docs
 # runner image bump. The apt version lags by a year or more and does not know this markup at all.
 #
 # WARNINGS ARE A PRODUCT OF THIS JOB and not a side effect. src/ carries real Doxygen comments, and so
-# WARN_IF_UNDOCUMENTED has something to say. The job keeps the log, counts it, and summarizes it into
+# WARN_IF_UNDOCUMENTED has something to say. The job retains the log, counts it, and summarizes it into
 # the job summary. It does not fail the build. The open warnings are dispatch-table members and
 # macro definitions. A failure on them would block every deploy for a backlog and not
 # for a regression. Flip WARN_AS_ERROR in docs/Doxyfile from NO to FAIL_ON_WARNINGS_PRINT when that
