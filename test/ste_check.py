@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.com>
 # SPDX-License-Identifier: AGPL-3.0-or-later OR LicenseRef-Commercial OR LicenseRef-Educational
-"""The ASD-STE100 check: every technical document checked against the Simplified Technical English rules.
+"""The ASD-STE100 check: every technical document checked against the Simplified Technical English writing rules.
 
 One file, the same in orior, MMgr and embedded_types; orior's harness holds the three copies byte for byte.
 
@@ -11,10 +11,9 @@ One file, the same in orior, MMgr and embedded_types; orior's harness holds the 
     ste_check.py --words FILE ...           the approved word lists, one word a line or a word in a TSV's first
                                             column; a word outside every list is a finding
 
-A technical document is a Markdown file of the tree's prose. That is the README, the contribution and security
-notes and everything under docs/, but not in a folder that is a repository of its own. A code block, an inline
-span of code, a table, a heading, a link target and an HTML comment are not prose. A license section is not
-prose either, and the check reads none of them.
+A technical document is a Markdown file of the tree's prose: the README, the contributing and security notes and
+everything under docs/, but not in a folder that is a repository of its own. A code block, an inline span of code, a table, a heading, a link target, an HTML comment
+and a license section are not prose and are not read.
 
 The rules checked, with their numbers in ASD-STE100 Issue 9:
 
@@ -27,8 +26,8 @@ The rules checked, with their numbers in ASD-STE100 Issue 9:
   word         every word is an approved word or a technical name (Rules 1.1 and 1.5), where an approved list is
                given; a technical name is a word in code, a capitalized word or one with a digit or an underscore
 
-The words a rule allows are technical names to that rule. Each repository lists them in ste_names.txt beside
-this file and its ratchet. A name like `string` is a technical name, which Rule 3.6 lets retain its -ing.
+The words a rule allows are technical names to that rule, and each repository lists them in ste_names.txt beside
+this file and its ratchet: a name like `string` is a technical name, which Rule 3.6 lets retain its -ing.
 """
 
 import os
@@ -113,7 +112,7 @@ def prose_lines(text):
 
 
 def paragraphs(lines):
-    """Runs of prose lines, a blank line or a non-prose line at the end of each; a list item opens its own."""
+    """Runs of prose lines, a blank line or a non-prose line closing each; a list item opens its own."""
     block = []
     for number, prose in lines:
         item = re.match(r"^(\d+[.)]|[-*+])\s+", prose)
@@ -142,7 +141,7 @@ def sentences(block):
 
 
 def is_name(word):
-    """A technical name: capitalized, with a digit or an underscore, or the code stand-in."""
+    """A technical name: capitalized, carrying a digit or an underscore, or the code stand-in."""
     return word == "CODE" or any(c.isdigit() or c == "_" for c in word) or (word[0].isupper() and word != word.capitalize()) \
         or word.isupper()
 
@@ -227,7 +226,7 @@ def main(argv):
         del args[at:at + 2]
     paths = args or ["."]
     # The names file sits beside the ratchet, and the ratchet sits beside this file. A run with no ratchet reads
-    # the same names, so a listed finding is a finding the ratchet counts.
+    # the same names: a listed finding is a finding the ratchet counts.
     base = os.path.dirname(os.path.abspath(ratchet or write or __file__))
     names_file = os.path.join(base, "ste_names.txt")
     names = word_list(names_file) if os.path.isfile(names_file) else set()

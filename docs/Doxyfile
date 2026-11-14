@@ -28,8 +28,8 @@ CREATE_SUBDIRS         = NO
 # nothing documentable. Bodies left out are also what makes EXTRACT_STATIC safe below. With
 # .c in, EXTRACT_STATIC would pull in every file-local helper in the library.
 #
-# The root README.md is also absent on purpose. It is the GitHub front door; docs/README.md is the
-# site front door. Both in INPUT gives two pages called "README" that both want the main page.
+# The root README.md is also absent on purpose. It is the GitHub interface; docs/README.md is the
+# site interface. Both in INPUT gives two pages called "README" that both want the main page.
 #
 # include/ carries mmgr.h, the header a consumer includes. It holds the pool declarations,
 # the three name guards and the attribute wrappers. Left out, none of them reach the
