@@ -271,7 +271,7 @@ static void fill_uniform(uint8_t *into, size_t length)
     {
         for (unsigned index = 0u; index < 8u; index++)
         {
-            // Explicit cast narrows one byte out of the counter, max significant first
+            // Explicit cast narrows one byte out of the counter, most significant first
             counter[index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
         }
         mmgr_sha256(counter, sizeof counter, digest);
@@ -372,7 +372,7 @@ static void fill_random_costs(void)
         {
             for (unsigned index = 0u; index < 8u; index++)
             {
-                // Explicit cast narrows one byte out of the counter, max significant first
+                // Explicit cast narrows one byte out of the counter, most significant first
                 counter[index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
             }
             mmgr_sha256(counter, sizeof counter, digest);
@@ -1134,7 +1134,7 @@ static void report_widths(const char *name, const uint8_t *corpus, size_t corpus
             for (unsigned step = 0u; step < width; step++)
             {
                 const size_t at = bit + step;
-                // The bits come max significant first inside each byte, which is how a byte reads
+                // The bits come most significant first inside each byte, which is how a byte reads
                 // on paper and how the standard's padding indexes them
                 const unsigned held = (corpus[at / 8u] >> (7u - (at % 8u))) & 1u;
 

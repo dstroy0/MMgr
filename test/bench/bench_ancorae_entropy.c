@@ -192,7 +192,7 @@ static void draw_from(const Source *source, uint8_t *into, size_t length, uint64
         {
             for (unsigned index = 0u; index < 8u; index++)
             {
-                // Explicit cast narrows one byte out of each 64 bit word, max significant first
+                // Explicit cast narrows one byte out of each 64 bit word, most significant first
                 seed[index] = (uint8_t)((salt >> (56u - (index * 8u))) & 0xFFu);
                 seed[8u + index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
             }
@@ -364,12 +364,12 @@ static double estimate_probe_without_self(const uint8_t *corpus, size_t length, 
 }
 
 /**
- * @brief The max common value estimate of min entropy.
+ * @brief The usual value estimate of min entropy.
  *
  * @param[in] counts One counter per symbol [BORROWS].
  * @param[in] length How many symbols the corpus contains.
  * @return           A lower confidence bound on min entropy, in bits.
- * @note NIST SP 800-90B section 6.3.1, the max common value estimate, with the same upper confidence
+ * @note NIST SP 800-90B section 6.3.1, the usual value estimate, with the same upper confidence
  *       bound on the modal probability the specification uses. It is here as context and takes no
  *       score against the collision entropy column. Min entropy is the negative log of the largest
  *       probability and collision entropy is the negative log of a sum of squares. Two estimators of

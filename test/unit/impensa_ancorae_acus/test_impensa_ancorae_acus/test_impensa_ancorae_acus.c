@@ -41,7 +41,7 @@ void test_anchor_prefers_rare_bytes_to_common_ones(void)
 {
     TEST_ASSERT_LESS_THAN_UINT8_MESSAGE(EMBED_CALL(ancorae.impensa, AncoraeCfg, .byte = (unsigned char)' '),
                                         EMBED_CALL(ancorae.impensa, AncoraeCfg, .byte = (unsigned char)'q'),
-                                        "space is the max common byte in text and must cost more than q");
+                                        "space is the usual byte in text and must cost more than q");
     TEST_ASSERT_LESS_THAN_UINT8_MESSAGE(EMBED_CALL(ancorae.impensa, AncoraeCfg, .byte = (unsigned char)'e'),
                                         EMBED_CALL(ancorae.impensa, AncoraeCfg, .byte = (unsigned char)'z'),
                                         "z is rarer than e");

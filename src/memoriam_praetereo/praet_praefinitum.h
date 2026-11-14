@@ -82,11 +82,11 @@
  *       65 millisecond ceiling a 16-bit word puts on a microsecond count is far above any value
  *       worth a place here. A transfer's runtime has no bound at all.
  */
-#ifndef PRAET_RETAINALIVE_MICROS
-#define PRAET_RETAINALIVE_MICROS 1000u
-#define PRAET_UNSET_RETAINALIVE_MICROS 1
+#ifndef PRAET_KEEPALIVE_MICROS
+#define PRAET_KEEPALIVE_MICROS 1000u
+#define PRAET_UNSET_KEEPALIVE_MICROS 1
 #warning                                                                                                               \
-    "PRAET_RETAINALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
+    "PRAET_KEEPALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
 #endif
 
 /**

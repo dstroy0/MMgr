@@ -266,7 +266,7 @@ static void ab_fill_uniform(uint8_t *into, size_t length)
     {
         for (unsigned index = 0u; index < 8u; index++)
         {
-            // Explicit cast narrows one byte out of the counter, max significant first
+            // Explicit cast narrows one byte out of the counter, most significant first
             counter[index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
         }
         mmgr_sha256(counter, sizeof counter, digest);
@@ -1319,7 +1319,7 @@ static void ab_draw_noise(uint8_t *into, size_t length, uint64_t salt)
     {
         for (unsigned index = 0u; index < 8u; index++)
         {
-            // Explicit cast narrows one byte out of each 64 bit word, max significant first
+            // Explicit cast narrows one byte out of each 64 bit word, most significant first
             seed[index] = (uint8_t)((salt >> (56u - (index * 8u))) & 0xFFu);
             seed[8u + index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
         }
@@ -1738,7 +1738,7 @@ typedef struct
 } AbUnit;
 
 /**
- * @brief Orders units so the max frequent come first.
+ * @brief Orders units so the commonest come first.
  *
  * @param[in] left  One unit [BORROWS].
  * @param[in] right The other [BORROWS].
@@ -2384,7 +2384,7 @@ static size_t ab_salted_offset(size_t length, uint64_t salt)
 
     for (unsigned index = 0u; index < 8u; index++)
     {
-        // Explicit cast narrows one byte out of the salt, max significant first
+        // Explicit cast narrows one byte out of the salt, most significant first
         seed[index] = (uint8_t)((salt >> (56u - (index * 8u))) & 0xFFu);
     }
     mmgr_sha256(seed, sizeof seed, digest);

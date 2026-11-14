@@ -201,7 +201,7 @@ EMBED_INLINE uint64_t verba_cut8(uint64_t value)
 }
 
 /**
- * @brief Writes digits characters of value at out, max significant first.
+ * @brief Writes digits characters of value at out, most significant first.
  *
  * @param[out] out    Where the digits go [BORROWS].
  * @param[in]  value  Value to write, which must need no more than digits characters.
@@ -241,7 +241,7 @@ EMBED_INLINE void verba_emit10(char *out, uint32_t value, size_t digits)
 #define MMGR_VERBA_CUT 8u
 
 /**
- * @brief Writes digits characters of a 64-bit value at out, max significant first.
+ * @brief Writes digits characters of a 64-bit value at out, most significant first.
  *
  * @param[out] out    Where the digits go [BORROWS].
  * @param[in]  value  Value to write, which must need no more than digits characters.

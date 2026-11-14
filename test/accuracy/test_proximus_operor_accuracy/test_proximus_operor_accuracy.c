@@ -76,7 +76,7 @@
  * @param[in] width Bytes in the run.
  * @return          The value those bytes carry.
  * @note One shift per byte. On a little endian host the byte at the lowest address is the least
- *       significant. On a big endian host it is the max significant of the width under read.
+ *       significant. On a big endian host it is the most significant of the width under read.
  * @note This is the whole reference for every load below.
  */
 static uint64_t accuracy_host_value(const uint8_t *at, unsigned width)
@@ -186,9 +186,9 @@ void test_the_byte_order_arithmetic_this_suite_relies_on_is_itself_right(void)
     else
     {
         TEST_ASSERT_EQUAL_HEX64_MESSAGE(UINT64_C(0x1122), accuracy_host_value(arranged, 2u),
-                                        "two bytes do not assemble max significant first");
+                                        "two bytes do not assemble most significant first");
         TEST_ASSERT_EQUAL_HEX64_MESSAGE(UINT64_C(0x1122334455667788), accuracy_host_value(arranged, 8u),
-                                        "eight bytes do not assemble max significant first");
+                                        "eight bytes do not assemble most significant first");
     }
 
     for (unsigned width = 1u; width <= 8u; width++)

@@ -51,7 +51,7 @@
  * @param[in] width  Bytes in the field, 1 through 8.
  * @param[in] offset Offset within the field, where 0 is the first byte written.
  * @return           That byte.
- * @note One shift and one mask. Max significant first means offset 0 holds the highest byte of the
+ * @note One shift and one mask. Most significant first means offset 0 holds the highest byte of the
  *       low width bytes, the shift below, alone.
  * @note This is the whole reference. It reverses nothing and selects no step width, as
  *       lets it disagree with the module.
@@ -64,7 +64,7 @@ static uint8_t accuracy_big_endian_byte(uint64_t value, unsigned width, unsigned
 }
 
 /**
- * @brief Returns the value a run of bytes is for, read max significant first.
+ * @brief Returns the value a run of bytes is for, read most significant first.
  *
  * @param[in] at    First byte of the run [BORROWS].
  * @param[in] width Bytes in the run, 1 through 8.
@@ -367,7 +367,7 @@ void test_a_length_prefixed_read_points_at_the_run_and_advances_past_both(void)
         accuracy_fill_guard(buffer);
         for (unsigned index = 0u; index < 4u; index++)
         {
-            // The four byte length, max significant first, positioned down without the module's help
+            // The four byte length, most significant first, positioned down without the module's help
             buffer[index] = accuracy_big_endian_byte((uint64_t)payload, 4u, index);
         }
         for (unsigned index = 0u; index < payload; index++)

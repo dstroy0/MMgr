@@ -209,7 +209,7 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel)
     // channel reaches, and a submit has no business with a second statement of it
     praet_ordo_write_flags(context, channel,
                            (was & PRAET_WITHOUT(PRAET_CORE_MASK | PRAET_TRANSFER_STATUSES)) | (uint32_t)PRAET_BUSY);
-    context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_RETAINALIVE_MICROS;
+    context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
 #if PRAET_RECOVERY
     // The address comes from what the channel attached over. A submit states how far into it the
     // transfer starts, and PraetSubmit is what proved that offset and length fit before this ran
@@ -241,7 +241,7 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel)
     // A channel that moves again has no stall, and so the status comes off with the same kick that
     // pushes the window out
     praet_ordo_write_flags(context, channel, context->flags[channel] & PRAET_WITHOUT(PRAET_STALLED));
-    context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_RETAINALIVE_MICROS;
+    context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
 
 #if PRAET_RECOVERY
     // A position that went backwards is nonsense from the port, and to take it would shrink the
@@ -458,7 +458,7 @@ static embed_bool praet_ordo_take_progress(PraetOrdo *context)
         }
 
         context->position[channel] = (reached > context->length[channel]) ? context->length[channel] : reached;
-        context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_RETAINALIVE_MICROS;
+        context->keepalive_deadline[channel] = context->elapsed_micros + (embed_word)PRAET_KEEPALIVE_MICROS;
         praet_ordo_write_flags(context, channel, context->flags[channel] & PRAET_WITHOUT(PRAET_STALLED));
         moved = EMBED_TRUE;
     }

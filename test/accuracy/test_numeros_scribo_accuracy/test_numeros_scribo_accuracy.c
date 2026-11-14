@@ -380,7 +380,7 @@ void test_the_fixed_type_writes_exactly_the_decimals_its_width_names(void)
 /**
  * @brief Checks that a mismatched spec abandons the write and leaves earlier text whole.
  *
- * @note The abandon is the max important accuracy claim for an append. A reader cannot tell a
+ * @note The abandon is the primary accuracy claim for an append. A reader cannot tell a
  *       partial record left in the buffer from a complete one. So the terminator has to go back
  *       where the write started.
  * @note The case covers three ways to mismatch, and the header names all three. A value absent, a

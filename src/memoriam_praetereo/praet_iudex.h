@@ -32,7 +32,7 @@
 
 #if !defined(MMGR_ACCEPT_DEFAULTS)
 
-#if defined(PRAET_UNSET_CHANNELS) || defined(PRAET_UNSET_SETTLE_MICROS) || defined(PRAET_UNSET_RETAINALIVE_MICROS) ||    \
+#if defined(PRAET_UNSET_CHANNELS) || defined(PRAET_UNSET_SETTLE_MICROS) || defined(PRAET_UNSET_KEEPALIVE_MICROS) ||    \
     defined(PRAET_UNSET_RECOVERY) || defined(PRAET_UNSET_CLOCK_HZ) || defined(PRAET_UNSET_CLOCK_SOURCE) ||             \
     defined(PRAET_UNSET_CLOCK_CORE)
 #error                                                                                                                 \

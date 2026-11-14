@@ -155,7 +155,7 @@ static void draw_bytes(uint8_t *into, size_t length, uint64_t salt)
     {
         for (unsigned index = 0u; index < 8u; index++)
         {
-            // Explicit cast narrows one byte out of each 64 bit word, max significant first
+            // Explicit cast narrows one byte out of each 64 bit word, most significant first
             seed[index] = (uint8_t)((salt >> (56u - (index * 8u))) & 0xFFu);
             seed[8u + index] = (uint8_t)((block >> (56u - (index * 8u))) & 0xFFu);
         }

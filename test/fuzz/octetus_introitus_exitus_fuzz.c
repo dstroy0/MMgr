@@ -120,7 +120,7 @@ static void reads(FuzzInput *input, const uint8_t *bytes, size_t len)
                 {
                     expected = (expected << 8) | bytes[pos + step];
                 }
-                fuzz_check(out == expected, "take_be reads the value max significant byte first");
+                fuzz_check(out == expected, "take_be reads the value most significant byte first");
                 pos += width;
             }
             else

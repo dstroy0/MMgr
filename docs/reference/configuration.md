@@ -97,14 +97,14 @@ a build answers them. From CMake, pass them as one list in `MMGR_PRAET_KNOBS`, w
 library and every suite over it:
 
 ```
--DMMGR_PRAET_KNOBS="PRAET_CHANNELS=8u;PRAET_SETTLE_MICROS=40u;PRAET_RETAINALIVE_MICROS=250u;PRAET_RECOVERY=1;PRAET_CLOCK_HZ=240000000u;PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"
+-DMMGR_PRAET_KNOBS="PRAET_CHANNELS=8u;PRAET_SETTLE_MICROS=40u;PRAET_KEEPALIVE_MICROS=250u;PRAET_RECOVERY=1;PRAET_CLOCK_HZ=240000000u;PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"
 ```
 
 | knob                     |            default when unset | what it changes                                                 |
 | ------------------------ | ----------------------------: | --------------------------------------------------------------- |
 | `PRAET_CHANNELS`         |                           `8` | logical channels one context carries                            |
 | `PRAET_SETTLE_MICROS`    |                           `0` | microseconds the engine takes to come up after an attach        |
-| `PRAET_RETAINALIVE_MICROS` |                        `1000` | microseconds a moving channel may go unkicked before it stalls  |
+| `PRAET_KEEPALIVE_MICROS` |                        `1000` | microseconds a moving channel may go unkicked before it stalls  |
 | `PRAET_RECOVERY`         |                           `0` | whether a stalled transfer can be backed out or scrubbed        |
 | `PRAET_CLOCK_HZ`         |                     `1000000` | ticks per second of the clock the deadlines are scaled from     |
 | `PRAET_CLOCK_SOURCE`     | derived from the architecture | `PRAET_CLOCK_CALLER` or `PRAET_CLOCK_OWN`                       |

@@ -610,7 +610,7 @@ def undriven_deps(path):
 # pin a timer to: the clock is the caller's. The two DMA trees, the target probe and the remote
 # columns all start from these. Each replaces a knob by name where it asks a different question.
 PRAET_KNOBS = (
-    "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u", "PRAET_RETAINALIVE_MICROS=250u",
+    "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u", "PRAET_KEEPALIVE_MICROS=250u",
     "PRAET_RECOVERY=1", "PRAET_CLOCK_HZ=240000000u", "PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER",
 )
 
@@ -697,7 +697,7 @@ def borrowed_toolchain(skip_path):
 
     @p skip_path is the directory under configuration, and it is the only one this passes over. A
     skip of the whole tree NAME would read as "never borrow from a tree of the type you build". That
-    type is the one max likely to have one.
+    type is the one likely to have one.
     """
     # Read off the directories and never through tree_path. That function makes a directory and
     # rotates when a tree has none, and a probe for a toolchain must not create anything.

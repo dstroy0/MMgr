@@ -28,7 +28,7 @@
 EMBED_BEGIN_DECLS
 
 /**
- * @brief Expands to 18u, the max significant digits mmgr_verba_g will retain.
+ * @brief Expands to 18u, the most significant digits mmgr_verba_g will retain.
  *
  * @note A larger args->sig stops here. An args->sig of 0 counts as 1.
  */

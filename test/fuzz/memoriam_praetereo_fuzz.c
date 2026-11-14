@@ -111,7 +111,7 @@ static void model_submit(embed_word channel, embed_word length, embed_bool answe
     }
     s_model.flags[channel] =
         (s_model.flags[channel] & WITHOUT(PRAET_CORE_MASK | TRANSFER_STATUSES)) | (uint32_t)PRAET_BUSY;
-    s_model.keepalive[channel] = s_model.elapsed + (embed_word)PRAET_RETAINALIVE_MICROS;
+    s_model.keepalive[channel] = s_model.elapsed + (embed_word)PRAET_KEEPALIVE_MICROS;
     s_model.length[channel] = length;
     s_model.position[channel] = 0u;
     s_model.raised = 1;
@@ -124,7 +124,7 @@ static void model_kick(embed_word channel, embed_word position)
         return;
     }
     s_model.flags[channel] &= WITHOUT(PRAET_STALLED);
-    s_model.keepalive[channel] = s_model.elapsed + (embed_word)PRAET_RETAINALIVE_MICROS;
+    s_model.keepalive[channel] = s_model.elapsed + (embed_word)PRAET_KEEPALIVE_MICROS;
     if (position > s_model.position[channel])
     {
         s_model.position[channel] = (position > s_model.length[channel]) ? s_model.length[channel] : position;
@@ -191,7 +191,7 @@ static void model_poll(void)
             continue;
         }
         s_model.position[channel] = (reached > s_model.length[channel]) ? s_model.length[channel] : reached;
-        s_model.keepalive[channel] = s_model.elapsed + (embed_word)PRAET_RETAINALIVE_MICROS;
+        s_model.keepalive[channel] = s_model.elapsed + (embed_word)PRAET_KEEPALIVE_MICROS;
         s_model.flags[channel] &= WITHOUT(PRAET_STALLED);
         moved = 1;
     }
@@ -369,7 +369,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
             break;
         }
         case 7: {
-            const embed_word micros = (embed_word)fuzz_below(&input, 2u * PRAET_RETAINALIVE_MICROS + 2u);
+            const embed_word micros = (embed_word)fuzz_below(&input, 2u * PRAET_KEEPALIVE_MICROS + 2u);
             praet_ordo_advance(&s_ordo, micros);
             s_model.elapsed += micros;
             s_model.raised = 1;

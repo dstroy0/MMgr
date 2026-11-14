@@ -292,7 +292,7 @@ static void mmgr_sha256_finish_with(MmgrSha256 *running, uint8_t marker, uint64_
 
     for (unsigned index = 0u; index < 8u; index++)
     {
-        // Explicit casts narrow each word to the four bytes it occupies, max significant first
+        // Explicit casts narrow each word to the four bytes it occupies, most significant first
         digest[(index * 4u) + 0u] = (uint8_t)((running->state[index] >> 24) & 0xFFu);
         digest[(index * 4u) + 1u] = (uint8_t)((running->state[index] >> 16) & 0xFFu);
         digest[(index * 4u) + 2u] = (uint8_t)((running->state[index] >> 8) & 0xFFu);
@@ -411,7 +411,7 @@ unsigned mmgr_sha256_first_bit_difference(uint8_t left, uint8_t right)
 
     for (unsigned bit = 0u; bit < 8u; bit++)
     {
-        // Max significant first, and so the answer counts the way the byte reads on paper
+        // Most significant first, and so the answer counts the way the byte reads on paper
         if ((differing & (uint8_t)(0x80u >> bit)) != 0u)
         {
             return bit;

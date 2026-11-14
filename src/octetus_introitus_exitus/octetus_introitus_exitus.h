@@ -72,7 +72,7 @@ typedef struct
 typedef struct
 {
     void (*put)(const OctetusCfg *args);               /**< Appends one byte. */
-    void (*put_be)(const OctetusCfg *args);            /**< Appends bytes of a value, max significant first. */
+    void (*put_be)(const OctetusCfg *args);            /**< Appends bytes of a value, most significant first. */
     void (*raw)(const OctetusCfg *args);               /**< Appends a run of bytes as they are. */
     embed_bool (*take_be)(const OctetusCfg *args);     /**< Reads a big endian value and advances past it. */
     embed_bool (*rd_str)(const OctetusCfg *args);      /**< Reads a length-prefixed run and points at it. */
@@ -90,7 +90,7 @@ EMBED_TABLE_LAYOUT(OctetusIntroitusExitusNs, put, put_be, raw, take_be, rd_str, 
 void mmgr_byteio_put(const OctetusCfg *args);
 
 /**
- * @brief Appends the low args->bytes of args->value to args->write_span, max significant byte first.
+ * @brief Appends the low args->bytes of args->value to args->write_span, most significant byte first.
  *
  * @param[in,out] args Span, value and byte count [BORROWS].
  * @note The value reverses once and then goes out at the widest step the count allows. A count of

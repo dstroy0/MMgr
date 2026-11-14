@@ -31,7 +31,7 @@ option(MMGR_ENABLE_DMA "The part has a DMA engine" OFF)
 option(MMGR_ENABLE_EXTRAM "The part has external RAM" OFF)
 
 # The DMA schedule's knobs, as NAME=value pairs separated by semicolons: PRAET_CHANNELS,
-# PRAET_SETTLE_MICROS, PRAET_RETAINALIVE_MICROS, PRAET_RECOVERY, PRAET_CLOCK_HZ and PRAET_CLOCK_SOURCE,
+# PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS, PRAET_RECOVERY, PRAET_CLOCK_HZ and PRAET_CLOCK_SOURCE,
 # with PRAET_CLOCK_CORE where the clock source reads one. Empty by default, because none of them has
 # a value that is right for every part. An unset knob gets its name in a warning and
 # src/memoriam_praetereo/praet_iudex.h stops the build, unless MMGR_ACCEPT_DEFAULTS is in the list.
@@ -108,7 +108,7 @@ target_compile_options(mmgr_flags INTERFACE
 #
 #   host      whatever this machine is: EMBED_WORD_BITS derives from UINTPTR_MAX. The default build.
 #   word32    a 32-bit word on a 64-bit host. Catches anything that assumed a word holds a pointer.
-#   word16    the narrowest word. Max likely to expose an off-by-one in a tail.
+#   word16    the narrowest word. Likely to expose an off-by-one in a tail.
 #   idx16     a 16-bit index against a 64-bit word, the pairing the static assertion in
 #             embed_types.h exists to police.
 #   checks    debug checks compiled in. MMGR_DEBUG_CHECKS selects the trapping MMGR_ASSERT in

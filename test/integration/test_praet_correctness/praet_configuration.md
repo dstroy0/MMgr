@@ -28,7 +28,7 @@ A build with nothing declared reports six warnings and one error:
 ```
 warning: #warning "PRAET_CHANNELS was not set and took the library default of 8. Set it to the channels your part gives one engine."
 warning: #warning "PRAET_SETTLE_MICROS was not set and took the library default of 0, so this build waits for nothing after an attach. Set it to what your engine takes to come up."
-warning: #warning "PRAET_RETAINALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
+warning: #warning "PRAET_KEEPALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
 warning: #warning "PRAET_RECOVERY was not set and took the library default of 0. A stalled transfer cannot be backed out or scrubbed in this build. Set it to 1 to have that machinery, 0 to say you meant to leave it out."
 warning: #warning "No clock is declared, so PRAET_CLOCK_HZ took the library default of 1000000 and a tick is read as one microsecond. Every deadline in this module is then wrong by whatever the real frequency is. Set it to the frequency of the clock this reads."
 warning: #warning "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_CALLER, because this architecture defines no cycle counter a timer could be pinned to. Say so, and supply the clock."
@@ -53,7 +53,7 @@ Microseconds the engine spends coming up before it will take a transfer. One tim
 
 Default 0, with a warning (`praet_praefinitum.h:64-69`). A build taking that default waits for nothing after an attach.
 
-### PRAET_RETAINALIVE_MICROS
+### PRAET_KEEPALIVE_MICROS
 
 Microseconds a running channel may go unkicked before it reads stalled. This is a watchdog window and never a transfer length. An unkicked window means the engine stopped moving, and says nothing about the transfer having finished.
 
@@ -270,7 +270,7 @@ to, and so the clock is the caller's and no core is named:
 ```
 -DPRAET_CHANNELS=8u
 -DPRAET_SETTLE_MICROS=40u
--DPRAET_RETAINALIVE_MICROS=250u
+-DPRAET_KEEPALIVE_MICROS=250u
 -DPRAET_RECOVERY=1
 -DPRAET_CLOCK_HZ=240000000u
 -DPRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER

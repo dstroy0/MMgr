@@ -145,11 +145,11 @@ EMBED_INLINE void byteio_raw(const ByteioCtx *args)
 }
 
 /**
- * @brief Appends the low args->bytes of args->value, max significant byte first.
+ * @brief Appends the low args->bytes of args->value, most significant byte first.
  *
  * @param[in,out] args Span, value and count [BORROWS].
  * @note magna_extremitas.rev right-aligns the reversed value into its low args->bytes. So a store of
- *       those in the target's own order positions the bytes out max significant first.
+ *       those in the target's own order positions the bytes out most significant first.
  * @note The count selects the stores: eight is one, seven is three, and only an odd final byte is
  *       ever written alone.
  * @note args->bytes must be 1 to 8: the cast to mmgr_endian_width below rests on it.

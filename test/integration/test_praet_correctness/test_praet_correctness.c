@@ -428,7 +428,7 @@ static void praet_pump(embed_word micros)
  * @note The same shape as the thing it times. A limit, a sign of life, and a verdict when the limit
  *       goes by is what the keepalive is, and PRAET_PUMP_NEVER is this one's PRAET_STALLED. It
  *       costs nothing, as long as the next note holds.
- * @warning The limit comes from PRAET_RETAINALIVE_MICROS or PRAET_SETTLE_MICROS, which are numbers the
+ * @warning The limit comes from PRAET_KEEPALIVE_MICROS or PRAET_SETTLE_MICROS, which are numbers the
  *          caller declared. Reading it out of context->keepalive_deadline or context->settle_deadline
  *          would make every case here agree with the schedule by construction and pass forever,
  *          whatever the schedule did.
@@ -634,7 +634,7 @@ void test_a_recovery_is_cleared_by_the_next_transfer(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, 20u);
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE));
     TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 1u) & PRAET_SCRUBBED) != 0u);
@@ -664,7 +664,7 @@ void test_the_watchdog_marks_a_stalled_channel(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS - 1u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the watchdog fired before its window elapsed");
@@ -690,7 +690,7 @@ void test_a_kick_clears_a_stall_and_pushes_the_window(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u);
 
@@ -698,7 +698,7 @@ void test_a_kick_clears_a_stall_and_pushes_the_window(void)
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "a channel that moved again is still marked stalled");
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS - 1u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the kick did not push the window out");
@@ -745,9 +745,9 @@ void test_the_watchdog_fires_on_the_microsecond_the_window_closes(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     const embed_word fired =
-        praet_pump_until(1u, (uint32_t)PRAET_STALLED, EMBED_TRUE, (embed_word)PRAET_RETAINALIVE_MICROS * 2u);
+        praet_pump_until(1u, (uint32_t)PRAET_STALLED, EMBED_TRUE, (embed_word)PRAET_KEEPALIVE_MICROS * 2u);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)PRAET_RETAINALIVE_MICROS, fired,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)PRAET_KEEPALIVE_MICROS, fired,
                                      "the watchdog did not fire on the microsecond its window closed");
 }
 
@@ -766,16 +766,16 @@ void test_a_kick_rearms_the_window_to_a_full_length(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_pump((embed_word)PRAET_RETAINALIVE_MICROS - 1u);
+    praet_pump((embed_word)PRAET_KEEPALIVE_MICROS - 1u);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the watchdog fired before its window had closed");
 
     praet_case_kick(1u, 16u);
 
     const embed_word fired =
-        praet_pump_until(1u, (uint32_t)PRAET_STALLED, EMBED_TRUE, (embed_word)PRAET_RETAINALIVE_MICROS * 2u);
+        praet_pump_until(1u, (uint32_t)PRAET_STALLED, EMBED_TRUE, (embed_word)PRAET_KEEPALIVE_MICROS * 2u);
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)PRAET_RETAINALIVE_MICROS, fired,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)PRAET_KEEPALIVE_MICROS, fired,
                                      "a kick bought less than a whole window");
 }
 
@@ -819,7 +819,7 @@ void test_backing_out_records_what_was_touched(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     praet_case_kick(1u, 20u);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE((praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u);
 
@@ -853,7 +853,7 @@ void test_zeroing_records_that_the_bytes_were_scrubbed(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
 
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_AD_NIHILUM_REDIGERE));
@@ -987,7 +987,7 @@ void test_the_boundary_word_check_measures_one_word(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, sampled);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
@@ -1003,7 +1003,7 @@ void test_the_boundary_word_check_measures_one_word(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, sampled);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
@@ -1018,7 +1018,7 @@ void test_the_boundary_word_check_measures_one_word(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
     praet_case_kick(1u, sampled);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
@@ -1044,7 +1044,7 @@ void test_a_sample_on_a_boundary_measures_nothing(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     praet_case_kick(1u, (embed_word)sizeof(embed_word) * 2u);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
@@ -1069,7 +1069,7 @@ void test_a_context_that_said_no_measures_nothing(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     praet_case_kick(1u, (embed_word)sizeof(embed_word) + 1u);
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE(praet_ordo_resolve(&s_schedule, 1u, PRAET_RESTITUERE_ET_REDINTEGRARE));
 
@@ -1100,7 +1100,7 @@ void test_a_build_without_recovery_still_stalls_and_records_none(void)
     praet_case_attach_and_settle(1u);
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
 
     const uint32_t after = praet_ordo_flags(&s_schedule, 1u);
@@ -1129,7 +1129,7 @@ void test_ticks_scale_into_microseconds(void)
     TEST_ASSERT_TRUE(praet_case_submit(1u, 64u));
 
     // One microsecond short of the window, counted in ticks
-    praet_ordo_advance_ticks(&s_schedule, ((embed_word)PRAET_RETAINALIVE_MICROS - 1u) * per_micro);
+    praet_ordo_advance_ticks(&s_schedule, ((embed_word)PRAET_KEEPALIVE_MICROS - 1u) * per_micro);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "the ticks scaled up to more microseconds than they are worth");
@@ -1421,7 +1421,7 @@ void test_a_backout_covers_what_the_port_last_reported(void)
     TEST_ASSERT_EQUAL_UINT32(20u, praet_ordo_situs(&s_schedule, 1u));
 
     // Nothing reports for a whole window, and so the engine stopped where it last said it was
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_TRUE_MESSAGE((praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED) != 0u,
                              "the engine stopped and the watchdog did not notice");
@@ -1493,11 +1493,11 @@ void test_polling_the_port_retains_the_watchdog_fed(void)
 
     // The majority of the window goes by, then the port reports the engine is still alive. Position unchanged,
     // because this engine says how far it got only when it finishes
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS - 1u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
     praet_case_kick(1u, 0u);
     praet_ordo_poll(&s_schedule);
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS - 1u);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS - 1u);
     praet_ordo_poll(&s_schedule);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, praet_ordo_flags(&s_schedule, 1u) & PRAET_STALLED,
                                      "a channel the port retained reporting on was marked stalled");
@@ -1548,7 +1548,7 @@ void test_the_interrupt_can_raise_set_any_number_of_times(void)
     praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(0u);
     TEST_ASSERT_TRUE(praet_case_submit(0u, 64u));
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
 
     for (unsigned raised = 0u; raised < 100u; raised++)
     {
@@ -1575,7 +1575,7 @@ void test_a_nested_service_declines_while_the_lock_is_taken(void)
     praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(0u);
     TEST_ASSERT_TRUE(praet_case_submit(0u, 64u));
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
 
     const uint32_t before = praet_ordo_flags(&s_schedule, 0u);
 

@@ -26,7 +26,7 @@
 
 #include "mmgr.h"
 
-// PRAET_CHANNELS, PRAET_SETTLE_MICROS, PRAET_RETAINALIVE_MICROS and PRAET_RECOVERY come from here. None
+// PRAET_CHANNELS, PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS and PRAET_RECOVERY come from here. None
 // has a value that is right for every part. An unset one takes a default and raises a warning
 // that names itself. What stops the build is praet_iudex.h, below, once every one of them has its say
 #include "memoriam_praetereo/praet_praefinitum.h"

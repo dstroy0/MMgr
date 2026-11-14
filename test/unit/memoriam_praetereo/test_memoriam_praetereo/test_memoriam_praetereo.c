@@ -221,7 +221,7 @@ void test_an_unported_build_reports_no_progress_and_stalls(void)
     TEST_ASSERT_TRUE_MESSAGE(PraetSubmit(s_schedule, 0, s_transfer_pool, 0u, 32u),
                              "a settled channel refused a transfer");
 
-    praet_ordo_advance(&s_schedule, (embed_word)PRAET_RETAINALIVE_MICROS);
+    praet_ordo_advance(&s_schedule, (embed_word)PRAET_KEEPALIVE_MICROS);
     praet_ordo_poll(&s_schedule);
 
     const uint32_t after = praet_ordo_flags(&s_schedule, PRAET_TEST_CHANNEL);

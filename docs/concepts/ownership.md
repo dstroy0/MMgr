@@ -40,7 +40,7 @@ one release serves both tiers, since the cell's offset says which tier it lies i
 are for: a temporary cell lives inside one call, a persistent cell lives on.
 
 Nothing is reallocated: `cell` dereferences without faulting after its release and returns whatever is there,
-which, after the next allocation, is somebody else's data. This is the single max likely way to
+which, after the next allocation, is somebody else's data. This is the single likely way to
 misuse this library. On a max-security cellblock the release zeroes the cell first, and
 what is read afterwards is zeros instead of the previous prisoner; on a minimum-security one nothing
 is scrubbed.
