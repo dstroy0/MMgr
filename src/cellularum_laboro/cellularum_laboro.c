@@ -888,14 +888,14 @@ EMBED_INLINE size_t cellul_pick_rows(const CellulCtx *args)
  * @note A word load at an odd address goes through mmgr_proxim_word_t, which carries EMBED_ALIGN(1).
  *       Neither Xtensa nor RISC-V has an unaligned word load, so the compiler assembles one out of
  *       MMGR_SWAR_BYTES byte loads and shifts. The derivation costs one byte load, one shift and an or.
- * @note Branches on MMGR_HW_BIG_ENDIAN because this is lane order and not wire order: which end of the
+ * @note Branches on EMBED_BIG_ENDIAN because this is lane order and not wire order: which end of the
  *       word byte zero sits at. verbum_scrutor decides the same question the same way. The endian
  *       module answers a different one, the order of the bytes of a value on the wire, and does not apply.
  */
 #if !MMGR_HW_FAST_UNALIGNED
 EMBED_INLINE embed_word cellul_word_next(embed_word current, uint8_t next)
 {
-#if MMGR_HW_BIG_ENDIAN
+#if EMBED_BIG_ENDIAN
     // Explicit casts hold the shifted word and the byte that enters the low lane at embed_word width
     return (embed_word)((current << 8u) | (embed_word)next);
 #else

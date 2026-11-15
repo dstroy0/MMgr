@@ -13,7 +13,7 @@
  *
  * @note One embed_word counts as MMGR_SWAR_BYTES independent lanes. One test covers a whole word at once.
  * @note A lane mask carries one set bit per lane that matches, in that lane's high bit. mask.spread widens it.
- * @note The entries whose sense depends on byte order bind through MMGR_HW_BIG_ENDIAN in the tables below.
+ * @note The entries whose sense depends on byte order bind through EMBED_BIG_ENDIAN in the tables below.
  */
 #ifndef MMGR_VERBUM_SCRUTOR_H
 #define MMGR_VERBUM_SCRUTOR_H
@@ -502,7 +502,7 @@ EMBED_TABLE_STORAGE ScrutLaneNs lane EMBED_UNUSED = {
     .any_digit = mmgr_scrut_any_digit,
     .alpha = mmgr_scrut_alpha,
     .count = mmgr_scrut_lane_count,
-#if MMGR_HW_BIG_ENDIAN
+#if EMBED_BIG_ENDIAN
     .first = mmgr_scrut_lane_hi,
     .last = mmgr_scrut_lane_lo,
 #else
@@ -520,7 +520,7 @@ EMBED_TABLE_STORAGE ScrutLaneNs lane EMBED_UNUSED = {
  */
 EMBED_TABLE_STORAGE ScrutMaskNs mask EMBED_UNUSED = {
     .spread = mmgr_scrut_spread,
-#if MMGR_HW_BIG_ENDIAN
+#if EMBED_BIG_ENDIAN
     .drop_first = mmgr_scrut_drop_hi,
     .drop_last = mmgr_scrut_drop_lo,
 #else

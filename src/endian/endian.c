@@ -12,7 +12,7 @@
  *
  * @note The le pair stores and loads straight through proximus_operor, which moves bytes in the host's
  *       order. The be pair adds endian_rev to that, before the store in endian_wr_be and after the load
- *       in endian_rd_be. Nothing here reads MMGR_HW_BIG_ENDIAN, and so which absolute order a table is
+ *       in endian_rd_be. Nothing here reads EMBED_BIG_ENDIAN, and so which absolute order a table is
  *       for follows from the host.
  * @note One reversal serves both tables: endian_rev reverses whatever it receives and carries no order
  *       of its own.

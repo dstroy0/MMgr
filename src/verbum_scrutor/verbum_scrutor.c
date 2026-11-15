@@ -416,7 +416,7 @@ EMBED_INLINE embed_word scrut_bytes_below(const ScrutMaskCtx *args)
     {
         return all;
     }
-#if MMGR_HW_BIG_ENDIAN
+#if EMBED_BIG_ENDIAN
     return all << ((MMGR_SWAR_BYTES - args->bytes) * 8u);
 #else
     return all >> ((MMGR_SWAR_BYTES - args->bytes) * 8u);
@@ -467,7 +467,7 @@ EMBED_INLINE embed_word scrut_tail_mask(const ScrutMaskCtx *args)
  */
 EMBED_INLINE embed_word scrut_lanes_before(const ScrutMaskCtx *args)
 {
-#if MMGR_HW_BIG_ENDIAN
+#if EMBED_BIG_ENDIAN
     return ~EMBED_CALL(scrut_smear, ScrutMaskCtx, .mask = args->mask) & MMGR_VERBUM_SCRUTOR_HIGH;
 #else
     return EMBED_CALL(scrut_below_lo, ScrutMaskCtx, .mask = args->mask);
@@ -501,7 +501,7 @@ EMBED_INLINE embed_word scrut_run(const ScrutMaskCtx *args)
         // pass lands exactly on args->bytes and does not overshoot it. The variable have advances on
         // its own line below, and so nothing in the test changes it.
         const size_t step = (have < args->bytes - have) ? have : args->bytes - have;
-#if MMGR_HW_BIG_ENDIAN
+#if EMBED_BIG_ENDIAN
         starts &= (starts << (step * 8u));
 #else
         starts &= (starts >> (step * 8u));

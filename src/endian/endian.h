@@ -12,7 +12,7 @@
  * @date 2026-08-29
  *
  * @note parva_extremitas moves bytes in the host's own order and magna_extremitas in the reverse of it.
- *       Nothing here consults MMGR_HW_BIG_ENDIAN, and so the two names hold on a little endian host and
+ *       Nothing here consults EMBED_BIG_ENDIAN, and so the two names hold on a little endian host and
  *       are for the opposite orders on a big endian one.
  * @note The two tables share the table type and the rev entry. Their wr and rd differ, since one pair
  *       reverses and the other does not.
@@ -143,7 +143,7 @@ uint64_t mmgr_endian_rev(const EndianCfg *args);
  * @brief Dispatch table instance named parva_extremitas, the little endian order.
  *
  * @note wr and rd move bytes as they lie, and so they land in the host's own order. This module never
- *       consults MMGR_HW_BIG_ENDIAN. So the name holds on a little endian host and this table writes
+ *       consults EMBED_BIG_ENDIAN. So the name holds on a little endian host and this table writes
  *       big endian bytes on a big endian one.
  * @note rev is the same function both tables use.
  */
