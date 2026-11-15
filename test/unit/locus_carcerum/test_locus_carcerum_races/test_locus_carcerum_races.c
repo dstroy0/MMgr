@@ -31,8 +31,8 @@ static jmp_buf s_fatal;
 #undef MMGR_FATAL
 #define MMGR_FATAL(msg_) longjmp(s_fatal, 1)
 
-// the owners and the misnamed hook have their definitions in this unit, below: the source leaves its table of none and its
-// weak hook out
+// the owners and the misnamed hook have their definitions in this unit, below: the source leaves its table of none and
+// its weak hook out
 #define MMGR_OWNERS_IN_THIS_UNIT 1
 #define MMGR_MISNAMED_IN_THIS_UNIT 1
 #include "locus_carcerum/locus_carcerum.c"
@@ -184,7 +184,8 @@ void test_a_foot_is_counted_off_once_and_a_claim_not_permitted_touches_nothing(v
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&BLOCK->in_use));
 }
 
-void test_a_bump_the_gap_cannot_meet_leaves_the_boundary_moved_records_the_overrun_and_positions_its_words_on_the_sink(void)
+void test_a_bump_the_gap_cannot_meet_leaves_the_boundary_moved_records_the_overrun_and_positions_its_words_on_the_sink(
+    void)
 {
     const CarcerTakeCtx take = {RACED_BYTES, s_one, 0u, carcer_all(1)};
     const uintptr_t answer = carcer_bumped(BLOCK, &take, carcer_all(1));
@@ -266,8 +267,7 @@ void test_a_pass_that_finds_the_series_cellularum_closed_misses_and_touches_noth
     TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_attempted(BLOCK, s_one->place, carcer_bumped, &take, &missed));
     TEST_ASSERT_EQUAL_size_t(SIZE_MAX, missed);
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(BLOCK));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(
-        0u, lanes_busy(), "the lane is let go");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, lanes_busy(), "the lane is let go");
     (void)embed_atomic_word_fetch_and(&BLOCK->closed, ~CARCER_CLOSED);
     TEST_ASSERT_NOT_EQUAL(0u, (uint64_t)carcer_attempted(BLOCK, s_one->place, carcer_bumped, &take, &missed));
     TEST_ASSERT_EQUAL_size_t(0u, missed);
@@ -489,8 +489,7 @@ void test_a_claim_sets_the_lowest_free_bit_and_a_full_table_claims_nothing(void)
     // the bits past the cells in the last word stay set for good
     const embed_atomic_usize_value past = embed_atomic_usize_load(&movable->claimed[words - 1u]);
 
-    TEST_ASSERT_EQUAL_size_t(RACED_CELLS - ((words - 1u) * MMGR_MOVABLE_CLAIM_BITS),
-                             lowest_set(past));
+    TEST_ASSERT_EQUAL_size_t(RACED_CELLS - ((words - 1u) * MMGR_MOVABLE_CLAIM_BITS), lowest_set(past));
     for (size_t at = 0u; at < RACED_CELLS; at += 1u)
     {
         TEST_ASSERT_EQUAL_PTR(&movable->entry[at], carcer_entry_claimed(movable, CARCER_WORD, carcer_all(1)));

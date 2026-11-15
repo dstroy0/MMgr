@@ -314,7 +314,8 @@ void test_a_cell_answers_the_owner_it_counts_to(void)
 
     TEST_ASSERT_EQUAL_PTR(writer, mmgr_owner_of_buf(&counted_plain_ctx, retained));
     TEST_ASSERT_EQUAL_PTR(scratch, mmgr_owner_of_buf(&counted_wiped_ctx, scratched));
-    TEST_ASSERT_NULL_MESSAGE(mmgr_owner_of_buf(&counted_wiped_ctx, retained), "a cell of another cellblock answers none");
+    TEST_ASSERT_NULL_MESSAGE(mmgr_owner_of_buf(&counted_wiped_ctx, retained),
+                             "a cell of another cellblock answers none");
     TEST_ASSERT_NULL(mmgr_owner_of_buf(&counted_plain_ctx, NULL));
     counted.plain.persistent_buf_release(retained, mmgr_owner_of_buf(&counted_plain_ctx, retained));
     TEST_ASSERT_EQUAL_size_t(0u, in_use_of(writer));

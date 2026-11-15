@@ -1016,7 +1016,8 @@ void dbench_run(void)
                 DBENCH_AB("cmp_ctx", iters, n, DBENCH_RETAIN(cmp_via_ctx(&ctx)),
                           DBENCH_RETAIN(cmp_unaligned(g_a, g_b, g_cmp_len)));
 
-                DBENCH_AB("cmp_hoist", iters, n, DBENCH_RETAIN(cmp_via_ctx(&ctx)), DBENCH_RETAIN(cmp_ctx_hoisted(&ctx)));
+                DBENCH_AB("cmp_hoist", iters, n, DBENCH_RETAIN(cmp_via_ctx(&ctx)),
+                          DBENCH_RETAIN(cmp_ctx_hoisted(&ctx)));
 
                 g_cmp_a = g_a;
                 g_cmp_b = g_b;
@@ -1036,10 +1037,10 @@ void dbench_run(void)
                 DBENCH_RETAIN((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_d, .src = g_a, .bytes = n), (uintptr_t)g_d)),
                 DBENCH_RETAIN(memcpy(g_d, g_a, n)));
 
-            DBENCH_AB(
-                "set", iters, n,
-                DBENCH_RETAIN((EMBED_CALL(memor.set, MemoriaCfg, .dst = g_d, .bytes = n, .val = 0x5Au), (uintptr_t)g_d)),
-                DBENCH_RETAIN(memset(g_d, 0x5A, n)));
+            DBENCH_AB("set", iters, n,
+                      DBENCH_RETAIN(
+                          (EMBED_CALL(memor.set, MemoriaCfg, .dst = g_d, .bytes = n, .val = 0x5Au), (uintptr_t)g_d)),
+                      DBENCH_RETAIN(memset(g_d, 0x5A, n)));
 
             DBENCH_AB("move_up", iters, n,
                       DBENCH_RETAIN(
@@ -1049,8 +1050,8 @@ void dbench_run(void)
 
             DBENCH_AB("move_down", iters, n,
                       DBENCH_RETAIN((EMBED_CALL(memor.move_down, MemoriaCfg, .dst = g_d, .src = g_d + MMGR_ALIGN_BYTES,
-                                              .bytes = n),
-                                   (uintptr_t)g_d)),
+                                                .bytes = n),
+                                     (uintptr_t)g_d)),
                       DBENCH_RETAIN(memmove(g_d, g_d + MMGR_ALIGN_BYTES, n)));
 
             // The entry against a step for step reproduction of it. Both walk one word an
@@ -1062,12 +1063,12 @@ void dbench_run(void)
                     (EMBED_CALL(memor.move_up, MemoriaCfg, .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n),
                      (uintptr_t)g_d)),
                 DBENCH_RETAIN((move_up_one_word(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)));
+                               (uintptr_t)g_d)));
 
             DBENCH_AB(
                 "mv_entry_swapped", iters, n,
                 DBENCH_RETAIN((move_up_one_word(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)),
+                               (uintptr_t)g_d)),
                 DBENCH_RETAIN(
                     (EMBED_CALL(memor.move_up, MemoriaCfg, .dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n),
                      (uintptr_t)g_d)));
@@ -1077,32 +1078,36 @@ void dbench_run(void)
             DBENCH_AB(
                 "mv_roll", iters, n,
                 DBENCH_RETAIN((move_up_one_word(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)),
-                DBENCH_RETAIN((move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)));
+                               (uintptr_t)g_d)),
+                DBENCH_RETAIN(
+                    (move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                     (uintptr_t)g_d)));
 
             DBENCH_AB(
                 "mv_roll_swapped", iters, n,
-                DBENCH_RETAIN((move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)),
+                DBENCH_RETAIN(
+                    (move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                     (uintptr_t)g_d)),
                 DBENCH_RETAIN((move_up_one_word(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)));
+                               (uintptr_t)g_d)));
 
             // Four words either way, and only the order differs: the second arm takes all four
             // loads before any store. Without restrict the compiler cannot make that move itself
-            DBENCH_AB(
-                "mv_hoist", iters, n,
-                DBENCH_RETAIN((move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)),
-                DBENCH_RETAIN((move_up_four_loads(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)));
+            DBENCH_AB("mv_hoist", iters, n,
+                      DBENCH_RETAIN(
+                          (move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                           (uintptr_t)g_d)),
+                      DBENCH_RETAIN(
+                          (move_up_four_loads(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                           (uintptr_t)g_d)));
 
-            DBENCH_AB(
-                "mv_hoist_swapped", iters, n,
-                DBENCH_RETAIN((move_up_four_loads(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)),
-                DBENCH_RETAIN((move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)));
+            DBENCH_AB("mv_hoist_swapped", iters, n,
+                      DBENCH_RETAIN(
+                          (move_up_four_loads(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                           (uintptr_t)g_d)),
+                      DBENCH_RETAIN(
+                          (move_up_four_words(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                           (uintptr_t)g_d)));
 
             // A collision point of one word, below the threshold. The second arm finds the chunks
             // would be too small and walks backward exactly as the first one does. This row is what
@@ -1110,31 +1115,34 @@ void dbench_run(void)
             DBENCH_AB(
                 "mv_tight", iters, n,
                 DBENCH_RETAIN((move_up_one_word(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)),
-                DBENCH_RETAIN((move_up_collision(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)));
+                               (uintptr_t)g_d)),
+                DBENCH_RETAIN(
+                    (move_up_collision(&(BenchMoveCtx){.dst = g_d + MMGR_ALIGN_BYTES, .src = g_d, .bytes = n}),
+                     (uintptr_t)g_d)));
 
             // A collision point of g_move_gap bytes. Below that length the two regions never touch
             // and the whole move is one forward copy. Above it the move goes as chunks of that size,
             // taken from the top down. This row answers the question
-            DBENCH_AB("mv_collide", iters, n,
-                      DBENCH_RETAIN((move_up_one_word(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_RETAIN((move_up_collision(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "mv_collide", iters, n,
+                DBENCH_RETAIN((move_up_one_word(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                               (uintptr_t)g_d)),
+                DBENCH_RETAIN((move_up_collision(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                               (uintptr_t)g_d)));
 
-            DBENCH_AB("mv_collide_swapped", iters, n,
-                      DBENCH_RETAIN((move_up_collision(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)),
-                      DBENCH_RETAIN((move_up_one_word(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
-                                   (uintptr_t)g_d)));
+            DBENCH_AB(
+                "mv_collide_swapped", iters, n,
+                DBENCH_RETAIN((move_up_collision(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                               (uintptr_t)g_d)),
+                DBENCH_RETAIN((move_up_one_word(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
+                               (uintptr_t)g_d)));
 
             // The collision arm against the forward copy it routes to, at the same collision point.
             // The forward copy on regions this far apart is the floor a backward move could reach
             DBENCH_AB(
                 "mv_vs_cpy", iters, n,
                 DBENCH_RETAIN((move_up_collision(&(BenchMoveCtx){.dst = g_d + g_move_gap, .src = g_d, .bytes = n}),
-                             (uintptr_t)g_d)),
+                               (uintptr_t)g_d)),
                 DBENCH_RETAIN((EMBED_CALL(memor.cpy, MemoriaCfg, .dst = g_b, .src = g_d, .bytes = n), (uintptr_t)g_d)));
 
             // memor.cpy against a step for step reproduction of its word loop. Both are four words
@@ -1179,10 +1187,10 @@ void dbench_run(void)
                 DBENCH_RETAIN(__builtin_bswap64(g_swap_val)));
 
             DBENCH_AB("wr32", iters, 4u,
-                      DBENCH_RETAIN(EMBED_CALL(magna_extremitas.wr, EndianCfg, .dst = g_d + g_swap_off, .val = g_swap_val,
-                                             .width = MMGR_ENDIAN_32)),
+                      DBENCH_RETAIN(EMBED_CALL(magna_extremitas.wr, EndianCfg, .dst = g_d + g_swap_off,
+                                               .val = g_swap_val, .width = MMGR_ENDIAN_32)),
                       DBENCH_RETAIN((memcpy(g_d + g_swap_off, &(uint32_t){__builtin_bswap32((uint32_t)g_swap_val)}, 4u),
-                                   (uintptr_t)g_d)));
+                                     (uintptr_t)g_d)));
 
             DBENCH_AB("rd32", iters, 4u,
                       DBENCH_RETAIN(
@@ -1215,12 +1223,14 @@ void dbench_run(void)
             DBENCH_AB("ring_avail_ord", iters, 8u,
                       DBENCH_RETAIN(EMBED_CALL(anularis.available, AnularisCfg, .ring = &g_ring)),
                       DBENCH_RETAIN(atomic_load_explicit(&g_ord_head, memory_order_acquire) -
-                                  atomic_load_explicit(&g_ord_tail, memory_order_acquire)));
+                                    atomic_load_explicit(&g_ord_tail, memory_order_acquire)));
 
-            DBENCH_AB("ring_vacant", iters, 8u, DBENCH_RETAIN(EMBED_CALL(anularis.vacant, AnularisCfg, .ring = &g_ring)),
+            DBENCH_AB("ring_vacant", iters, 8u,
+                      DBENCH_RETAIN(EMBED_CALL(anularis.vacant, AnularisCfg, .ring = &g_ring)),
                       DBENCH_RETAIN(RING_CAP - (g_hand_head - g_hand_tail)));
 
-            DBENCH_AB("ring_round", iters, RING_SPAN, DBENCH_RETAIN(ring_round_mmgr()), DBENCH_RETAIN(ring_round_hand()));
+            DBENCH_AB("ring_round", iters, RING_SPAN, DBENCH_RETAIN(ring_round_mmgr()),
+                      DBENCH_RETAIN(ring_round_hand()));
 
             DBENCH_AB("ring_byte", iters, 1u, DBENCH_RETAIN(ring_byte_mmgr()), DBENCH_RETAIN(ring_byte_hand()));
 
@@ -1228,7 +1238,7 @@ void dbench_run(void)
 
             DBENCH_AB("ring_init", iters, 8u,
                       DBENCH_RETAIN(EMBED_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_ring_buf,
-                                             .capacity = RING_CAP, .segment_count = RING_SEGS)),
+                                               .capacity = RING_CAP, .segment_count = RING_SEGS)),
                       DBENCH_RETAIN((g_hand_head = 0u, g_hand_tail = 0u, (uintptr_t)1)));
 
             (void)EMBED_CALL(anularis.init, AnularisCfg, .ring = &g_ring, .buf = g_ring_buf, .capacity = RING_CAP,
@@ -1245,13 +1255,13 @@ void dbench_run(void)
 
             DBENCH_OP("span_after", iters,
                       DBENCH_RETAIN(EMBED_CALL(spat.after, SpatiumCfg,
-                                             .span = EMBED_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP),
-                                             .count = g_take)
-                                      .cap));
+                                               .span = EMBED_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP),
+                                               .count = g_take)
+                                        .cap));
 
             DBENCH_OP("span_ok", iters,
                       DBENCH_RETAIN(EMBED_CALL(spat.ok, SpatiumCfg,
-                                             .span = EMBED_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP))));
+                                               .span = EMBED_CALL(spat.from, SpatiumCfg, .buf = g_d, .cap = CAP))));
 
             DBENCH_OP("series_cellularum_who_owns_buf", iters,
                       DBENCH_RETAIN(ram.general.who_owns_buf((const void *)(g_d + g_swap_off))));
@@ -1273,19 +1283,19 @@ void dbench_run(void)
             EMBED_CALL(exter.pingpong_init, ExternaCfg, .pingpong = &pingpong);
 
             DBENCH_OP("ext_place_dram", iters,
-                      DBENCH_RETAIN(EMBED_CALL(exter.place, ExternaCfg, .size = g_ext_small, .dma_required = EMBED_FALSE,
-                                             .free_dram = 65536u, .free_psram = 1048576u, .psram_threshold = 4096u,
-                                             .dram_reserve = 8192u)));
+                      DBENCH_RETAIN(EMBED_CALL(exter.place, ExternaCfg, .size = g_ext_small,
+                                               .dma_required = EMBED_FALSE, .free_dram = 65536u, .free_psram = 1048576u,
+                                               .psram_threshold = 4096u, .dram_reserve = 8192u)));
 
             DBENCH_OP("ext_place_psram", iters,
-                      DBENCH_RETAIN(EMBED_CALL(exter.place, ExternaCfg, .size = g_ext_large, .dma_required = EMBED_FALSE,
-                                             .free_dram = 65536u, .free_psram = 1048576u, .psram_threshold = 4096u,
-                                             .dram_reserve = 8192u)));
+                      DBENCH_RETAIN(EMBED_CALL(exter.place, ExternaCfg, .size = g_ext_large,
+                                               .dma_required = EMBED_FALSE, .free_dram = 65536u, .free_psram = 1048576u,
+                                               .psram_threshold = 4096u, .dram_reserve = 8192u)));
 
             DBENCH_OP("ext_place_dma", iters,
                       DBENCH_RETAIN(EMBED_CALL(exter.place, ExternaCfg, .size = g_ext_small, .dma_required = EMBED_TRUE,
-                                             .free_dram = 65536u, .free_psram = 1048576u, .psram_threshold = 4096u,
-                                             .dram_reserve = 8192u)));
+                                               .free_dram = 65536u, .free_psram = 1048576u, .psram_threshold = 4096u,
+                                               .dram_reserve = 8192u)));
 
             DBENCH_OP("ext_pp_fill", iters,
                       DBENCH_RETAIN(EMBED_CALL(exter.pingpong_fill, ExternaCfg, .pingpong = &pingpong)));
@@ -1401,13 +1411,15 @@ void dbench_run(void)
                        EMBED_CALL(byteio.raw, OctetusCfg, .write_span = &w, .src = g_a, .bytes = g_take),
                        DBENCH_RETAIN(w.pos)));
 
-            DBENCH_OP("wire_take_be4", iters,
-                      (r.pos = 0u, r.err = EMBED_FALSE,
-                       DBENCH_RETAIN(EMBED_CALL(byteio.take_be, OctetusCfg, .read_span = &r, .out = &got, .bytes = 4u))));
+            DBENCH_OP(
+                "wire_take_be4", iters,
+                (r.pos = 0u, r.err = EMBED_FALSE,
+                 DBENCH_RETAIN(EMBED_CALL(byteio.take_be, OctetusCfg, .read_span = &r, .out = &got, .bytes = 4u))));
 
-            DBENCH_OP("wire_take_be8", iters,
-                      (r.pos = 0u, r.err = EMBED_FALSE,
-                       DBENCH_RETAIN(EMBED_CALL(byteio.take_be, OctetusCfg, .read_span = &r, .out = &got, .bytes = 8u))));
+            DBENCH_OP(
+                "wire_take_be8", iters,
+                (r.pos = 0u, r.err = EMBED_FALSE,
+                 DBENCH_RETAIN(EMBED_CALL(byteio.take_be, OctetusCfg, .read_span = &r, .out = &got, .bytes = 8u))));
 
             EMBED_CALL(spat.reset, SpatiumCfg, .at = &w);
             EMBED_CALL(byteio.put_be, OctetusCfg, .write_span = &w, .value = 64u, .bytes = 4u);
@@ -1418,7 +1430,7 @@ void dbench_run(void)
             DBENCH_OP("wire_rd_str", iters,
                       (rs.pos = 0u, rs.err = EMBED_FALSE,
                        DBENCH_RETAIN(EMBED_CALL(byteio.rd_str, OctetusCfg, .read_span = &rs, .blob = &blob,
-                                              .blob_bytes = &blen))));
+                                                .blob_bytes = &blen))));
 
             mmgr_span field = EMBED_CALL(spat.from, SpatiumCfg, .buf = g_b, .cap = 32u);
 

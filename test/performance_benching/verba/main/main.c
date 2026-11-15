@@ -1786,7 +1786,7 @@ void dbench_run(void)
 
             DBENCH_AB("call", iters, d,
                       DBENCH_RETAIN(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_out, .cap = sizeof g_out,
-                                             .at = 0u, .val = v, .base = 10u, .min = 1u)),
+                                               .at = 0u, .val = v, .base = 10u, .min = 1u)),
                       DBENCH_RETAIN(verba_uint_flat(g_out, v)));
 
             DBENCH_AB("arith", iters, d, DBENCH_RETAIN(was(g_out, v)), DBENCH_RETAIN(verba_uint_flat(g_out, v)));
@@ -1810,12 +1810,12 @@ void dbench_run(void)
 
             DBENCH_AB("s:put", iters, sizeof text - 1u,
                       DBENCH_RETAIN(EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .text = text)),
+                                               .at = 0u, .text = text)),
                       DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%s", text)));
 
             DBENCH_AB("s:put_n", iters, sizeof text - 1u,
                       DBENCH_RETAIN(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .text = text, .text_len = sizeof text - 1u)),
+                                               .at = 0u, .text = text, .text_len = sizeof text - 1u)),
                       (memcpy(g_wide, text, sizeof text - 1u), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:uint32", iters, 10u, DBENCH_RETAIN(uint_test_inside(g_wide, 4294967295ull)),
@@ -1898,80 +1898,81 @@ void dbench_run(void)
 
             DBENCH_AB("s:put_n1", iters, 1u,
                       DBENCH_RETAIN(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .text = text, .text_len = 1u)),
+                                               .at = 0u, .text = text, .text_len = 1u)),
                       (memcpy(g_wide, text, 1u), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:put_safe", iters, sizeof text - 1u,
                       DBENCH_RETAIN(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .text = text, .text_len = g_len)),
+                                               .at = 0u, .text = text, .text_len = g_len)),
                       DBENCH_RETAIN(libc_put_n(g_wide, sizeof g_wide, 0u, text, g_len)));
 
             DBENCH_AB("s:put_meas", iters, sizeof text - 1u,
                       DBENCH_RETAIN(EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .text = g_text)),
+                                               .at = 0u, .text = g_text)),
                       (memcpy(g_wide, g_text, strlen(g_text)), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:put_run", iters, sizeof text - 1u,
                       DBENCH_RETAIN(EMBED_CALL(verba_textus.put_n, VerbaTextusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .text = text, .text_len = g_len)),
+                                               .at = 0u, .text = text, .text_len = g_len)),
                       (memcpy(g_wide, text, g_len), DBENCH_RETAIN(g_wide)));
 
             DBENCH_AB("s:ch", iters, 1u,
                       DBENCH_RETAIN(EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .ch = 'x')),
+                                               .at = 0u, .ch = 'x')),
                       DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%c", 'x')));
 
             DBENCH_AB("s:u32", iters, 10u,
                       DBENCH_RETAIN(EMBED_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .val = 4294967295u)),
+                                               .at = 0u, .val = 4294967295u)),
                       DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%u", 4294967295u)));
 
             DBENCH_AB(
                 "s:u64clip", iters, 20u,
                 DBENCH_RETAIN(EMBED_CALL(verba_numerus.u64_clip, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                       .at = 0u, .val = 18446744073709551615ull, .columns = 24u)),
+                                         .at = 0u, .val = 18446744073709551615ull, .columns = 24u)),
                 DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%24llu", 18446744073709551615ull)));
 
             DBENCH_AB("s:u64", iters, 20u,
                       DBENCH_RETAIN(EMBED_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .val = 18446744073709551615ull)),
+                                               .at = 0u, .val = 18446744073709551615ull)),
                       DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%llu", 18446744073709551615ull)));
 
             DBENCH_AB("s:i64", iters, 19u,
                       DBENCH_RETAIN(EMBED_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .sval = -9223372036854775807ll)),
+                                               .at = 0u, .sval = -9223372036854775807ll)),
                       DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%lld", -9223372036854775807ll)));
 
             DBENCH_AB("s:hex", iters, 8u,
                       DBENCH_RETAIN(EMBED_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .val = 0xDEADBEEFu)),
+                                               .at = 0u, .val = 0xDEADBEEFu)),
                       DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%x", 0xDEADBEEFu)));
 
             DBENCH_AB("s:g", iters, 17u,
                       DBENCH_RETAIN(EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .real = 3.14159265358979, .sig = 17u)),
+                                               .at = 0u, .real = 3.14159265358979, .sig = 17u)),
                       DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%.*g", 17, 3.14159265358979)));
 
-            DBENCH_AB("s:fixed", iters, 6u,
-                      DBENCH_RETAIN(EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .real = 3.14159265358979, .decimals = 6u)),
-                      DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%.*f", 6, 3.14159265358979)));
+            DBENCH_AB(
+                "s:fixed", iters, 6u,
+                DBENCH_RETAIN(EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
+                                         .at = 0u, .real = 3.14159265358979, .decimals = 6u)),
+                DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "%.*f", 6, 3.14159265358979)));
 
             DBENCH_OP("f:whole", iters,
-                      DBENCH_RETAIN(EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .real = g_rec_real2, .decimals = 6u)));
+                      DBENCH_RETAIN(EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = g_wide,
+                                               .cap = sizeof g_wide, .at = 0u, .real = g_rec_real2, .decimals = 6u)));
 
             DBENCH_OP("f:ip", iters,
                       DBENCH_RETAIN(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .val = g_fix_ip, .base = 10u, .min = 1u)));
+                                               .at = 0u, .val = g_fix_ip, .base = 10u, .min = 1u)));
 
             DBENCH_OP("f:frac", iters,
                       DBENCH_RETAIN(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .val = g_fix_frac, .base = 10u, .min = 6u)));
+                                               .at = 0u, .val = g_fix_frac, .base = 10u, .min = 6u)));
 
             DBENCH_OP("f:point", iters,
                       DBENCH_RETAIN(EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .ch = '.')));
+                                               .at = 0u, .ch = '.')));
 
             DBENCH_OP(
                 "f:scale", iters,
@@ -1979,7 +1980,7 @@ void dbench_run(void)
 
             DBENCH_OP("g:whole", iters,
                       DBENCH_RETAIN(EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .real = g_rec_real2, .sig = 17u)));
+                                               .at = 0u, .real = g_rec_real2, .sig = 17u)));
 
             DBENCH_OP("g:strip", iters, DBENCH_RETAIN((g_g_mant % 10u) == 0u));
 
@@ -2003,17 +2004,18 @@ void dbench_run(void)
 
             DBENCH_OP("g:small", iters,
                       DBENCH_RETAIN(EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .real = g_rec_small, .sig = 17u)));
+                                               .at = 0u, .real = g_rec_small, .sig = 17u)));
 
             DBENCH_OP("g:digits", iters,
                       DBENCH_RETAIN(EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .at = 0u, .val = g_g_mant, .base = 10u, .min = 17u)));
+                                               .at = 0u, .val = g_g_mant, .base = 10u, .min = 17u)));
 
             DBENCH_OP("g:emit", iters, (emit20(g_wide, g_g_mant, 17u), DBENCH_RETAIN(g_wide)));
 
             DBENCH_OP("g:cut", iters, DBENCH_RETAIN(g_g_mant / POW10_64[8]));
 
-            DBENCH_AB("g:cut_magic", iters, 8u, DBENCH_RETAIN(g_g_mant / POW10_64[8]), DBENCH_RETAIN(cut_magic(g_g_mant)));
+            DBENCH_AB("g:cut_magic", iters, 8u, DBENCH_RETAIN(g_g_mant / POW10_64[8]),
+                      DBENCH_RETAIN(cut_magic(g_g_mant)));
 
             DBENCH_OP(
                 "f:pow_zero", iters,
@@ -2104,9 +2106,9 @@ void dbench_run(void)
 
             DBENCH_AB("s:record", 2000u, 34u,
                       DBENCH_RETAIN(EMBED_CALL(numer.emit, NumerosCfg, .out = g_wide, .cap = sizeof g_wide,
-                                             .vals = fields, .nvals = sizeof fields / sizeof fields[0])),
+                                               .vals = fields, .nvals = sizeof fields / sizeof fields[0])),
                       DBENCH_RETAIN(snprintf(g_wide, sizeof g_wide, "id=%llu x=%08lx f=%.4f",
-                                           (unsigned long long)g_rec_u64, (unsigned long)g_rec_hex, g_rec_real)));
+                                             (unsigned long long)g_rec_u64, (unsigned long)g_rec_hex, g_rec_real)));
         }
 
         {
@@ -2158,14 +2160,16 @@ void dbench_run(void)
                           DBENCH_RETAIN(digits_per_char(g_wide, sizeof g_wide, 0u, positioned, 17u, 1u)),
                           DBENCH_RETAIN(digits_one_test(g_wide, sizeof g_wide, 0u, positioned, 17u, 1u)));
 
-                DBENCH_AB("s:d_plain", iters, 6u, DBENCH_RETAIN(digits_per_char(g_wide, sizeof g_wide, 0u, positioned, 6u, 0u)),
+                DBENCH_AB("s:d_plain", iters, 6u,
+                          DBENCH_RETAIN(digits_per_char(g_wide, sizeof g_wide, 0u, positioned, 6u, 0u)),
                           DBENCH_RETAIN(digits_one_test(g_wide, sizeof g_wide, 0u, positioned, 6u, 0u)));
 
                 DBENCH_AB("s:d_runs", iters, 17u,
                           DBENCH_RETAIN(digits_one_test(g_wide, sizeof g_wide, 0u, positioned, 17u, 1u)),
                           DBENCH_RETAIN(digits_two_runs(g_wide, sizeof g_wide, 0u, positioned, 17u, 1u)));
 
-                DBENCH_AB("s:d_runs6", iters, 6u, DBENCH_RETAIN(digits_one_test(g_wide, sizeof g_wide, 0u, positioned, 6u, 0u)),
+                DBENCH_AB("s:d_runs6", iters, 6u,
+                          DBENCH_RETAIN(digits_one_test(g_wide, sizeof g_wide, 0u, positioned, 6u, 0u)),
                           DBENCH_RETAIN(digits_two_runs(g_wide, sizeof g_wide, 0u, positioned, 6u, 0u)));
 
                 DBENCH_AB("s:d_ip_exp", iters, 17u,
@@ -2185,7 +2189,8 @@ void dbench_run(void)
                       DBENCH_RETAIN(EMBED_CALL(fract.sign, FractioCfg, .bits = (embed_u64)g_rec_bits)),
                       DBENCH_RETAIN(signbit(g_rec_real) ? 1 : 0));
 
-            DBENCH_AB("s:exp", iters, 8u, DBENCH_RETAIN(EMBED_CALL(fract.exp, FractioCfg, .bits = (embed_u64)g_rec_bits)),
+            DBENCH_AB("s:exp", iters, 8u,
+                      DBENCH_RETAIN(EMBED_CALL(fract.exp, FractioCfg, .bits = (embed_u64)g_rec_bits)),
                       DBENCH_RETAIN(frexp_exponent(g_rec_real)));
 
             DBENCH_AB("s:to_bits", iters, 8u, DBENCH_RETAIN(EMBED_CALL(fract.to_bits, FractioCfg, .val = g_rec_real)),

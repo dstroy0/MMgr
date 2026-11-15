@@ -66,26 +66,27 @@ static void ask_eq(void *v)
 static void ask_eq_ci(void *v)
 {
     const Ask *a = (const Ask *)v;
-    retain((size_t)(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap, .ci = EMBED_TRUE)));
+    retain(
+        (size_t)(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap, .ci = EMBED_TRUE)));
 }
 static void ask_starts(void *v)
 {
     const Ask *a = (const Ask *)v;
     retain((size_t)(EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = a->s, .other = "aaa", .cap = a->cap,
-                             .ci = EMBED_FALSE)));
+                               .ci = EMBED_FALSE)));
 }
 static void ask_diff(void *v)
 {
     const Ask *a = (const Ask *)v;
     retain((size_t)(EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = a->s, .other = a->s, .cap = a->cap,
-                             .ci = EMBED_FALSE)));
+                               .ci = EMBED_FALSE)));
 }
 static void ask_copy(void *v)
 {
     const Ask *a = (const Ask *)v;
     static char dst[CAPS + 8u];
     retain((size_t)(EMBED_CALL(cellul.copy, CatenaFinitaCfg, .dst = dst, .src = a->s,
-                             .cap = a->cap < sizeof dst ? a->cap : sizeof dst)));
+                               .cap = a->cap < sizeof dst ? a->cap : sizeof dst)));
 }
 static void ask_memor_cmp(void *v)
 {
@@ -112,13 +113,13 @@ static void ask_find(void *v)
 {
     const Hunt *h = (const Hunt *)v;
     retain((size_t)(EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = h->s, .cap = h->cap, .other = h->needle,
-                             .other_cap = h->nlen, .ci = h->ci)));
+                               .other_cap = h->nlen, .ci = h->ci)));
 }
 static void ask_has(void *v)
 {
     const Hunt *h = (const Hunt *)v;
     retain((size_t)(EMBED_CALL(cellul.has, CatenaFinitaCfg, .src = h->s, .cap = h->cap, .other = h->needle,
-                             .other_cap = h->nlen, .ci = h->ci)));
+                               .other_cap = h->nlen, .ci = h->ci)));
 }
 
 static void none_past(const char *what, void (*fn)(void *), int raw_bound)

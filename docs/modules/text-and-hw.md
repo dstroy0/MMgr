@@ -75,13 +75,13 @@ size. A flush answers 1 where it took the bytes and 0 where it refused, which le
 reads its text a room at a time and never past the terminator, and so it needs no bound on the
 text's length.
 
-| job       | entries                                                                  |
-| --------- | ------------------------------------------------------------------------ |
+| job       | entries                                                                 |
+| --------- | ----------------------------------------------------------------------- |
 | raw text  | `mmgr_line_put`, `mmgr_line_put_n`, `mmgr_line_put_max`, `mmgr_line_ch` |
-| columns   | `mmgr_line_put_columns`, `mmgr_line_decimal_columns`                     |
-| numbers   | `mmgr_line_decimal`, `mmgr_line_decimal_signed`, `mmgr_line_hex`         |
-| making    | `mmgr_line_over`                                                         |
-| finishing | `mmgr_line_flush`, `mmgr_line_finish`, `mmgr_line_ok`                    |
+| columns   | `mmgr_line_put_columns`, `mmgr_line_decimal_columns`                    |
+| numbers   | `mmgr_line_decimal`, `mmgr_line_decimal_signed`, `mmgr_line_hex`        |
+| making    | `mmgr_line_over`                                                        |
+| finishing | `mmgr_line_flush`, `mmgr_line_finish`, `mmgr_line_ok`                   |
 
 ## Gotchas
 

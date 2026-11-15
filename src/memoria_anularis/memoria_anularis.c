@@ -10,8 +10,8 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note The definition of the state positioned into mmgr_ring is here and nowhere else, and so the public surface carries
- *       no layout.
+ * @note The definition of the state positioned into mmgr_ring is here and nowhere else, and so the public surface
+ * carries no layout.
  * @note head, tail, claimed, released, gratis and pinned are atomic. The spans and the sizes are plain.
  * @note A move across the wrap is two runs through ring_move, never a walk over single bytes.
  * @note ring_move and ring_loculus_bit have their definitions here and mmgr_ring_span in the header, and so the

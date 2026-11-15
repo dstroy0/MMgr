@@ -55,19 +55,19 @@ likely to mislead.
 The public entries are English. A handle is assembled from its parts, `[lifetime]_[security]_[what
 it is]_[action]`, with each part spent only where it disambiguates.
 
-| part       | values                       | what it settles                                                       |
-| ---------- | ---------------------------- | --------------------------------------------------------------------- |
-| lifetime   | `persistent`, `temporary`    | the sentence. How long the prisoner holds the cell                    |
-| security   | `max_security`               | present only where the zeroing form has to be told from the plain one |
-| what it is | `buf`                        | bytes, as against a count                                             |
-| action     | `alloc`, `release`           | what the entry does to them                                           |
+| part       | values                    | what it settles                                                       |
+| ---------- | ------------------------- | --------------------------------------------------------------------- |
+| lifetime   | `persistent`, `temporary` | the sentence. How long the prisoner holds the cell                    |
+| security   | `max_security`            | present only where the zeroing form has to be told from the plain one |
+| what it is | `buf`                     | bytes, as against a count                                             |
+| action     | `alloc`, `release`        | what the entry does to them                                           |
 
 So `persistent_buf_alloc` is lifetime//buf/alloc, and `persistent_max_security_buf_release` fills
 all four.
 
-| entry           | means                              | why not the English                                                                                                       |
-| --------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `buf_available` | bytes at hand                      | `free_bytes` reads as a verb, as though it frees something. It reports a count                                            |
+| entry           | means                          | why not the English                                                                                                       |
+| --------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| `buf_available` | bytes at hand                  | `free_bytes` reads as a verb, as though it frees something. It reports a count                                            |
 | `buf_grow`      | a cell made larger where it is | `realloc` moves a cell and reuses holes. This moves no other cell, and answers no where the cell is not its tier's newest |
 
 `temporary_buf_alloc` takes a cell from the temporary tier. `persistent_buf_release` takes **the cell
@@ -106,7 +106,7 @@ the metaphor stays behind the name.
 | **soluta**      | general population. Open, and a release leaves the bytes as they are            |
 | **secura**      | solitary. Controlled, and a release zeroes the cell first                       |
 | **cell**        | one allocation, its header and the payload behind it                            |
-| **prisoner**    | what an allocation passes back. Never a _tenant_                                 |
+| **prisoner**    | what an allocation passes back. Never a _tenant_                                |
 | **claim**       | dressing a pool. It happens once, at the declaration, and the build enforces it |
 | **carrier**     | the integer a SWAR operation runs on. Always the machine word                   |
 | **lane**        | one byte inside the carrier                                                     |

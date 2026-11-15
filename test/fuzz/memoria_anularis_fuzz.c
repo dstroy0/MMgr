@@ -270,7 +270,8 @@ static void loculi_step(FuzzInput *input, uint8_t op)
     }
     else if (s_model.retained[index] != NULL)
     {
-        fuzz_check((retained != NULL) && (retained->buf == s_model.retained[index]) && (retained->bytes == s_model.retained_bytes[index]),
+        fuzz_check((retained != NULL) && (retained->buf == s_model.retained[index]) &&
+                       (retained->bytes == s_model.retained_bytes[index]),
                    "a keepout names the last region its loculus recorded");
     }
 }

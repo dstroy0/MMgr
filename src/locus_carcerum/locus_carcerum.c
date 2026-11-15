@@ -87,8 +87,7 @@
 // that bumps down wrap below zero reads past the cellblock's size, which fails the bump.
 // The bound is in docs/concepts/locus-carcerum-algorithm.md §3, and theory/locus_carcerum/LocusCarcerum/Word.lean
 // proves it
-EMBED_STATIC_ASSERT(MMGR_CARCER_BYTES_MAX +
-                            ((size_t)EMBED_TURNSTILE_LANES * (CARCER_HDR + MMGR_CARCER_WANT_MAX)) <
+EMBED_STATIC_ASSERT(MMGR_CARCER_BYTES_MAX + ((size_t)EMBED_TURNSTILE_LANES * (CARCER_HDR + MMGR_CARCER_WANT_MAX)) <
                         ((size_t)1u << MMGR_CARCER_HALF_BITS),
                     "the bumps the turnstiles' lanes put in flight can move a boundary past its half");
 
@@ -339,13 +338,15 @@ EMBED_INLINE size_t carcer_size_at(const SeriesCellularum *series, size_t off)
     return carcer_word_size(embed_atomic_usize_load(carcer_word_at(series, off)));
 }
 
-/** @brief The owner a count lands on where nothing names an owner: a record outside the table, counted and read by none. */
+/** @brief The owner a count lands on where nothing names an owner: a record outside the table, counted and read by
+ * none. */
 static CellOwner carcer_owner_none = {"", 0u, EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u)};
 
 /** @brief Bytes of the cellblock a call passed none reads: one cell's words and a word of payload, zero. */
 static EMBED_ALIGN(64) uint8_t carcer_bytes_none[4u * sizeof(embed_atomic_usize)];
 
-/** @brief The cellblock a give or a growth passed none reads in its place: over carcer_bytes_none, with nothing to take. */
+/** @brief The cellblock a give or a growth passed none reads in its place: over carcer_bytes_none, with nothing to
+ * take. */
 static SeriesCellularum carcer_block_none = MMGR_CARCER_STATE(carcer_bytes_none, sizeof(carcer_bytes_none));
 
 /**
@@ -962,7 +963,7 @@ typedef struct
  * @return                   The payload's address as an integer, 0 where the mask is clear.
  */
 EMBED_INLINE uintptr_t carcer_positioned(SeriesCellularum *series, size_t taken, size_t off, size_t size,
-                                   const CellOwner *owner, size_t persistent)
+                                         const CellOwner *owner, size_t persistent)
 {
     static void (*const counts[2])(SeriesCellularum *, const CellOwner *, size_t, size_t) = {carcer_count_none,
                                                                                              carcer_counted};
@@ -1087,8 +1088,7 @@ typedef struct
  * @warning Costs the tier's cells. Reached only where the gap could not meet a take, by a trim a give owes, and by
  *          the mover.
  */
-EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series, size_t want, size_t below, size_t down,
-                                      size_t permit)
+EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series, size_t want, size_t below, size_t down, size_t permit)
 {
     const embed_atomic_usize_value bounds = embed_atomic_usize_load(&series->bounds);
     const size_t from = carcer_pick(down, carcer_bounds_top(bounds), 0u);
@@ -1110,7 +1110,8 @@ EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series, size_t want, siz
         // moves to the busy cell that closed it. Any other closed run goes down as one free cell
         const size_t returns = closes & down & carcer_all(run_at == from);
         const size_t positions = closes & ~returns;
-        const size_t takes = positions & (down | ~sweep.found) & carcer_all(run_size >= want) & carcer_all(off <= below);
+        const size_t takes =
+            positions & (down | ~sweep.found) & carcer_all(run_size >= want) & carcer_all(off <= below);
 
         embed_atomic_usize_store(carcer_word_picked(series, positions, carcer_foot_of(run_at, run_size)), 0u);
         embed_atomic_usize_store(carcer_word_picked(series, positions, run_at), carcer_word(run_size, CARCER_FREE));
@@ -1152,8 +1153,8 @@ static void carcer_owed_trimmed(SeriesCellularum *series, embed_atomic_word_valu
 {
     const CarcerSweep up =
         carcer_swept(series, SIZE_MAX, series->size, 0u, carcer_all((owed & CARCER_TRIM_PERSISTENT) != 0u));
-    const CarcerSweep down = carcer_swept(series, SIZE_MAX, series->size, carcer_all(1),
-                                          carcer_all((owed & CARCER_TRIM_TEMPORARY) != 0u));
+    const CarcerSweep down =
+        carcer_swept(series, SIZE_MAX, series->size, carcer_all(1), carcer_all((owed & CARCER_TRIM_TEMPORARY) != 0u));
 
     embed_atomic_usize_store(&series->bounds, carcer_bounds(up.boundary, down.boundary));
 }
@@ -2034,8 +2035,7 @@ EMBED_INLINE CarcerMovableEntry *carcer_entry_highest(const CarcerMovable *movab
         const size_t at = (size_t)embed_atomic_usize_load(&movable->entry[place].word);
         const size_t is = carcer_all(at != 0u);
         const size_t size = carcer_size_at(series, (at - CARCER_WORD) & is);
-        const size_t better =
-            is & carcer_all(at > highest_at) & carcer_all(at < below) & carcer_all(size < refused);
+        const size_t better = is & carcer_all(at > highest_at) & carcer_all(at < below) & carcer_all(size < refused);
 
         highest = carcer_pick_at(better, &movable->entry[place], highest);
         highest_at = carcer_pick(better, at, highest_at);
@@ -2251,7 +2251,8 @@ static void carcer_moving_none(embed_bool moving)
     (void)moving;
 }
 
-/** @brief A thread start of nothing, for a program that gave no thread or no wait: the option on, nothing to move a cell.
+/** @brief A thread start of nothing, for a program that gave no thread or no wait: the option on, nothing to move a
+ * cell.
  */
 static embed_bool carcer_started_none(void (*run)(void *context), void *context)
 {

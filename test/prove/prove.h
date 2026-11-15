@@ -61,7 +61,8 @@ void prove_failed(const char *what);
     } while (0)
 #endif
 
-/** @brief A cell's header word as LocusCarcerum positions it: a word rounded up to the alignment, ahead of the payload. */
+/** @brief A cell's header word as LocusCarcerum positions it: a word rounded up to the alignment, ahead of the payload.
+ */
 #define PROVE_CELL_HEADER ((sizeof(embed_atomic_usize) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
 
 /**

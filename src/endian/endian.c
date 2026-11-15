@@ -94,8 +94,8 @@ EMBED_INLINE uint64_t endian_get(const EndianCtx *args)
  * @note Swaps at eight, then sixteen, then thirty-two bits, and so the whole 64-bit value reverses first.
  * @note The final shift drops the 8 - width bytes the reversal moved above the result, which is a shift
  *       of 8 * (8 - width) bits.
- * @warning The expression 8u - args->width wraps as unsigned arithmetic does. An args->width above 8 wraps into a very large shift count,
- *          and a width of 0 shifts a 64-bit value by 64, which has no definition.
+ * @warning The expression 8u - args->width wraps as unsigned arithmetic does. An args->width above 8 wraps into a very
+ * large shift count, and a width of 0 shifts a 64-bit value by 64, which has no definition.
  */
 EMBED_INLINE uint64_t endian_rev(const EndianCtx *args)
 {

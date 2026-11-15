@@ -100,8 +100,8 @@ static void lane_entries(FuzzInput *input)
     fuzz_check(EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = tested) == mask_of(marked), "has_zero marks zero lanes");
     for (size_t at_lane = 0u; at_lane < LANES; at_lane += 1u)
     {
-        marked[at_lane] =
-            (lanes[at_lane] == byte) || (ci && character(lanes[at_lane]) && ((uint8_t)(lanes[at_lane] ^ 0x20u) == byte));
+        marked[at_lane] = (lanes[at_lane] == byte) ||
+                          (ci && character(lanes[at_lane]) && ((uint8_t)(lanes[at_lane] ^ 0x20u) == byte));
     }
     fuzz_check(EMBED_CALL(lane.eq, ScrutLaneCfg, .word = tested, .byte = byte, .ci = (embed_bool)ci) == mask_of(marked),
                "eq marks the lanes equal to the byte, a character of either case with ci");

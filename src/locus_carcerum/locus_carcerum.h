@@ -281,12 +281,12 @@ extern const size_t mmgr_owner_table_count;
 #define MMGR_OWNERS(list_)                                                                                             \
     enum                                                                                                               \
     {                                                                                                                  \
-        list_(MMGR_OWNER_PLACE) mmgr_owner_table_positioned                                                                  \
+        list_(MMGR_OWNER_PLACE) mmgr_owner_table_positioned                                                            \
     };                                                                                                                 \
-    EMBED_STATIC_ASSERT((size_t)mmgr_owner_table_positioned <= (size_t)MMGR_CARCER_OWNERS,                                   \
+    EMBED_STATIC_ASSERT((size_t)mmgr_owner_table_positioned <= (size_t)MMGR_CARCER_OWNERS,                             \
                         "more owners are declared than MMGR_CARCER_OWNERS allows");                                    \
-    CellOwner mmgr_owner_table[(size_t)mmgr_owner_table_positioned] = {list_(MMGR_OWNER_RECORD)};                            \
-    const size_t mmgr_owner_table_count = (size_t)mmgr_owner_table_positioned;                                               \
+    CellOwner mmgr_owner_table[(size_t)mmgr_owner_table_positioned] = {list_(MMGR_OWNER_RECORD)};                      \
+    const size_t mmgr_owner_table_count = (size_t)mmgr_owner_table_positioned;                                         \
     list_(MMGR_OWNER_POINTER)
 
 /**
@@ -659,9 +659,9 @@ typedef struct
     embed_iword (*movable_buf_compare)(const CarcerMovableCfg *args); /**< Orders a movable cell's bytes. */
     size_t (*movable_buf_measure)(const CarcerMovableCfg *args);      /**< Bytes before a movable cell's next zero. */
 } MaxSecurityGuard;
-EMBED_TABLE_LAYOUT(MaxSecurityGuard, persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc,
-                   who_owns_buf, buf_available, buf_grow, movable_init, movable_buf_alloc, movable_buf_release,
-                   movable_buf_read, movable_buf_write, movable_buf_compare, movable_buf_measure);
+EMBED_TABLE_LAYOUT(MaxSecurityGuard, persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc, who_owns_buf,
+                   buf_available, buf_grow, movable_init, movable_buf_alloc, movable_buf_release, movable_buf_read,
+                   movable_buf_write, movable_buf_compare, movable_buf_measure);
 
 /**
  * @brief The movable entries of one cellblock, bound to it through series_cellularum_.
@@ -728,7 +728,7 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, persistent_buf_alloc, persistent_buf_releas
     MMGR_PARS_CLAIMED_ONCE(name_);                                                                                     \
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) >= (2u * MMGR_CARCER_ALIGN),                                 \
                         #prisonsite_ "." #name_ " is too small for one cell");                                         \
-    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) <= MMGR_CARCER_BYTES_MAX,                                   \
+    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) <= MMGR_CARCER_BYTES_MAX,                                    \
                         #prisonsite_ "." #name_ " is larger than a tier boundary's half word can name");               \
     static SeriesCellularum prisonsite_##_##name_##_ctx = MMGR_CARCER_STATE(mmgr_pars_storage_##name_, name_##_bytes); \
     MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size, const CellOwner *owner)  \

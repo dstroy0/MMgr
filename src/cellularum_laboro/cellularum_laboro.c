@@ -1545,8 +1545,8 @@ EMBED_INLINE double cellul_to_double(const CellulCtx *args)
     }
 
     // Explicit cast holds the combined exponent in embed_iword, ex from the suffix and over and drop from the mantissa.
-    // The sign counts only where the read found a digit. A sign with no number after it reads as a plain zero, as strtod
-    // reads it
+    // The sign counts only where the read found a digit. A sign with no number after it reads as a plain zero, as
+    // strtod reads it
     const double val = EMBED_CALL(muto.scale, TransformoCfg, .mant = &mant, .ex = (embed_iword)(ex + over - drop),
                                   .rest = lost, .neg = (embed_bool)(neg && any));
 

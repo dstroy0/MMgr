@@ -8,7 +8,8 @@
  * @file pow5_fuzz.c
  * @brief A libFuzzer harness over the powers of five. The entry each input names runs against five to the power
  *        computed exactly in a wide integer, its top 128 bits truncated. It also runs against the reciprocal, two
- *        to a power floored by five once for each factor, which floors exactly. The result then comes truncated the same way.
+ *        to a power floored by five once for each factor, which floors exactly. The result then comes truncated the
+ * same way.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */

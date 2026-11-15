@@ -13,3 +13,17 @@ paths-ignore:
   - "build/**"
   - "**/build/**"
   - "build-*/**"
+
+# Two rules this project does not take, each for one reason.
+#
+# cpp/unused-static-function reads a static function as unreachable where the database holds a second copy of it.
+# The build compiles each module once for each environment, and the extractor attaches the callers to one copy. The
+# coverage report reaches every function of src/, and so each function this rule names runs in the suites.
+#
+# cpp/include-non-header reads the include of a .c file as a defect. A white-box suite includes the translation unit
+# of its module, and so it reaches the file-local functions it tests. No source under src/ includes a .c file.
+query-filters:
+  - exclude:
+      id: cpp/unused-static-function
+  - exclude:
+      id: cpp/include-non-header

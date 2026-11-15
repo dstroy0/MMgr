@@ -9,9 +9,9 @@
  * @brief A libFuzzer harness over the writers. Every text, character and integer writer runs at every offset and
  *        cap against a model. The model writes a piece whole while a byte stays for the terminator and answers
  *        the cap once one does not fit. The integers run against snprintf, and fixed against the value rounded
- *        half away from zero in a wide integer. The g writer runs against the value rounded to its digits as strtod reads
- *        both back. The three predicates run against the bits, finish and ok against the offset, and the line
- *        writer has its own section.
+ *        half away from zero in a wide integer. The g writer runs against the value rounded to its digits as strtod
+ * reads both back. The three predicates run against the bits, finish and ok against the offset, and the line writer has
+ * its own section.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-06
  */
@@ -432,7 +432,8 @@ static void reals(FuzzInput *input)
     }
     if (memcmp(&read_back, &expected, sizeof read_back) != 0)
     {
-        fprintf(stderr, "g %a to %u digits wrote \"%s\", the rounded value is \"%s\"\n", real, retained, s_out, rounded);
+        fprintf(stderr, "g %a to %u digits wrote \"%s\", the rounded value is \"%s\"\n", real, retained, s_out,
+                rounded);
     }
     fuzz_check(memcmp(&read_back, &expected, sizeof read_back) == 0, "g reads back as the value rounded to its digits");
 }

@@ -3,6 +3,7 @@
 
 # Lock files are generated and rewriting them defeats the lock.
 package-lock.json
+theory/**/lake-manifest.json
 
 # Build and coverage output. Machine-written, regenerated on every run.
 build/

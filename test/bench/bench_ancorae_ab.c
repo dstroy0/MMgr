@@ -1723,8 +1723,8 @@ static void ab_boundary_filter(const char *name, const uint8_t *corpus, size_t c
     const double mean_retained = survivors / count;
 
     printf("ancorae_boundary,%s,%u,%u,%u,%.2f,%.2f,%.1f,%.4f\n", name, (unsigned)needle_len, (unsigned)corpus_len,
-           (unsigned)marked, mean_marks, mean_retained, (double)alignments / ((mean_retained > 0.0) ? mean_retained : 1.0),
-           (double)marked / (double)corpus_len);
+           (unsigned)marked, mean_marks, mean_retained,
+           (double)alignments / ((mean_retained > 0.0) ? mean_retained : 1.0), (double)marked / (double)corpus_len);
 }
 
 /**

@@ -71,7 +71,8 @@ static int s_option_assigned;
 static int s_misnamed_expected;
 static unsigned int s_misnamed_told;
 
-/** @brief Told of a give or growth that names the wrong owner: expected where the harness named one, a stop where not. */
+/** @brief Told of a give or growth that names the wrong owner: expected where the harness named one, a stop where not.
+ */
 void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes)
 {
     (void)bytes;
@@ -332,7 +333,8 @@ static void movable_assigned(void)
     s_option_assigned = 1;
 }
 
-/** @brief A cell's header word, as the module positions it: a word rounded up to the alignment, ahead of the payload. */
+/** @brief A cell's header word, as the module positions it: a word rounded up to the alignment, ahead of the payload.
+ */
 #define FUZZ_CELL_HEADER ((sizeof(embed_atomic_usize) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
 
 /** @brief A cell's header and owner word, as the module positions them: two words each rounded up to the alignment. */
@@ -340,7 +342,8 @@ static void movable_assigned(void)
 
 /**
  * @brief The bytes a movable cell carries, read off the longest span a read from its start takes. That is its
- *        request rounded to the alignment. Up to a header and an owner word more comes where the take retained a free run whole.
+ *        request rounded to the alignment. Up to a header and an owner word more comes where the take retained a free
+ * run whole.
  */
 static size_t movable_capacity(const FuzzMovable *cell)
 {

@@ -434,7 +434,7 @@ int main(int argc, char **argv)
         return 2;
     }
     const CellOwner *const owners[STRESS_THREADS_MAX] = {s_o0, s_o1, s_o2,  s_o3,  s_o4,  s_o5,  s_o6,  s_o7,
-                                                          s_o8, s_o9, s_o10, s_o11, s_o12, s_o13, s_o14, s_o15};
+                                                         s_o8, s_o9, s_o10, s_o11, s_o12, s_o13, s_o14, s_o15};
     memcpy(s_own, owners, sizeof(owners));
     uint8_t *const storage = guarded(bytes);
     uint8_t *const state_page = guarded(sizeof(SeriesCellularum) + 64u);

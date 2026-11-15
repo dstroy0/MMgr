@@ -866,8 +866,7 @@ void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_w
     // The passes that land before the thread reads the sort's end are what it backs off from
     TEST_ASSERT_TRUE(mmgr_host_threads_run(backoff_each, 2u));
     TEST_ASSERT_EQUAL_UINT_MESSAGE(s_moving_told, s_moving_ended, "each sort told at both ends");
-    TEST_ASSERT_TRUE_MESSAGE((s_moving_told == 0u) || (s_max_wait >= MMGR_MOVABLE_READ_MS),
-                             "the wait is or doubled");
+    TEST_ASSERT_TRUE_MESSAGE((s_moving_told == 0u) || (s_max_wait >= MMGR_MOVABLE_READ_MS), "the wait is or doubled");
     assert_marked(one, 128u, 0x31u);
     assert_marked(two, 128u, 0x32u);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_word_load(&plain_moving_ctx.closed),
@@ -1011,7 +1010,8 @@ void test_with_no_option_a_take_retains_to_its_own_tier(void)
     {
     }
     unassigned.bare.persistent_buf_release(hole, s_mover);
-    TEST_ASSERT_NULL_MESSAGE(unassigned.bare.temporary_buf_alloc(128u, s_mover), "the other tier's free cell stays its own");
+    TEST_ASSERT_NULL_MESSAGE(unassigned.bare.temporary_buf_alloc(128u, s_mover),
+                             "the other tier's free cell stays its own");
     TEST_ASSERT_NOT_NULL_MESSAGE(unassigned.bare.persistent_buf_alloc(128u, s_mover), "the tier's own take fits");
 }
 

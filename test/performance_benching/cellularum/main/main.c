@@ -1116,7 +1116,8 @@ void dbench_run(void)
 
             fill(n);
 
-            DBENCH_AB("len", iters, n, DBENCH_RETAIN(EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = n + 1u)),
+            DBENCH_AB("len", iters, n,
+                      DBENCH_RETAIN(EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = n + 1u)),
                       DBENCH_RETAIN(strnlen(g_a, n + 1u)));
 
             DBENCH_AB(
@@ -1129,13 +1130,13 @@ void dbench_run(void)
                       DBENCH_RETAIN(memcmp(g_a, g_b, n)));
 
             DBENCH_AB("find", iters, n,
-                      DBENCH_RETAIN(EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_needle,
-                                             .other_cap = NLEN + 1u, .other_len = NLEN)),
+                      DBENCH_RETAIN(EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u,
+                                               .other = g_needle, .other_cap = NLEN + 1u, .other_len = NLEN)),
                       DBENCH_RETAIN(strstr(g_a, g_needle)));
 
             DBENCH_AB("find_hot", iters, n,
                       DBENCH_RETAIN(EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_hot,
-                                             .other_cap = NLEN + 1u, .other_len = NLEN)),
+                                               .other_cap = NLEN + 1u, .other_len = NLEN)),
                       DBENCH_RETAIN(strstr(g_a, g_hot)));
 
             DBENCH_AB("eq", iters, n,
@@ -1144,7 +1145,7 @@ void dbench_run(void)
 
             DBENCH_AB("starts", iters, n,
                       DBENCH_RETAIN(EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u,
-                                             .other_cap = n + 1u)),
+                                               .other_cap = n + 1u)),
                       DBENCH_RETAIN(strncmp(g_a, g_b, n) == 0));
 
             DBENCH_AB("copy", iters, n,
@@ -1158,8 +1159,8 @@ void dbench_run(void)
                       DBENCH_RETAIN(copy_single(g_cp_dst, g_cp_src, n + 1u)));
 
             DBENCH_AB("has", iters, n,
-                      DBENCH_RETAIN(EMBED_CALL(cellul.has, CatenaFinitaCfg, .src = g_a, .cap = n + 1u, .other = g_needle,
-                                             .other_cap = NLEN + 1u, .other_len = NLEN)),
+                      DBENCH_RETAIN(EMBED_CALL(cellul.has, CatenaFinitaCfg, .src = g_a, .cap = n + 1u,
+                                               .other = g_needle, .other_cap = NLEN + 1u, .other_len = NLEN)),
                       DBENCH_RETAIN(strstr(g_a, g_needle) != NULL));
 
             DBENCH_AB("ws_scan", iters, n, DBENCH_RETAIN(ws_span_mmgr(n)), DBENCH_RETAIN(ws_span_libc(n)));
@@ -1213,9 +1214,10 @@ void dbench_run(void)
                 DBENCH_AB("eq_ctx", iters, n, DBENCH_RETAIN(eq_via_ctx(&ctx)),
                           DBENCH_RETAIN(eq_unaligned(g_a, g_b, n + 1u)));
 
-                DBENCH_AB("eq_hoist", iters, n,
-                          DBENCH_RETAIN(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
-                          DBENCH_RETAIN(eq_via_ctx_hoisted(&ctx)));
+                DBENCH_AB(
+                    "eq_hoist", iters, n,
+                    DBENCH_RETAIN(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = g_a, .other = g_b, .cap = n + 1u)),
+                    DBENCH_RETAIN(eq_via_ctx_hoisted(&ctx)));
             }
         }
 
@@ -1229,7 +1231,8 @@ void dbench_run(void)
                       DBENCH_RETAIN(EMBED_CALL(cellul.to_ulong, TransfiguroCfg, .src = g_int_wide)),
                       DBENCH_RETAIN(strtoul(g_int_wide, NULL, 10)));
 
-            DBENCH_AB("to_double", iters, 16u, DBENCH_RETAIN(EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = g_real)),
+            DBENCH_AB("to_double", iters, 16u,
+                      DBENCH_RETAIN(EMBED_CALL(cellul.to_double, TransfiguroCfg, .src = g_real)),
                       DBENCH_RETAIN(strtod(g_real, NULL)));
 
             DBENCH_AB("to_double_exp", iters, 23u,
@@ -1332,7 +1335,7 @@ void dbench_run(void)
 
             DBENCH_AB("lane_zero", iters, 8u, DBENCH_RETAIN(EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = g_word)),
                       DBENCH_RETAIN((g_word - (embed_word)0x0101010101010101ull) & ~g_word &
-                                  (embed_word)0x8080808080808080ull));
+                                    (embed_word)0x8080808080808080ull));
         }
 
         {
@@ -1377,7 +1380,8 @@ void dbench_run(void)
 
         DBENCH_OP("floor_call", 20000u, DBENCH_RETAIN(strnlen(g_a, 1u)));
 
-        DBENCH_OP("dispatch_len8", 20000u, DBENCH_RETAIN(EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = 9u)));
+        DBENCH_OP("dispatch_len8", 20000u,
+                  DBENCH_RETAIN(EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = g_a, .cap = 9u)));
         DBENCH_OP("direct_len8", 20000u, DBENCH_RETAIN(mmgr_cellul_len(&(CatenaFinitaCfg){.src = g_a, .cap = 9u})));
 
         DBENCH_OP("flat_len8", 20000u, DBENCH_RETAIN(len_flat(g_a, 9u)));

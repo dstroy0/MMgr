@@ -76,7 +76,7 @@ static void mmgr_fill(void)
                 g_refused++;                                                                                           \
             }                                                                                                          \
             protocore_ring_consume(&g_proto_tail, CAP, (N));                                                           \
-            BENCH_RETAIN(g_proto_buf[bench_i_ & (CAP - 1u)]);                                                            \
+            BENCH_RETAIN(g_proto_buf[bench_i_ & (CAP - 1u)]);                                                          \
         });                                                                                                            \
         report("protocore", "put", (N), cy_);                                                                          \
                                                                                                                        \
@@ -88,7 +88,7 @@ static void mmgr_fill(void)
                 g_refused++;                                                                                           \
             }                                                                                                          \
             EMBED_CALL(anularis.consume, AnularisCfg, .ring = &g_mmgr_ring, .bytes = (N));                             \
-            BENCH_RETAIN(g_mmgr_buf[bench_i_ & (CAP - 1u)]);                                                             \
+            BENCH_RETAIN(g_mmgr_buf[bench_i_ & (CAP - 1u)]);                                                           \
         });                                                                                                            \
         report("mmgr", "put", (N), cy_);                                                                               \
     } while (0)
@@ -99,14 +99,14 @@ static void mmgr_fill(void)
         double cy_ = 0.0;                                                                                              \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             protocore_ring_peek(g_proto_buf, CAP, &g_proto_tail, (size_t)(bench_i_ & 63u), g_dst, (N));                \
-            BENCH_RETAIN(g_dst[0]);                                                                                      \
+            BENCH_RETAIN(g_dst[0]);                                                                                    \
         });                                                                                                            \
         report("protocore", "peek", (N), cy_);                                                                         \
                                                                                                                        \
         BENCH_TIME_CYCLES(cy_, ITERS, {                                                                                \
             EMBED_CALL(anularis.peek, AnularisCfg, .ring = &g_mmgr_ring, .dst = g_dst, .bytes = (N),                   \
                        .offset = (size_t)(bench_i_ & 63u));                                                            \
-            BENCH_RETAIN(g_dst[0]);                                                                                      \
+            BENCH_RETAIN(g_dst[0]);                                                                                    \
         });                                                                                                            \
         report("mmgr", "peek", (N), cy_);                                                                              \
                                                                                                                        \
@@ -118,7 +118,7 @@ static void mmgr_fill(void)
                 PROTO_ATOMIC_STORE(&g_proto_head, (size_t)(CAP - 1u));                                                 \
                 PROTO_ATOMIC_STORE(&g_proto_tail, (size_t)0);                                                          \
             }                                                                                                          \
-            BENCH_RETAIN(g_dst[0]);                                                                                      \
+            BENCH_RETAIN(g_dst[0]);                                                                                    \
         });                                                                                                            \
         report("protocore", "read", (N), cy_);                                                                         \
                                                                                                                        \
@@ -130,7 +130,7 @@ static void mmgr_fill(void)
                 mmgr_reset();                                                                                          \
                 mmgr_fill();                                                                                           \
             }                                                                                                          \
-            BENCH_RETAIN(g_dst[0]);                                                                                      \
+            BENCH_RETAIN(g_dst[0]);                                                                                    \
         });                                                                                                            \
         report("mmgr", "read", (N), cy_);                                                                              \
     } while (0)

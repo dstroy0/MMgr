@@ -79,26 +79,26 @@ library and embedded_types' theory, which `lakefile.toml` requires from `deps/em
 That theory holds the turnstile proofs for the passes and the drain. `Pass.lean`, `Order.lean` and
 `Sleep.lean` import its Manifold proofs and build on them.
 
-| file            | what it proves                                                                        |
-| --------------- | ------------------------------------------------------------------------------------- |
-| `Packed.lean`   | Lemmas 1 to 5 and the theorem, with the two boundaries read in one step               |
-| `Split.lean`    | the steps with two words, and the order of steps that breaks the invariant            |
-| `Word.lean`     | the arithmetic of the word, the request guard, and the limit on the bumps in progress |
-| `Layout.lean`   | the sweep retains the bytes, the busy cells and the count of each owner                 |
-| `Take.lean`     | a take over a free run, and the count that the mover retains                            |
-| `Spill.lean`    | the spill, the bump at the end, and the two growths                                   |
-| `Give.lean`     | a cell goes off the count of its owner one time                                       |
+| file             | what it proves                                                                                  |
+| ---------------- | ----------------------------------------------------------------------------------------------- |
+| `Packed.lean`    | Lemmas 1 to 5 and the theorem, with the two boundaries read in one step                         |
+| `Split.lean`     | the steps with two words, and the order of steps that breaks the invariant                      |
+| `Word.lean`      | the arithmetic of the word, the request guard, and the limit on the bumps in progress           |
+| `Layout.lean`    | the sweep retains the bytes, the busy cells and the count of each owner                         |
+| `Take.lean`      | a take over a free run, and the count that the mover retains                                    |
+| `Spill.lean`     | the spill, the bump at the end, and the two growths                                             |
+| `Give.lean`      | a cell goes off the count of its owner one time                                                 |
 | `Temporary.lean` | the temporary tier is the persistent tier mirrored: its sweep, its last fit and its positioning |
-| `Boundary.lean` | a free cell stays at the edge only while its trim bit is set                          |
-| `Fragment.lean` | the fragmentation value is 100 or less                                                |
-| `Futex.lean`    | the address wait that GenMC runs has the behavior of the futex contract and no other  |
-| `Bounds.lean`   | the span test, the pointer test and the high-water marks                              |
-| `Entry.lean`    | two contexts do not name one movable entry                                            |
-| `Pass.lean`     | a pass does not work on the cellblock while a writer works alone                      |
-| `Sleep.lean`    | a pass that sleeps on the closed word wakes when the writer opens                     |
-| `Trim.lean`     | a cellblock with no trim bit set and no give in progress owes no trim                 |
-| `Order.lean`    | the C11 orders that the closed word, the drain and the free use                       |
-| `OwnerWord.lean` | the owner word's fields, and the undo of one owner's takes after a sequence point   |
+| `Boundary.lean`  | a free cell stays at the edge only while its trim bit is set                                    |
+| `Fragment.lean`  | the fragmentation value is 100 or less                                                          |
+| `Futex.lean`     | the address wait that GenMC runs has the behavior of the futex contract and no other            |
+| `Bounds.lean`    | the span test, the pointer test and the high-water marks                                        |
+| `Entry.lean`     | two contexts do not name one movable entry                                                      |
+| `Pass.lean`      | a pass does not work on the cellblock while a writer works alone                                |
+| `Sleep.lean`     | a pass that sleeps on the closed word wakes when the writer opens                               |
+| `Trim.lean`      | a cellblock with no trim bit set and no give in progress owes no trim                           |
+| `Order.lean`     | the C11 orders that the closed word, the drain and the free use                                 |
+| `OwnerWord.lean` | the owner word's fields, and the undo of one owner's takes after a sequence point               |
 
 ```sh
 cd theory/locus_carcerum

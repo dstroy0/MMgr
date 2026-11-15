@@ -248,12 +248,12 @@ The zero fill is `size & zeroing & proceeds` bytes: the whole payload where the 
 
 The trim is where the gives meet the writers, and the meeting is on the closed word. The word has four bits:
 
-| bit | name | meaning |
-|---|---|---|
-| 0 | `CARCER_CLOSED` | a writer holds the cellblock |
-| 1 | `CARCER_CLOSED_SLEEPERS` | a pass sleeps on the word with the futex contract |
-| 2 | `CARCER_TRIM_PERSISTENT` | a give left the persistent end owed a trim |
-| 3 | `CARCER_TRIM_TEMPORARY` | a give left the temporary top owed a trim |
+| bit | name                     | meaning                                           |
+| --- | ------------------------ | ------------------------------------------------- |
+| 0   | `CARCER_CLOSED`          | a writer holds the cellblock                      |
+| 1   | `CARCER_CLOSED_SLEEPERS` | a pass sleeps on the word with the futex contract |
+| 2   | `CARCER_TRIM_PERSISTENT` | a give left the persistent end owed a trim        |
+| 3   | `CARCER_TRIM_TEMPORARY`  | a give left the temporary top owed a trim         |
 
 A give at the boundary sets the closed bit and its tier's trim bit with one fetch-or. Where the old value had the closed bit clear the give now holds the cellblock, and it trims: it walks from the boundary one header at a time over free cells, stops at the first busy one or at the end, and stores the place it stopped as the new boundary. Where another context held the bit the give leaves, and the trim bit stays owed on the word. Every writer opens in one pass, `carcer_opened`:
 
@@ -442,11 +442,11 @@ The Lean proves the model. `test/harness.py prove` proves the C against the mode
 
 **CBMC on the source.** Three harnesses under `test/prove` each state one Lean file's theorem as an assertion over every sequence of steps up to a bound, and CBMC unwinds the C with every source the library links to that bound, with an assertion on each unwind, so a loop that runs past the bound is a failure and not a gap:
 
-| harness | Lean files | bound |
-|---|---|---|
-| `locus_carcerum_fragmentation_prove.c` | `Fragment` | no loop |
-| `locus_carcerum_sequence_prove.c` | `Layout`, `Take`, `Spill`, `Give`, `Temporary` | `PROVE_STEPS=2`, unwind 12 |
-| `locus_carcerum_movable_prove.c` | `Take`, `Bounds`, `Entry` | `PROVE_STEPS=2`, unwind 12 |
+| harness                                | Lean files                                     | bound                      |
+| -------------------------------------- | ---------------------------------------------- | -------------------------- |
+| `locus_carcerum_fragmentation_prove.c` | `Fragment`                                     | no loop                    |
+| `locus_carcerum_sequence_prove.c`      | `Layout`, `Take`, `Spill`, `Give`, `Temporary` | `PROVE_STEPS=2`, unwind 12 |
+| `locus_carcerum_movable_prove.c`       | `Take`, `Bounds`, `Entry`                      | `PROVE_STEPS=2`, unwind 12 |
 
 The sequence harness runs every sequence of `PROVE_STEPS` operations on a small cellblock, each a take of either tier at any of four sizes or a give of any cell in place, plain or with a zero fill, and asserts after each step that every cell in place retains its bytes and counts to its owner and that the gap is the top less the end; once every cell goes back, both boundaries are where they started and every count is 0. The movable harness adds the movable take, the read and the write at any offset and length, the move and the release, and asserts that every cell retains its bytes through every move and that no two cells share an entry. The movable harness needs more than 27 GB under CBMC, and a hosted runner has 16 GB; `prove --hosted` names it and does not run it, and it runs on a workstation.
 
@@ -464,8 +464,8 @@ The test suite is 276 CTest targets over every compile-time width, at 100% of li
 
 `.text` per translation unit, compiled alone with no LTO and no link, on Xtensa for the esp32s3 with gcc 14.2:
 
-| translation unit | -O0 | -O1 | -Os | -O2 | -O3 |
-|---|---:|---:|---:|---:|---:|
+| translation unit |  -O0 | -O1 | -Os | -O2 | -O3 |
+| ---------------- | ---: | --: | --: | --: | --: |
 | `locus_carcerum` | 3703 | 870 | 778 | 834 | 878 |
 
 The whole manager, both tiers, the spill, the trim, the growth, the owner accounting, the movable option and the turnstile pass, is 778 bytes at `-Os`. The library as a whole against newlib on a cortex-m4 at `-Os`, for the same set of jobs, is 16428 bytes against 38104, and the comparison is `tools/dev_env/against_libc.py`.
