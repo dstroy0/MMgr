@@ -32,10 +32,16 @@ import subprocess
 
 # Each harness's bound: the steps its sequence runs, and the loop unwind CBMC holds it to. A bound with hosted
 # False needs more memory than a hosted runner has, and prove --hosted names it and does not run it. The movable
-# harness uses more than 27 GB under CBMC, and a hosted runner has 16 GB.
+# harness uses more than 27 GB under CBMC, and a hosted runner has 16 GB. A bound with an included list names the
+# library sources that the harness includes whole. The link leaves those out, and so each definition occurs once.
+# The entry of host_wait.c in that list leaves out the host's wait, wake and clock, for a harness that defines them.
 BOUNDS = {
     "locus_carcerum_fragmentation": {"defines": [], "unwind": 0, "hosted": True},
+    "locus_carcerum_lowest": {"defines": [], "unwind": 2, "hosted": True,
+                              "included": ["src/locus_carcerum/locus_carcerum.c"]},
     "locus_carcerum_sequence": {"defines": ["PROVE_STEPS=2u"], "unwind": 12, "hosted": True},
+    "locus_carcerum_sleep": {"defines": [], "unwind": 5, "hosted": True,
+                             "included": ["src/locus_carcerum/locus_carcerum.c", "test/support/host_wait.c"]},
     "locus_carcerum_movable": {"defines": ["PROVE_STEPS=2u"], "unwind": 12, "hosted": False},
 }
 
@@ -62,18 +68,21 @@ GENMC_TAG = "v0.20.0"
 GENMC_PACKAGES = "cmake llvm-20-dev clang-20 libffi-dev zlib1g-dev libedit-dev bc g++-14 libzstd-dev libxml2-dev"
 
 
-def library_sources(root):
-    """The sources the library links, as verify links them, relative to the root."""
+def library_sources(root, included=()):
+    """The sources the library links, as verify links them, relative to the root, less those a harness includes."""
     sources = []
     for path in sorted(glob.glob(os.path.join(root, "src", "*", "*.c"))):
         rel = os.path.relpath(path, root).replace("\\", "/")
         module = rel.split("/")[1]
+        if rel in included:
+            continue
         if module in ("memoria_externa", "memoriam_praetereo", "confinium_exclusivum_infinitas", "confinium_externum"):
             continue
         if module == "impensa_ancorae_acus" and not rel.endswith("impensa_ancorae_acus_generic.c"):
             continue
         sources.append(rel)
-    sources.append("test/support/host_wait.c")
+    if "test/support/host_wait.c" not in included:
+        sources.append("test/support/host_wait.c")
     return sources
 
 
@@ -92,7 +101,8 @@ def cbmc(root, harness, bound, reach):
         flags.append("-D PROVE_REACH")
     if bound["unwind"]:
         flags += ["--unwind %d" % bound["unwind"], "--unwinding-assertions"]
-    command = "cbmc %s %s %s" % (" ".join(flags), shlex.quote(harness), " ".join(library_sources(root)))
+    command = "cbmc %s %s %s" % (" ".join(flags), shlex.quote(harness),
+                                 " ".join(library_sources(root, bound.get("included", ()))))
     r = linux(root, command)
     text = r.stdout + r.stderr
     failed = [line.strip() for line in text.splitlines() if line.rstrip().endswith("FAILURE")]
@@ -104,7 +114,7 @@ def machine(root, harness, bound, cc, level, out):
     program = "%s/%s_%s%s" % (out, os.path.splitext(os.path.basename(harness))[0], cc, level.replace("-", "_"))
     flags = ["-std=c11", level, "-g"] + ["-I " + i for i in INCLUDES] + ["-D " + d for d in DEFINES + bound["defines"]]
     build = "%s %s %s test/prove/prove_hooks.c %s -lpthread -lm -o %s" % (
-        cc, " ".join(flags), shlex.quote(harness), " ".join(library_sources(root)), program)
+        cc, " ".join(flags), shlex.quote(harness), " ".join(library_sources(root, bound.get("included", ()))), program)
     r = linux(root, build)
     if r.returncode != 0:
         return "build failed: " + (r.stdout + r.stderr).strip().splitlines()[-1]

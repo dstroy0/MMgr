@@ -44,6 +44,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The Lean of embedded_types is at deps/embedded_types, and only the configure of CMake puts it there. The
+      # configure reads the one declaration in deps/CMakeLists.txt, and so this file holds no second copy of it.
+      - name: Fetch embedded_types
+        working-directory: ${{ github.workspace }}
+        run: cmake -S . -B build/fetch -DMMGR_BUILD_TESTS=OFF
+
       - name: Install elan
         # elan installs the toolchain that lean-toolchain names, at the first lake command.
         run: |
@@ -66,6 +72,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+
+      # The harnesses take the headers of embedded_types from deps/embedded_types, as the Lean job does
+      - name: Fetch embedded_types
+        run: cmake -S . -B build/fetch -DMMGR_BUILD_TESTS=OFF
 
       - name: Install CBMC
         run: sudo apt-get update -qq && sudo apt-get install -y -qq cbmc
@@ -93,6 +103,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
+
+      # The clients take the headers of embedded_types from deps/embedded_types, as the Lean job does
+      - name: Fetch embedded_types
+        run: cmake -S . -B build/fetch -DMMGR_BUILD_TESTS=OFF
 
       - name: Run each thread client under each memory model
         # The first run on a host installs the packages of GenMC, then builds and installs the tag that prove.py

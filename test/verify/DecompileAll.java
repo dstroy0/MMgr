@@ -20,7 +20,7 @@ import java.io.File;
 import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class DecompileAll extends GhidraScript {
@@ -49,7 +49,7 @@ public class DecompileAll extends GhidraScript {
                 for (Function called : function.getCalledFunctions(monitor)) {
                     calls.add(called.getName());
                 }
-                Collections.sort(calls);
+                calls.sort(Comparator.naturalOrder());
                 summary.println(function.getName() + "\t" + function.getEntryPoint() + "\t" +
                                 function.getBody().getNumAddresses() + "\t" + instructions + "\t" +
                                 String.join(",", calls));

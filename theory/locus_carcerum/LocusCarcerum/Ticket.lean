@@ -135,7 +135,7 @@ max 32 bits. -/
 theorem sequence_roll (b c : Nat) (hb : b ≤ 32) : BitVec.ofNat b (c % 2 ^ 32) = BitVec.ofNat b c := by
   apply BitVec.eq_of_toNat_eq
   simp only [BitVec.toNat_ofNat]
-  exact TicketRing.place_roll b c hb
+  exact TicketRing.place_roll 32 b c hb
 
 /-! ## A movable entry as a slot -/
 

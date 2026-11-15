@@ -24,6 +24,9 @@
  *       gap cannot meet positions its words on the cellblock's sink word and adds its bump to the tier's overrun. It
  *       answers NULL through the same stores a take that lands makes. No path branches on what another context
  *       did.
+ * @note A row of nothing takes the type of its table. Where the other row writes through a pointer, the row of
+ *       nothing takes that pointer too, and not a pointer to const. A NOSONAR mark on the line of that pointer says
+ *       so.
  * @note A pass is an entry at the cellblock's turnstiles: a lane taken with one fetch-or, the work, and the lane
  *       let go with one fetch-add. The turnstiles' host hooks, embed_word_wait, embed_word_wake and
  *       embed_clock_ns, are the program's to define, as embed_turnstile.h says. A build with none fails at the
@@ -128,23 +131,6 @@ EMBED_INLINE size_t carcer_bounds_top(embed_atomic_usize_value word)
     // Explicit cast reads the half as the offset it holds
     return (size_t)(word >> MMGR_CARCER_HALF_BITS);
 }
-
-/**
- * @brief Raises one tier's high-water mark, or reads its arguments and does nothing where the build tracks none.
- *
- * @param[in] series_cellularum_ Cellblock to record against.
- * @param[in] member_            Mark to raise, which only exists when the build tracks one.
- * @param[in] used_              Bytes in use by the tier that moved.
- * @warning The two arms do not evaluate the same things. Where the build tracks none, the cellblock and the bytes
- *          are void expressions and the arm names no member. Nothing passed here may carry a side
- *          effect.
- */
-#if MMGR_ENABLE_HW_MEM_CAPACITY_CB
-#define CARCER_HW(series_cellularum_, member_, used_)                                                                  \
-    ((void)embed_atomic_usize_raise(&(series_cellularum_)->member_, (used_)))
-#else
-#define CARCER_HW(series_cellularum_, member_, used_) ((void)(series_cellularum_), (void)(used_))
-#endif
 
 /**
  * @brief Every bit set where a test holds, none where it does not.
@@ -538,7 +524,7 @@ static void carcer_tier_uncounted(SeriesCellularum *series, size_t bytes)
 }
 
 /** @brief The row of a tier table a temporary cell takes: the persistent total untouched. */
-static void carcer_tier_none(SeriesCellularum *series, size_t bytes)
+static void carcer_tier_none(SeriesCellularum *series, size_t bytes) // NOSONAR
 {
     (void)series;
     (void)bytes;
@@ -584,7 +570,8 @@ static void carcer_uncounted(SeriesCellularum *series, const CellOwner *owner, s
 }
 
 /** @brief The row of a count table a refused take or a cell counted off already takes: nothing counted. */
-static void carcer_count_none(SeriesCellularum *series, const CellOwner *owner, size_t bytes, size_t persistent)
+static void carcer_count_none(SeriesCellularum *series, // NOSONAR
+                              const CellOwner *owner, size_t bytes, size_t persistent)
 {
     (void)series;
     (void)owner;
@@ -622,7 +609,7 @@ EMBED_INLINE void carcer_foot_claimed(SeriesCellularum *series, size_t off, size
  *
  * @param[in] word The word [BORROWS].
  */
-static void carcer_wake_none(embed_atomic_word *word)
+static void carcer_wake_none(embed_atomic_word *word) // NOSONAR
 {
     (void)word;
 }
@@ -664,13 +651,13 @@ EMBED_INLINE void carcer_settled(SeriesCellularum *series)
 EMBED_INLINE void carcer_shut(SeriesCellularum *series)
 {
     EmbedTurnstileBackoff backoff;
-    embed_atomic_word_value was = embed_atomic_word_fetch_or(&series->closed, CARCER_CLOSED);
+    embed_atomic_word_value previous_word = embed_atomic_word_fetch_or(&series->closed, CARCER_CLOSED);
 
     embed_turnstile_backoff_begin(&backoff);
-    while ((was & CARCER_CLOSED) != 0u)
+    while ((previous_word & CARCER_CLOSED) != 0u)
     {
-        embed_turnstile_backed_off(&series->closed, was, CARCER_CLOSED_SLEEPERS, &backoff, 1u);
-        was = embed_atomic_word_fetch_or(&series->closed, CARCER_CLOSED);
+        embed_turnstile_backoff_step(&series->closed, previous_word, CARCER_CLOSED_SLEEPERS, &backoff, EMBED_TRUE);
+        previous_word = embed_atomic_word_fetch_or(&series->closed, CARCER_CLOSED);
     }
     // A full fence between the closed bit taken and the headers the writer reads. A give that stores a header free
     // and then reads the closed bit clear has its store visible to every walk after this
@@ -706,7 +693,7 @@ EMBED_INLINE void carcer_opened(SeriesCellularum *series)
 }
 
 /** @brief A run of nothing, the row of the service table a word with no trim owed takes. */
-static void carcer_owed_none(SeriesCellularum *series)
+static void carcer_owed_none(SeriesCellularum *series) // NOSONAR
 {
     (void)series;
 }
@@ -859,7 +846,8 @@ static void carcer_touched(CarcerMovable *movable, unsigned int at, embed_atomic
 }
 
 /** @brief The row of the touch table an option with no rows takes. */
-static void carcer_touched_none(CarcerMovable *movable, unsigned int at, embed_atomic_word_value id)
+static void carcer_touched_none(CarcerMovable *movable, // NOSONAR
+                                unsigned int at, embed_atomic_word_value id)
 {
     (void)movable;
     (void)at;
@@ -873,7 +861,7 @@ static void carcer_pass_counted(CarcerMovable *movable)
 }
 
 /** @brief The row of the count table a cellblock with no option takes. */
-static void carcer_pass_counted_none(CarcerMovable *movable)
+static void carcer_pass_counted_none(CarcerMovable *movable) // NOSONAR
 {
     (void)movable;
 }
@@ -943,9 +931,11 @@ EMBED_INLINE uintptr_t carcer_passed(SeriesCellularum *series, embed_atomic_word
     {
         // The sleep needs the closed bit in the value read. A writer's open wakes only a word it closed, and a value
         // read open has no writer to wake it (Sleep.lean). A miss on an open word pauses and tries again.
-        const embed_atomic_word_value read = embed_atomic_word_load(&series->closed);
-        embed_turnstile_backed_off(&series->closed, read, CARCER_CLOSED_SLEEPERS, &backoff,
-                                   (unsigned int)((read & CARCER_CLOSED) != 0u));
+        const embed_atomic_word_value closed_word = embed_atomic_word_load(&series->closed);
+        // Explicit cast narrows the test of the closed bit to the embed_bool container
+        const embed_bool sleep_allowed = (embed_bool)((closed_word & CARCER_CLOSED) != 0u);
+
+        embed_turnstile_backoff_step(&series->closed, closed_word, CARCER_CLOSED_SLEEPERS, &backoff, sleep_allowed);
         answer = carcer_attempted(series, id, work, context, &missed);
     }
     return answer;
@@ -986,17 +976,27 @@ EMBED_INLINE uintptr_t carcer_positioned(SeriesCellularum *series, size_t taken,
 }
 
 /**
- * @brief Raises the high-water mark of the tier a take moved.
+ * @brief Raises the high-water mark of the tier a take moved, where the build tracks one.
  *
  * @param[in,out] series Cellblock to record against [BORROWS].
  * @param[in]     end    The persistent end after the take.
  * @param[in]     top    The temporary top after the take.
+ * @note Where the build tracks none, the arm reads its arguments and does nothing, and its cellblock is const.
  */
+#if MMGR_ENABLE_HW_MEM_CAPACITY_CB
 EMBED_INLINE void carcer_marked(SeriesCellularum *series, size_t end, size_t top)
 {
-    CARCER_HW(series, persistent_hw, end);
-    CARCER_HW(series, temporary_hw, series->size - top);
+    (void)embed_atomic_usize_raise(&series->persistent_hw, end);
+    (void)embed_atomic_usize_raise(&series->temporary_hw, series->size - top);
 }
+#else
+EMBED_INLINE void carcer_marked(const SeriesCellularum *series, size_t end, size_t top)
+{
+    (void)series;
+    (void)end;
+    (void)top;
+}
+#endif
 
 /**
  * @brief A take out of the gap, the work of a pass. The tier's boundary bumped by one fetch-add, and the room read
@@ -1228,7 +1228,8 @@ static uintptr_t carcer_spilled(SeriesCellularum *series, size_t want, const Cel
 }
 
 /** @brief The row of the spill table a take that landed in the gap takes. */
-static uintptr_t carcer_spilled_none(SeriesCellularum *series, size_t want, const CellOwner *owner, size_t down)
+static uintptr_t carcer_spilled_none(SeriesCellularum *series, // NOSONAR
+                                     size_t want, const CellOwner *owner, size_t down)
 {
     (void)series;
     (void)want;
@@ -1334,6 +1335,7 @@ static void carcer_stopped(void)
 /** @brief The row of the stop table a prisoner of this cellblock takes. */
 static void carcer_stopped_none(void)
 {
+    // A prisoner of this cellblock needs no stop, and so this row does nothing
 }
 
 /**
@@ -1412,7 +1414,7 @@ static void carcer_trimmed_held(SeriesCellularum *series, size_t persistent)
 
 /** @brief The row of the trim table a give takes where its cell is below its tier's boundary and the cellblock is
  * open. */
-static void carcer_trimmed_none(SeriesCellularum *series, size_t persistent)
+static void carcer_trimmed_none(SeriesCellularum *series, size_t persistent) // NOSONAR
 {
     (void)series;
     (void)persistent;
@@ -1543,7 +1545,7 @@ static void *carcer_grown(SeriesCellularum *site, void *prisoner, size_t size, c
                                                                                              carcer_counted};
     const size_t given = carcer_all(site != NULL) & carcer_all(prisoner != NULL) & carcer_all(owner != NULL);
     SeriesCellularum *const series = carcer_pick_at(given, site, &carcer_block_none);
-    void *const safe = carcer_pick_at(given, prisoner, series->base + CARCER_WORD);
+    const void *const safe = carcer_pick_at(given, prisoner, series->base + CARCER_WORD);
     const CellOwner *const named = carcer_pick_at(given, carcer_owner_record(owner), &carcer_owner_none);
 
     carcer_owned(series, prisoner, given);
@@ -1575,7 +1577,7 @@ static void *carcer_grown(SeriesCellularum *site, void *prisoner, size_t size, c
                                   .bytes = cell.size & moving & ~up});
     // the bytes added: past the old owner word for a persistent cell, past the moved payload for a temporary one
     mmgr_zero_buf(series->base + at + CARCER_WORD + cell.size, extra & zeroing & moving);
-    counts[(moving & 1u)](series, named, extra, up);
+    counts[moving & 1u](series, named, extra, up);
     carcer_marked(series, end + (extra & moving & up), top - (extra & moving & ~up));
     carcer_opened(series);
     // Explicit cast carries the payload's address as the integer the mask works on, and back
@@ -1642,21 +1644,23 @@ size_t mmgr_series_cellularum_fragmentation(const SeriesCellularum *series)
  *
  * @param[in] bits The word.
  * @return         The place from 0.
+ * @note theory/locus_carcerum/LocusCarcerum/Lowest.lean proves the place for every word of 64 bits or fewer.
+ *       It also proves that the bit a claim isolates is the one bit at that place.
  */
 EMBED_INLINE size_t carcer_lowest(embed_atomic_usize_value bits)
 {
     // Explicit casts widen the word to the count's operand, which is as wide as any claim word. Every bit set
     // is in for a word of none; six masked steps isolate and place the lowest bit
-    const unsigned long long whole = (unsigned long long)bits | (0ull - (unsigned long long)(bits == 0u));
-    const unsigned long long low = whole & (0ull - whole);
+    const unsigned long long whole = (unsigned long long)bits | (0ULL - (unsigned long long)(bits == 0u));
+    const unsigned long long low = whole & (0ULL - whole);
     size_t place = 0u;
 
-    place += ((low & 0xFFFFFFFF00000000ull) != 0u) ? 32u : 0u;
-    place += ((low & 0xFFFF0000FFFF0000ull) != 0u) ? 16u : 0u;
-    place += ((low & 0xFF00FF00FF00FF00ull) != 0u) ? 8u : 0u;
-    place += ((low & 0xF0F0F0F0F0F0F0F0ull) != 0u) ? 4u : 0u;
-    place += ((low & 0xCCCCCCCCCCCCCCCCull) != 0u) ? 2u : 0u;
-    place += ((low & 0xAAAAAAAAAAAAAAAAull) != 0u) ? 1u : 0u;
+    place += ((low & 0xFFFFFFFF00000000ULL) != 0u) ? 32u : 0u;
+    place += ((low & 0xFFFF0000FFFF0000ULL) != 0u) ? 16u : 0u;
+    place += ((low & 0xFF00FF00FF00FF00ULL) != 0u) ? 8u : 0u;
+    place += ((low & 0xF0F0F0F0F0F0F0F0ULL) != 0u) ? 4u : 0u;
+    place += ((low & 0xCCCCCCCCCCCCCCCCULL) != 0u) ? 2u : 0u;
+    place += ((low & 0xAAAAAAAAAAAAAAAAULL) != 0u) ? 1u : 0u;
     return place;
 }
 
@@ -1704,7 +1708,8 @@ static CarcerMovableEntry *carcer_entry_claimed(CarcerMovable *movable, size_t p
 }
 
 /** @brief The row of the claim table a take that answered no cell takes. */
-static CarcerMovableEntry *carcer_entry_claimed_none(CarcerMovable *movable, size_t payload, size_t permit)
+static CarcerMovableEntry *carcer_entry_claimed_none(CarcerMovable *movable, // NOSONAR
+                                                     size_t payload, size_t permit)
 {
     (void)movable;
     (void)payload;
@@ -1719,7 +1724,8 @@ static void carcer_given_back(SeriesCellularum *series, void *prisoner, const Ce
 }
 
 /** @brief The row of the give table a named cell takes. */
-static void carcer_given_none(SeriesCellularum *series, void *prisoner, const CellOwner *owner, size_t zeroing)
+static void carcer_given_none(SeriesCellularum *series, // NOSONAR
+                              void *prisoner, const CellOwner *owner, size_t zeroing)
 {
     (void)series;
     (void)prisoner;
@@ -1741,7 +1747,7 @@ const CarcerMovableEntry *mmgr_movable_buf_alloc(SeriesCellularum *series, size_
     const size_t payload = (size_t)((uint8_t *)prisoner - series->base) & taken;
     CarcerMovableEntry *const first = claims[taken & 1u](movable, payload, carcer_all(1));
     const size_t missed = taken & carcer_all(first == NULL);
-    CarcerMovableEntry *const entry =
+    const CarcerMovableEntry *const entry =
         carcer_pick_at(missed, claims[missed & 1u](movable, payload, carcer_all(1)), first);
     const CarcerMovable *const option = carcer_pick_at(has, movable, &carcer_movable_none);
     const size_t wipes = carcer_all(option->wipes != 0u);
@@ -1944,28 +1950,42 @@ static uintptr_t carcer_span_measured(SeriesCellularum *series, const void *cont
  * @param[in]     work   The work [BORROWS].
  * @return               The work's answer, 0 without the option.
  */
-EMBED_INLINE uintptr_t carcer_span_passed(const SeriesCellularum *series, const CarcerMovableCfg *args, CarcerWork work)
+EMBED_INLINE uintptr_t carcer_span_passed(SeriesCellularum *series, const CarcerMovableCfg *args, CarcerWork work)
 {
-    // Explicit cast takes the const off the cellblock. A pass writes its turnstiles, and the caller's const says
-    // only that the caller does not write the cells
-    SeriesCellularum *const passed = (SeriesCellularum *)(uintptr_t)series;
     CarcerMovable *const movable = carcer_movable_of(series);
     const size_t has = carcer_all(movable != NULL);
     const CarcerSpanCtx call = {
         args, carcer_pick_at(carcer_all(args->cell != NULL), (void *)(uintptr_t)args->cell, &carcer_entry_none),
         carcer_pick_at(carcer_all(args->other_cell != NULL), (void *)(uintptr_t)args->other_cell, &carcer_entry_none),
-        (uint8_t *)(void *)&passed->sink};
+        (uint8_t *)(void *)&series->sink};
     // Explicit cast narrows the badge to the turnstile word's width, which bounds every badge
     const embed_atomic_word_value id = (embed_atomic_word_value)carcer_pick(
         has, (size_t)carcer_thread_badge(carcer_pick_at(has, movable, &carcer_movable_none)), 1u);
 
-    return carcer_passed(passed, id, work, &call) & (uintptr_t)has;
+    return carcer_passed(series, id, work, &call) & (uintptr_t)has;
+}
+
+/**
+ * @brief A call on a movable cell that writes no cell, carried through the turnstiles as carcer_span_passed carries
+ *        it.
+ *
+ * @param[in] series Cellblock the cell is in [BORROWS].
+ * @param[in] args   The caller's arguments [BORROWS].
+ * @param[in] work   The work, which writes no cell [BORROWS].
+ * @return           The work's answer, 0 without the option.
+ */
+EMBED_INLINE uintptr_t carcer_span_read_passed(const SeriesCellularum *series, const CarcerMovableCfg *args,
+                                               CarcerWork work)
+{
+    // Explicit cast takes the const off the cellblock. A pass writes its turnstiles, and the caller's const says
+    // only that the caller does not write the cells
+    return carcer_span_passed((SeriesCellularum *)(uintptr_t)series, args, work);
 }
 
 embed_bool mmgr_movable_buf_read(const SeriesCellularum *series, const CarcerMovableCfg *args)
 {
     // Explicit cast narrows the pass's integer to the embed_bool container
-    return (embed_bool)carcer_span_passed(series, args, carcer_span_read_out);
+    return (embed_bool)carcer_span_read_passed(series, args, carcer_span_read_out);
 }
 
 embed_bool mmgr_movable_buf_write(SeriesCellularum *series, const CarcerMovableCfg *args)
@@ -1977,7 +1997,7 @@ embed_bool mmgr_movable_buf_write(SeriesCellularum *series, const CarcerMovableC
 embed_iword mmgr_movable_buf_compare(const SeriesCellularum *series, const CarcerMovableCfg *args)
 {
     const CarcerMovable *const movable = carcer_movable_of(series);
-    const uintptr_t ordered = carcer_span_passed(series, args, carcer_span_compared);
+    const uintptr_t ordered = carcer_span_read_passed(series, args, carcer_span_compared);
 
     // Explicit cast reads the pass's integer back as the order it carries; a cellblock with no option orders 1
     return (embed_iword)carcer_pick(carcer_all(movable != NULL), (size_t)ordered, 1u);
@@ -1986,7 +2006,7 @@ embed_iword mmgr_movable_buf_compare(const SeriesCellularum *series, const Carce
 size_t mmgr_movable_buf_measure(const SeriesCellularum *series, const CarcerMovableCfg *args)
 {
     // Explicit cast reads the pass's integer back as the bytes it carries
-    return (size_t)carcer_span_passed(series, args, carcer_span_measured);
+    return (size_t)carcer_span_read_passed(series, args, carcer_span_measured);
 }
 
 /**
@@ -2095,11 +2115,13 @@ embed_bool mmgr_movable_buf_move(SeriesCellularum *series)
 EMBED_INLINE size_t carcer_quiet(const SeriesCellularum *series, const CarcerMovable *movable, size_t *passes)
 {
     // Explicit cast reads the word as the count it holds
-    const size_t now = (size_t)embed_atomic_usize_load(&movable->passes);
-    const size_t steady = carcer_all(now == *passes);
+    const size_t passes_now = (size_t)embed_atomic_usize_load(&movable->passes);
+    const size_t steady = carcer_all(passes_now == *passes);
+    // Explicit cast widens the count of open lanes to size_t
+    const size_t open_lane_count = (size_t)embed_turnstile_open_lane_count(&series->turnstiles);
 
-    *passes = now;
-    return steady & carcer_all(((size_t)embed_turnstile_lanes(&series->turnstiles) * 2u) <= (movable->width + 1u));
+    *passes = passes_now;
+    return steady & carcer_all((open_lane_count * 2u) <= (movable->width + 1u));
 }
 
 /**
@@ -2107,11 +2129,11 @@ EMBED_INLINE size_t carcer_quiet(const SeriesCellularum *series, const CarcerMov
  *        ends when no cell moves or the lanes open rise past quiet.
  *
  * @param[in,out] series  Cellblock whose cells to move [BORROWS].
- * @param[in,out] movable The option [BORROWS].
+ * @param[in]     movable The option [BORROWS].
  * @return                EMBED_TRUE where the sort ran until no cell would move, EMBED_FALSE where the
  *                        pressure rose and it backed off.
  */
-EMBED_INLINE embed_bool carcer_mover_sorted(SeriesCellularum *series, CarcerMovable *movable, size_t *passes)
+EMBED_INLINE embed_bool carcer_mover_sorted(SeriesCellularum *series, const CarcerMovable *movable, size_t *passes)
 {
     size_t steady = carcer_all(1);
     size_t moving = carcer_all(1);
@@ -2132,13 +2154,13 @@ EMBED_INLINE embed_bool carcer_mover_sorted(SeriesCellularum *series, CarcerMova
  * @brief The sort a reading calls for: run, and the wait and what it left set by whether it finished.
  *
  * @param[in,out] series  Cellblock whose cells to move [BORROWS].
- * @param[in,out] movable The option [BORROWS].
+ * @param[in]     movable The option [BORROWS].
  * @param[in,out] wait    The milliseconds until the next reading, MMGR_MOVABLE_READ_MS after a sort that finished
  *                        and doubled up to MMGR_MOVABLE_BACKOFF_MAX_MS after one that backed off [BORROWS].
  * @param[in,out] left    The fragmentation a finished sort left [BORROWS].
  * @param[in,out] passes  The passes at the last reading [BORROWS].
  */
-static void carcer_sort_run(SeriesCellularum *series, CarcerMovable *movable, uint32_t *wait, size_t *left,
+static void carcer_sort_run(SeriesCellularum *series, const CarcerMovable *movable, uint32_t *wait, size_t *left,
                             size_t *passes)
 {
     const size_t finished = carcer_all(carcer_mover_sorted(series, movable, passes));
@@ -2151,8 +2173,8 @@ static void carcer_sort_run(SeriesCellularum *series, CarcerMovable *movable, ui
 }
 
 /** @brief The row of the sort table a reading that calls for no sort takes. */
-static void carcer_sort_none(SeriesCellularum *series, CarcerMovable *movable, uint32_t *wait, size_t *left,
-                             size_t *passes)
+static void carcer_sort_none(SeriesCellularum *series, const CarcerMovable *movable, uint32_t *wait, // NOSONAR
+                             size_t *left, size_t *passes)                                           // NOSONAR
 {
     (void)series;
     (void)movable;
@@ -2165,7 +2187,7 @@ static void carcer_sort_none(SeriesCellularum *series, CarcerMovable *movable, u
  * @brief One of the mover's readings of its cellblock, and the sort it starts where the reading calls for one.
  *
  * @param[in,out] series  Cellblock whose cells to move [BORROWS].
- * @param[in,out] movable The option [BORROWS].
+ * @param[in]     movable The option [BORROWS].
  * @param[in,out] wait    The milliseconds until the next reading [BORROWS].
  * @param[in,out] left    The fragmentation the last finished sort left, zero under the threshold [BORROWS].
  * @param[in,out] quiet   The readings in a row that found the cellblock quiet [BORROWS].
@@ -2174,10 +2196,10 @@ static void carcer_sort_none(SeriesCellularum *series, CarcerMovable *movable, u
  *       readings in a row, then sorts. A sort that backed off doubles the wait up to MMGR_MOVABLE_BACKOFF_MAX_MS.
  *       One that finished records what it left, which a reading no higher than it waits on.
  */
-EMBED_INLINE void carcer_mover_read(SeriesCellularum *series, CarcerMovable *movable, uint32_t *wait, size_t *left,
-                                    size_t *quiet, size_t *passes)
+EMBED_INLINE void carcer_mover_read(SeriesCellularum *series, const CarcerMovable *movable, uint32_t *wait,
+                                    size_t *left, size_t *quiet, size_t *passes)
 {
-    static void (*const sorts_run[2])(SeriesCellularum *, CarcerMovable *, uint32_t *, size_t *,
+    static void (*const sorts_run[2])(SeriesCellularum *, const CarcerMovable *, uint32_t *, size_t *,
                                       size_t *) = {carcer_sort_none, carcer_sort_run};
     const size_t percent = mmgr_series_cellularum_fragmentation(series);
     const size_t settled = carcer_all(percent < MMGR_MOVABLE_SETTLE_PERCENT);
@@ -2194,7 +2216,7 @@ EMBED_INLINE void carcer_mover_read(SeriesCellularum *series, CarcerMovable *mov
 
 void mmgr_movable_run(SeriesCellularum *series)
 {
-    CarcerMovable *const movable = carcer_movable_of(series);
+    const CarcerMovable *const movable = carcer_movable_of(series);
     uint32_t wait = MMGR_MOVABLE_READ_MS;
     size_t left = 0u;
     size_t quiet = 0u;
@@ -2220,6 +2242,7 @@ static void carcer_mover_entered(void *context)
 /** @brief A yield of nothing, for a program that gave no thread_yield. */
 static void carcer_yield_none(void)
 {
+    // A program that gave no yield has no processor to give back, and so this call does nothing
 }
 
 /** @brief A move report of nothing, for a program that gave no thread_moving. */
@@ -2265,10 +2288,10 @@ embed_bool mmgr_movable_init(SeriesCellularum *series, const CarcerMovableInitCf
     embed_atomic_usize_store(&movable->passes, 0u);
     movable->wipes = wipes;
     // a call the program gave none of is the call of nothing
-    movable->thread_id = (args->thread_id != NULL) ? args->thread_id : carcer_thread_none;
+    movable->thread_id = (args->thread_id != NULL) ? args->thread_id : &carcer_thread_none;
     movable->thread_wait = args->thread_wait;
-    movable->thread_yield = (args->thread_yield != NULL) ? args->thread_yield : carcer_yield_none;
-    movable->thread_moving = (args->thread_moving != NULL) ? args->thread_moving : carcer_moving_none;
+    movable->thread_yield = (args->thread_yield != NULL) ? args->thread_yield : &carcer_yield_none;
+    movable->thread_moving = (args->thread_moving != NULL) ? args->thread_moving : &carcer_moving_none;
     // the bits past the cells in the last word of claimed stay set for good: no claim lands on them
     const size_t spare = (words * MMGR_MOVABLE_CLAIM_BITS) - args->cells;
     const embed_atomic_usize_value past = ~(((embed_atomic_usize_value)1u << (MMGR_MOVABLE_CLAIM_BITS - spare)) - 1u) &
@@ -2278,7 +2301,7 @@ embed_bool mmgr_movable_init(SeriesCellularum *series, const CarcerMovableInitCf
     // Explicit cast carries the state's address as the integer the word holds
     embed_atomic_uptr_store(&series->movable, (embed_atomic_uptr_value)(uintptr_t)movable);
     const int threaded = (args->thread_started != NULL) && (args->thread_wait != NULL);
-    embed_bool (*const started)(void (*)(void *), void *) = threaded ? args->thread_started : carcer_started_none;
+    embed_bool (*const started)(void (*)(void *), void *) = threaded ? args->thread_started : &carcer_started_none;
 
     return started(carcer_mover_entered, series);
 }
@@ -2288,7 +2311,7 @@ size_t mmgr_movable_queue_depth(const SeriesCellularum *series)
     const CarcerMovable *const movable = carcer_movable_of(series);
 
     // Explicit cast reads the readers queued as the count it is
-    return (size_t)embed_atomic_u32_load(&series->turnstiles.queue) & carcer_all(movable != NULL);
+    return (size_t)embed_atomic_u32_load(&series->turnstiles.queue_length) & carcer_all(movable != NULL);
 }
 
 embed_bool mmgr_movable_touches(const SeriesCellularum *series, size_t at, size_t *id, size_t *touches)

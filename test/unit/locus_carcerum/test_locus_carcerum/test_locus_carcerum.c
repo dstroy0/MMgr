@@ -794,3 +794,22 @@ void test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell(void)
     }
     ram.b.persistent_buf_release(cell, grower);
 }
+
+// This suite defines no mmgr_carcer_hw_misnamed, and so the report goes to the library's weak default
+void test_a_release_that_names_another_owner_changes_nothing_and_the_default_report_does_nothing(void)
+{
+    void *const cell = ram.a.persistent_buf_alloc(64u, cells);
+    const size_t cells_before = mmgr_owner_in_use(cells);
+    const size_t grower_before = mmgr_owner_in_use(grower);
+    const size_t end_before = mmgr_series_cellularum_persistent_end(&ram_a_ctx);
+
+    TEST_ASSERT_NOT_NULL(cell);
+    ram.a.persistent_buf_release(cell, grower);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(cells_before, mmgr_owner_in_use(cells), "the cell still counts to its owner");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(grower_before, mmgr_owner_in_use(grower), "the owner it named counts nothing off");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(end_before, mmgr_series_cellularum_persistent_end(&ram_a_ctx),
+                                     "the cell stays in its tier");
+    TEST_ASSERT_EQUAL_PTR(cells, mmgr_owner_of_buf(&ram_a_ctx, cell));
+    ram.a.persistent_buf_release(cell, cells);
+    TEST_ASSERT_EQUAL_size_t(cells_before - 64u, mmgr_owner_in_use(cells));
+}

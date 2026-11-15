@@ -79,14 +79,17 @@ void tearDown(void)
 // The open lanes of the cellblock's turnstiles that a pass or a contraction holds
 static size_t lanes_busy(void)
 {
-    const unsigned int count = embed_turnstile_lanes(&BLOCK->turnstiles);
-    size_t busy = 0u;
+    const unsigned int open_lane_count = embed_turnstile_open_lane_count(&BLOCK->turnstiles);
+    size_t busy_lane_count = 0u;
 
-    for (unsigned int at = 0u; at < count; at += 1u)
+    for (unsigned int place = 0u; place < open_lane_count; place += 1u)
     {
-        busy += (size_t)((embed_atomic_word_load(&BLOCK->turnstiles.lane[at].word) & EMBED_TURNSTILE_BUSY) != 0u);
+        const embed_atomic_word_value lane_word = embed_atomic_word_load(&BLOCK->turnstiles.lanes[place].word);
+
+        // Explicit cast widens the test of the busy bit to a count
+        busy_lane_count += (size_t)((lane_word & EMBED_TURNSTILE_BUSY_BIT) != 0u);
     }
-    return busy;
+    return busy_lane_count;
 }
 
 // The place of the lowest bit set in a word that has a bit set
@@ -577,9 +580,11 @@ void test_emptying_puts_the_record_back_at_rest(void)
     (void)embed_atomic_word_fetch_or(&BLOCK->closed, CARCER_CLOSED);
     mmgr_series_cellularum_emptied(BLOCK);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_idle(BLOCK));
+    // Explicit cast reads the closed word as the count it holds
     TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_word_load(&BLOCK->closed));
     TEST_ASSERT_EQUAL_size_t(0u, lanes_busy());
-    TEST_ASSERT_EQUAL_UINT32(0u, embed_atomic_u32_load(&BLOCK->turnstiles.queue));
-    TEST_ASSERT_EQUAL_size_t(1u, (size_t)embed_turnstile_lanes(&BLOCK->turnstiles));
+    TEST_ASSERT_EQUAL_UINT32(0u, embed_atomic_u32_load(&BLOCK->turnstiles.queue_length));
+    // Explicit cast widens the count of open lanes to size_t
+    TEST_ASSERT_EQUAL_size_t(1u, (size_t)embed_turnstile_open_lane_count(&BLOCK->turnstiles));
     TEST_ASSERT_NULL(carcer_movable_of(BLOCK));
 }

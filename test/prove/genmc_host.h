@@ -30,23 +30,23 @@
 #include <stdint.h>
 
 // No processor runs the client: a spin's pause is no instruction
-#define EMBED_TURNSTILE_PAUSE() ((void)0)
+#define EMBED_TURNSTILE_SPIN_PAUSE() ((void)0)
 
 #include "embed_turnstile.h"
 
 /** @brief The wakes issued, every word's. */
 static embed_atomic_word s_genmc_wakes;
 
-int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value seen, embed_u64 nanoseconds)
+int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value old_value, embed_word nanoseconds)
 {
     const embed_atomic_word_value epoch = embed_atomic_word_load(&s_genmc_wakes);
 
     // Explicit casts retain the low 32 bits of each value, the bits the futex compares
-    if ((uint32_t)embed_atomic_word_load(word) != (uint32_t)seen)
+    if ((uint32_t)embed_atomic_word_load(word) != (uint32_t)old_value)
     {
         return 1;
     }
-    if (nanoseconds != EMBED_WAIT_FOREVER)
+    if (nanoseconds != EMBED_WAIT_INFINITE)
     {
         return 0;
     }
@@ -64,7 +64,7 @@ void embed_word_wake(embed_atomic_word *word)
     (void)embed_atomic_word_fetch_add(&s_genmc_wakes, 1u);
 }
 
-embed_u64 embed_clock_ns(void)
+embed_word embed_clock_ns(void)
 {
     return 0u;
 }

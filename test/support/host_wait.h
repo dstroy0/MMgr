@@ -6,8 +6,9 @@
  */
 /**
  * @file host_wait.h
- * @brief The host's address wait and wake behind embed_word_wait and embed_word_wake, and a millisecond
- *        clock, for a suite that waits on another thread. The platform's headers live in host_wait.c alone.
+ * @brief The address wait and wake of the host behind embed_word_wait and embed_word_wake, and a
+ *        millisecond clock, for a suite that waits on another thread. The headers of the platform are in
+ *        host_wait.c alone.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-05
  */
@@ -15,7 +16,7 @@
 #define HOST_WAIT_H
 
 /**
- * @brief The host's clock in milliseconds, since a start of its own choice.
+ * @brief The clock of the host in milliseconds, from a start that the host selects.
  *
  * @return The milliseconds.
  */

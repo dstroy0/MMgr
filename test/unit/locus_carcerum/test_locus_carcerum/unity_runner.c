@@ -60,6 +60,7 @@ extern void test_a_growth_the_gap_cannot_meet_is_refused(void);
 extern void test_a_cell_carrying_the_size_asked_is_answered_as_it_is(void);
 extern void test_a_request_over_the_cellblock_is_refused_on_both_tiers(void);
 extern void test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell(void);
+extern void test_a_release_that_names_another_owner_changes_nothing_and_the_default_report_does_nothing(void);
 
 
 /*=======Mock Management=====*/
@@ -120,7 +121,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/locus_carcerum/test_locus_carcerum\\test_locus_carcerum.c");
+  UnityBegin("test/unit/locus_carcerum/test_locus_carcerum/test_locus_carcerum.c");
   run_test(test_locus_carcerum_header_is_self_contained, "test_locus_carcerum_header_is_self_contained", 56);
   run_test(test_the_namespace_is_wired, "test_the_namespace_is_wired", 61);
   run_test(test_the_machinery_sits_below_the_arena, "test_the_machinery_sits_below_the_arena", 69);
@@ -173,6 +174,7 @@ int main(void)
   run_test(test_a_cell_carrying_the_size_asked_is_answered_as_it_is, "test_a_cell_carrying_the_size_asked_is_answered_as_it_is", 743);
   run_test(test_a_request_over_the_cellblock_is_refused_on_both_tiers, "test_a_request_over_the_cellblock_is_refused_on_both_tiers", 758);
   run_test(test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell, "test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell", 781);
+  run_test(test_a_release_that_names_another_owner_changes_nothing_and_the_default_report_does_nothing, "test_a_release_that_names_another_owner_changes_nothing_and_the_default_report_does_nothing", 799);
 
   return UNITY_END();
 }

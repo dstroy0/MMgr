@@ -4,7 +4,7 @@ import EmbeddedTypes.Manifold.Backoff
 # LocusCarcerum, the sleeper bit on the closed word
 
 A pass that finds the cellblock closed backs off. It reads the closed word and sets the sleeper bit with one
-fetch-or. Then it waits on the word for the value it read with that bit set (`embed_turnstile_backed_off`). The wait is the futex
+fetch-or. Then it waits on the word for the value it read with that bit set (`embed_turnstile_backoff_step`). The wait is the futex
 contract of `Futex.lean`: the kernel compares and sleeps in one step. A writer opens with one fetch-and that takes
 the trim bits, then a second fetch-and that clears the closed bit and the sleeper bit. It wakes the word where
 the value the second fetch-and returned had the sleeper bit (`carcer_opened`).
@@ -30,11 +30,11 @@ namespace LocusCarcerum.Sleep
 
 open EmbeddedTypes.Manifold
 
-/-- A sleep on the closed word lasts at max the backoff's limit for its shift and exponent. That fits a
-nanosecond count of 2^30 and so every host wait's argument. -/
-theorem wait_bounded (s k : Nat) (hs : s ≤ Backoff.shiftMost) (hk : k ≤ Backoff.kMost) :
+/-- A sleep on the closed word lasts at max the backoff's limit for its shift and exponent, on each word width. That
+fits a nanosecond count of 2^30 and so every host wait's argument. -/
+theorem wait_bounded (w s k : Nat) (hw : w ∈ Backoff.words) (hs : s ≤ Backoff.shiftMost) (hk : k ≤ Backoff.kMost w) :
     Backoff.limitNs s k ≤ 2 ^ 30 :=
-  (Backoff.limit_fits s k hs hk).1
+  Backoff.limit_fits w s k hw hs hk
 
 /-- The closed word's two bits. -/
 structure Word where
@@ -202,5 +202,73 @@ theorem ungated_sleeps : Reach false ⟨⟨false, true⟩, .rest, .asleep⟩ := 
     Reach.step h1 (Step.flag (gated := false) (r := ⟨false, false⟩) rfl)
   have h3 := Reach.step h2 (Step.wait (gated := false) (r := ⟨false, false⟩) rfl)
   simpa using h3
+
+/-! ## The closed word as the C holds it
+
+`series->closed` is one machine word of w bits, `embed_atomic_word`. `CARCER_CLOSED` is bit 0 and
+`CARCER_CLOSED_SLEEPERS` is bit 1. The trim bits lie above them. `view` reads the two bits of the model from the
+word. The theorems below put each step of the C on its step of the model, on each word width:
+
+- `gate_is_read`: the C's `sleep_allowed` is the closed bit of the value read, as `Step.read` with the gate reads it.
+- `flag_is_step`: the fetch-or of `CARCER_CLOSED_SLEEPERS` sets the sleeper bit of the model and changes no other
+  bit of the word. That is `Step.flag`.
+- `wait_is_step`: the C waits on the value read with the sleeper bit set. Where the word holds that value at the
+  compare, the model's word holds the read with the sleeper bit set. That is the sleep of `Step.wait`.
+- `c_sleep_gated`: each sleep of the C is a sleep of the gated model, from a read with the closed bit. So
+  `gated_woken` holds of the C.
+
+The harness `test/prove/locus_carcerum_sleep_prove.c` proves on the C that each call of `embed_word_wait` from
+`carcer_passed` and `carcer_shut` meets the conditions of `c_sleep_gated`. -/
+
+/-- `CARCER_CLOSED`. -/
+def closedBit (w : Nat) : BitVec w := 1#w
+
+/-- `CARCER_CLOSED_SLEEPERS`. -/
+def sleeperBit (w : Nat) : BitVec w := 2#w
+
+/-- The two bits of the model in a word of the C. -/
+def view (x : BitVec w) : Word := ⟨(x &&& closedBit w) != 0, (x &&& sleeperBit w) != 0⟩
+
+/-- The C's gate, `(closed_word & CARCER_CLOSED) != 0`, is the closed bit of the value that `Step.read` reads. -/
+theorem gate_is_read (x : BitVec w) : ((x &&& closedBit w) != 0) = (view x).closed := rfl
+
+/-- The fetch-or of the sleeper bit leaves the closed bit as it was. -/
+theorem flag_keeps_closed (w : Nat) (hw : w ∈ Backoff.words) (x : BitVec w) :
+    ((x ||| sleeperBit w) &&& closedBit w) = (x &&& closedBit w) := by
+  simp only [Backoff.words, List.mem_cons, List.mem_nil_iff, or_false] at hw
+  rcases hw with rfl | rfl | rfl <;> simp only [closedBit, sleeperBit] <;> bv_decide
+
+/-- The fetch-or of the sleeper bit sets it. -/
+theorem flag_sets_sleeper (w : Nat) (hw : w ∈ Backoff.words) (x : BitVec w) :
+    ((x ||| sleeperBit w) &&& sleeperBit w) != 0 := by
+  simp only [Backoff.words, List.mem_cons, List.mem_nil_iff, or_false] at hw
+  rcases hw with rfl | rfl | rfl <;> simp only [sleeperBit, bne_iff_ne, ne_eq] <;> bv_decide
+
+/-- The fetch-or of the sleeper bit changes no bit of the word but the sleeper bit. -/
+theorem flag_keeps_others (w : Nat) (hw : w ∈ Backoff.words) (x : BitVec w) :
+    ((x ||| sleeperBit w) &&& ~~~(sleeperBit w)) = (x &&& ~~~(sleeperBit w)) := by
+  simp only [Backoff.words, List.mem_cons, List.mem_nil_iff, or_false] at hw
+  rcases hw with rfl | rfl | rfl <;> simp only [sleeperBit] <;> bv_decide
+
+/-- The fetch-or of `CARCER_CLOSED_SLEEPERS` is `Step.flag` on the model's two bits, and it changes no other bit. -/
+theorem flag_is_step (w : Nat) (hw : w ∈ Backoff.words) (x : BitVec w) :
+    view (x ||| sleeperBit w) = { view x with sleepers := true } ∧
+      ((x ||| sleeperBit w) &&& ~~~(sleeperBit w)) = (x &&& ~~~(sleeperBit w)) := by
+  refine ⟨?_, flag_keeps_others w hw x⟩
+  simp only [view, flag_keeps_closed w hw x, flag_sets_sleeper w hw x]
+
+/-- The C waits on the value read with the sleeper bit set. Where the word holds that value at the compare, the
+model's word holds the read with the sleeper bit set. So the model sleeps at `Step.wait` too. -/
+theorem wait_is_step (w : Nat) (hw : w ∈ Backoff.words) (read now : BitVec w) (h : now = read ||| sleeperBit w) :
+    view now = { view read with sleepers := true } := by
+  rw [h]
+  exact (flag_is_step w hw read).1
+
+/-- Each sleep of the C is a sleep of the gated model. The value read has the closed bit, which the gate requires.
+The word at the compare holds the read with the sleeper bit set, which the sleep of `Step.wait` requires. -/
+theorem c_sleep_gated (w : Nat) (hw : w ∈ Backoff.words) (read now : BitVec w)
+    (hgate : ((read &&& closedBit w) != 0) = true) (hnow : now = read ||| sleeperBit w) :
+    (view read).closed = true ∧ view now = { view read with sleepers := true } :=
+  ⟨by rw [← gate_is_read]; exact hgate, wait_is_step w hw read now hnow⟩
 
 end LocusCarcerum.Sleep

@@ -930,6 +930,40 @@ void test_a_sort_waits_out_the_pass_under_way(void)
     TEST_ASSERT_TRUE(single.narrow.movable_buf_release(cell, s_mover));
 }
 
+// The yields of the processor that the sort gives the program
+static unsigned int s_yields;
+
+static void script_yield(void)
+{
+    s_yields += 1u;
+}
+
+void test_a_program_that_gives_a_yield_and_no_move_report_has_its_sort_yield_with_no_report(void)
+{
+    memset(mmgr_pars_storage_narrow_option, 0, narrow_option_bytes);
+    TEST_ASSERT_TRUE(single.narrow.movable_init(&(CarcerMovableInitCfg){.storage = mmgr_pars_storage_narrow_option,
+                                                                        .storage_bytes = narrow_option_bytes,
+                                                                        .cells = MOVING_CELLS,
+                                                                        .width = 1u,
+                                                                        .thread_wait = script_wait,
+                                                                        .thread_yield = script_yield}));
+    void *const low = single.narrow.persistent_buf_alloc(512u, s_mover);
+    const CarcerMovableEntry *const cell = single.narrow.movable_buf_alloc(128u, s_mover);
+    const size_t gap = single.narrow.buf_available();
+
+    TEST_ASSERT_NOT_NULL(cell);
+    single.narrow.persistent_buf_release(low, s_mover);
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&single_narrow_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
+    s_yields = 0u;
+    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS + 2u;
+    mmgr_movable_run(&single_narrow_ctx);
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_owner_of_buf(&single_narrow_ctx, low) == s_mover, "the sort moved the cell down");
+    TEST_ASSERT_TRUE_MESSAGE(single.narrow.buf_available() > gap, "and the tier's end came back");
+    TEST_ASSERT_TRUE_MESSAGE(s_yields >= 1u, "the sort gave the processor back after its move");
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(0u, s_moving_told, "the program gave no move report, and so it heard none");
+    TEST_ASSERT_TRUE(single.narrow.movable_buf_release(cell, s_mover));
+}
+
 void test_with_the_option_a_temporary_take_its_tier_cannot_meet_is_refused(void)
 {
     uint8_t *const hole = plain.moving.persistent_buf_alloc(1024u, s_mover);
