@@ -13,19 +13,17 @@
 
 #if MMGR_ENABLE_EXTRAM
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief Where a request should go.
  *
- * @note Packed to one byte; mmgr_types.h asserts that the pack reaches the compiler.
+ * @note One byte wide, as EMBED_ENUM_BYTE lays it.
  */
-typedef enum MMGR_ENUM_PACKED
-{
-    PLACE_DRAM = 0,  /**< Internal memory. */
-    PLACE_PSRAM = 1, /**< External memory. */
-    PLACE_FAIL = 2   /**< Neither will take it. */
-} mmgr_place;
+EMBED_ENUM_BYTE(mmgr_place, PLACE_DRAM = 0, /**< Internal memory. */
+                PLACE_PSRAM = 1,            /**< External memory. */
+                PLACE_FAIL = 2              /**< Neither will take it. */
+);
 
 /**
  * @brief A pair of buffers, one under fill while the other is under drain.
@@ -46,7 +44,7 @@ typedef struct
 typedef struct
 {
     const size_t size;            /**< Bytes to place. */
-    const mmgr_bool dma_required; /**< The bytes must be reachable by DMA. */
+    const embed_bool dma_required; /**< The bytes must be reachable by DMA. */
     const size_t free_dram;       /**< Bytes still free in internal memory. */
     const size_t free_psram;      /**< Bytes still free in external memory. */
     const size_t psram_threshold; /**< Size at or above which external memory comes first. */
@@ -57,7 +55,7 @@ typedef struct
 /**
  * @brief Type of the exter dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the five members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the five members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with nothing else.
  * @note Every entry takes the same argument pack, as in carceribus and infinitas.
  */
 typedef struct
@@ -68,7 +66,7 @@ typedef struct
     uint8_t (*pingpong_drain)(const ExternumCfg *c); /**< Index under drain. */
     uint8_t (*pingpong_swap)(const ExternumCfg *c);  /**< Swaps the two roles. */
 } ConfiniumExternumNs;
-MMGR_NS_LAYOUT(ConfiniumExternumNs, place, pingpong_init, pingpong_fill, pingpong_drain, pingpong_swap);
+EMBED_TABLE_LAYOUT(ConfiniumExternumNs, place, pingpong_init, pingpong_fill, pingpong_drain, pingpong_swap);
 
 /**
  * @brief Decides whether a request belongs in internal or external memory.
@@ -124,7 +122,7 @@ uint8_t mmgr_pingpong_swap(const ExternumCfg *c);
  *
  * @note pingpong_fill calls mmgr_pingpong_fill_index and pingpong_drain calls mmgr_pingpong_drain_index.
  */
-MMGR_NS ConfiniumExternumNs exter MMGR_UNUSED = {
+EMBED_TABLE_STORAGE ConfiniumExternumNs exter EMBED_UNUSED = {
     .place = mmgr_exter_place,
     .pingpong_init = mmgr_pingpong_init,
     .pingpong_fill = mmgr_pingpong_fill_index,
@@ -132,7 +130,7 @@ MMGR_NS ConfiniumExternumNs exter MMGR_UNUSED = {
     .pingpong_swap = mmgr_pingpong_swap,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 #endif
 

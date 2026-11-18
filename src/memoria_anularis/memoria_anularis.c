@@ -276,24 +276,6 @@ EMBED_INLINE embed_iword ring_trail(embed_word mask)
 }
 
 /**
- * @brief Acquire load of an atomic member.
- *
- * @param[in] address_ Address of the atomic to read [BORROWS].
- * @return             The value read.
- * @note Acquire ordering, and so writes released by the other side are visible after it.
- */
-#define MMGR_ATOMIC_LOAD(address_) atomic_load_explicit((address_), memory_order_acquire)
-
-/**
- * @brief Release store to an atomic member.
- *
- * @param[in,out] address_ Address of the atomic to write [BORROWS].
- * @param[in]     value_   Value to store.
- * @note Release ordering, and so buffer writes made before it are visible to a reader with acquire ordering.
- */
-#define MMGR_ATOMIC_STORE(address_, value_) atomic_store_explicit((address_), (value_), memory_order_release)
-
-/**
  * @brief The whole ring state, positioned into the caller's mmgr_ring storage.
  *
  * @warning Reached by a cast of mmgr_ring::opaque. The assertion below checks it fits inside.
@@ -304,12 +286,12 @@ typedef struct
     size_t capacity;           /**< Bytes at buf, always a power of two. */
     size_t segment_count;      /**< Segments in the ring, a power of two. */
     size_t segment_bytes;      /**< Bytes per segment, as given or capacity divided by segment_count. */
-    _Atomic size_t head;       /**< Write position, advanced by the producer. */
-    _Atomic size_t tail;       /**< Read position, advanced by the consumer. */
-    _Atomic size_t claimed;    /**< Segments the producer filled, a count that only rises. */
-    _Atomic size_t released;   /**< Segments the consumer released, a count that only rises. */
-    _Atomic embed_word gratis; /**< One bit per loculus, set while that loculus is free to take. */
-    _Atomic embed_word pinned; /**< One bit per loculus, set while it still owns bytes in flight. */
+    embed_atomic_usize head;       /**< Write position, advanced by the producer. */
+    embed_atomic_usize tail;       /**< Read position, advanced by the consumer. */
+    embed_atomic_usize claimed;    /**< Segments the producer filled, a count that only rises. */
+    embed_atomic_usize released;   /**< Segments the consumer released, a count that only rises. */
+    embed_atomic_word gratis; /**< One bit per loculus, set while that loculus is free to take. */
+    embed_atomic_word pinned; /**< One bit per loculus, set while it still owns bytes in flight. */
     /**
      * @brief Region each pinned loculus retains out, recorded at the hold.
      *
@@ -538,7 +520,7 @@ EMBED_INLINE size_t ring_free(size_t head, size_t tail, size_t capacity)
  */
 EMBED_INLINE size_t anular_available(const AnularisCtx *args)
 {
-    return ring_used(MMGR_ATOMIC_LOAD(&args->state->head), MMGR_ATOMIC_LOAD(&args->state->tail), args->state->capacity);
+    return ring_used(embed_atomic_usize_load(&args->state->head), embed_atomic_usize_load(&args->state->tail), args->state->capacity);
 }
 
 /**
@@ -551,7 +533,7 @@ EMBED_INLINE size_t anular_available(const AnularisCtx *args)
  */
 EMBED_INLINE size_t anular_vacant(const AnularisCtx *args)
 {
-    return ring_free(MMGR_ATOMIC_LOAD(&args->state->head), MMGR_ATOMIC_LOAD(&args->state->tail), args->state->capacity);
+    return ring_free(embed_atomic_usize_load(&args->state->head), embed_atomic_usize_load(&args->state->tail), args->state->capacity);
 }
 
 /**
@@ -564,14 +546,14 @@ EMBED_INLINE size_t anular_vacant(const AnularisCtx *args)
  */
 EMBED_INLINE embed_bool anular_read_byte(const AnularisCtx *args)
 {
-    const size_t tail = MMGR_ATOMIC_LOAD(&args->state->tail);
+    const size_t tail = embed_atomic_usize_load(&args->state->tail);
 
-    if (tail == MMGR_ATOMIC_LOAD(&args->state->head))
+    if (tail == embed_atomic_usize_load(&args->state->head))
     {
         return EMBED_FALSE;
     }
     *args->dst = args->state->buf[tail];
-    MMGR_ATOMIC_STORE(&args->state->tail, MMGR_RING_WRAP(tail + 1u, args->state->capacity));
+    embed_atomic_usize_store(&args->state->tail, MMGR_RING_WRAP(tail + 1u, args->state->capacity));
     return EMBED_TRUE;
 }
 
@@ -586,11 +568,11 @@ EMBED_INLINE embed_bool anular_read_byte(const AnularisCtx *args)
  */
 EMBED_INLINE size_t anular_read(const AnularisCtx *args)
 {
-    const size_t tail = MMGR_ATOMIC_LOAD(&args->state->tail);
-    const size_t have = ring_used(MMGR_ATOMIC_LOAD(&args->state->head), tail, args->state->capacity);
+    const size_t tail = embed_atomic_usize_load(&args->state->tail);
+    const size_t have = ring_used(embed_atomic_usize_load(&args->state->head), tail, args->state->capacity);
     const size_t bytes = (have < args->bytes) ? have : args->bytes;
 
-    MMGR_ATOMIC_STORE(&args->state->tail, ring_move_out(args->state, tail, args->dst, bytes));
+    embed_atomic_usize_store(&args->state->tail, ring_move_out(args->state, tail, args->dst, bytes));
     return bytes;
 }
 
@@ -606,7 +588,7 @@ EMBED_INLINE size_t anular_read(const AnularisCtx *args)
  */
 EMBED_INLINE void anular_peek(const AnularisCtx *args)
 {
-    const size_t at = MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&args->state->tail) + args->offset, args->state->capacity);
+    const size_t at = MMGR_RING_WRAP(embed_atomic_usize_load(&args->state->tail) + args->offset, args->state->capacity);
 
     (void)ring_move_out(args->state, at, args->dst, args->bytes);
 }
@@ -621,8 +603,7 @@ EMBED_INLINE void anular_peek(const AnularisCtx *args)
  */
 EMBED_INLINE void anular_consume(const AnularisCtx *args)
 {
-    MMGR_ATOMIC_STORE(&args->state->tail,
-                      MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&args->state->tail) + args->bytes, args->state->capacity));
+    embed_atomic_usize_store(&args->state->tail, MMGR_RING_WRAP(embed_atomic_usize_load(&args->state->tail) + args->bytes, args->state->capacity));
 }
 
 /**
@@ -635,13 +616,13 @@ EMBED_INLINE void anular_consume(const AnularisCtx *args)
  */
 EMBED_INLINE embed_bool anular_put(const AnularisCtx *args)
 {
-    const size_t head = MMGR_ATOMIC_LOAD(&args->state->head);
+    const size_t head = embed_atomic_usize_load(&args->state->head);
 
-    if (args->bytes > ring_free(head, MMGR_ATOMIC_LOAD(&args->state->tail), args->state->capacity))
+    if (args->bytes > ring_free(head, embed_atomic_usize_load(&args->state->tail), args->state->capacity))
     {
         return EMBED_FALSE;
     }
-    MMGR_ATOMIC_STORE(&args->state->head, ring_move_in(args->state, head, args->src, args->bytes));
+    embed_atomic_usize_store(&args->state->head, ring_move_in(args->state, head, args->src, args->bytes));
     return EMBED_TRUE;
 }
 
@@ -655,7 +636,7 @@ EMBED_INLINE embed_bool anular_put(const AnularisCtx *args)
  */
 EMBED_INLINE size_t anular_seg_inflight(const AnularisCtx *args)
 {
-    return MMGR_ATOMIC_LOAD(&args->state->claimed) - MMGR_ATOMIC_LOAD(&args->state->released);
+    return embed_atomic_usize_load(&args->state->claimed) - embed_atomic_usize_load(&args->state->released);
 }
 
 /**
@@ -691,9 +672,9 @@ EMBED_INLINE embed_bool ring_seg_pick(const AnularisCtx *args, size_t cursor, em
  */
 EMBED_INLINE embed_bool anular_seg_next(const AnularisCtx *args)
 {
-    const size_t claimed = MMGR_ATOMIC_LOAD(&args->state->claimed);
+    const size_t claimed = embed_atomic_usize_load(&args->state->claimed);
     // Read into a local and not inside the call: cl's C11 atomics misparse a load passed as a _Bool argument
-    const size_t released = MMGR_ATOMIC_LOAD(&args->state->released);
+    const size_t released = embed_atomic_usize_load(&args->state->released);
 
     return ring_seg_pick(args, claimed, (claimed - released) < args->state->segment_count);
 }
@@ -705,9 +686,9 @@ EMBED_INLINE embed_bool anular_seg_next(const AnularisCtx *args)
  * @note A publish and a release are the same step on opposite counters, and so both reach this.
  * @note One side owns each counter, and so the read and the write need no atomicity between them.
  */
-EMBED_INLINE void ring_bump(_Atomic size_t *counter)
+EMBED_INLINE void ring_bump(embed_atomic_usize *counter)
 {
-    MMGR_ATOMIC_STORE(counter, MMGR_ATOMIC_LOAD(counter) + 1u);
+    embed_atomic_usize_store(counter, embed_atomic_usize_load(counter) + 1u);
 }
 
 /**
@@ -737,9 +718,9 @@ EMBED_INLINE void anular_seg_publish(const AnularisCtx *args)
  */
 EMBED_INLINE embed_bool anular_seg_front(const AnularisCtx *args)
 {
-    const size_t released = MMGR_ATOMIC_LOAD(&args->state->released);
+    const size_t released = embed_atomic_usize_load(&args->state->released);
     // Read into a local and not inside the call: cl's C11 atomics misparse a load passed as a _Bool argument
-    const size_t claimed = MMGR_ATOMIC_LOAD(&args->state->claimed);
+    const size_t claimed = embed_atomic_usize_load(&args->state->claimed);
 
     return ring_seg_pick(args, released, claimed != released);
 }
@@ -787,7 +768,7 @@ EMBED_INLINE uint8_t *anular_seg_at(const AnularisCtx *args)
  */
 EMBED_INLINE embed_word anular_loculus_ready(const AnularisCtx *args)
 {
-    return MMGR_ATOMIC_LOAD(&args->state->gratis) & ~MMGR_ATOMIC_LOAD(&args->state->pinned) & ring_loculus_all();
+    return embed_atomic_word_load(&args->state->gratis) & ~embed_atomic_word_load(&args->state->pinned) & ring_loculus_all();
 }
 
 /**
@@ -837,7 +818,7 @@ EMBED_INLINE embed_bool anular_loculus_hold(const AnularisCtx *args)
         return EMBED_FALSE;
     }
 
-    const embed_word prev = atomic_fetch_or_explicit(&args->state->pinned, bit, memory_order_acquire);
+    const embed_word prev = embed_atomic_word_fetch_or(&args->state->pinned, bit);
 
     if ((prev & bit) != 0u)
     {
@@ -893,8 +874,7 @@ EMBED_INLINE void anular_loculus_drop(const AnularisCtx *args)
 {
     // Explicit cast retains the complement at embed_word width, as the atomic it clears. The cast to
     // void drops the mask the fetch returns, which this call has no use for
-    (void)atomic_fetch_and_explicit(&args->state->pinned, (embed_word)~ring_loculus_bit(args->index),
-                                    memory_order_release);
+    (void)embed_atomic_word_fetch_and(&args->state->pinned, (embed_word)~ring_loculus_bit(args->index));
 }
 
 /**
@@ -910,7 +890,7 @@ EMBED_INLINE void anular_loculus_drop(const AnularisCtx *args)
 EMBED_INLINE void anular_loculus_mark(const AnularisCtx *args)
 {
     // Explicit cast to void drops the mask the fetch returns, which this call has no use for
-    (void)atomic_fetch_or_explicit(&args->state->gratis, ring_loculus_bit(args->index), memory_order_release);
+    (void)embed_atomic_word_fetch_or(&args->state->gratis, ring_loculus_bit(args->index));
 }
 
 /**
@@ -950,12 +930,12 @@ embed_bool mmgr_anular_init(const AnularisCfg *args)
     state->capacity = (args->segment_bytes != 0u) ? 1u : args->capacity;
     state->segment_count = args->segment_count;
     state->segment_bytes = (args->segment_bytes != 0u) ? args->segment_bytes : (args->capacity / args->segment_count);
-    atomic_init(&state->head, 0u);
-    atomic_init(&state->tail, 0u);
-    atomic_init(&state->claimed, 0u);
-    atomic_init(&state->released, 0u);
-    atomic_init(&state->gratis, ring_loculus_all());
-    atomic_init(&state->pinned, (embed_word)0);
+    embed_atomic_usize_store(&state->head, 0u);
+    embed_atomic_usize_store(&state->tail, 0u);
+    embed_atomic_usize_store(&state->claimed, 0u);
+    embed_atomic_usize_store(&state->released, 0u);
+    embed_atomic_word_store(&state->gratis, ring_loculus_all());
+    embed_atomic_word_store(&state->pinned, (embed_word)0);
 #if MMGR_RING_LOCULI > 0u
     // A build with no loculi has one keepout entry that nothing reaches. So this loop drops out
     // and does not run over it

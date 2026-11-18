@@ -129,12 +129,12 @@ match the host. It is not there for a caller to ask for whatever the machine doe
 Getting at the parts of a `double` without `<math.h>` and without a heap.
 
 ```c
-const mmgr_u64 bits = EMBED_CALL(fract.to_bits, FractioCfg, .val  = x);
-const mmgr_u64 sign = EMBED_CALL(fract.sign,    FractioCfg, .bits = bits);
-const mmgr_u64 exp  = EMBED_CALL(fract.exp,     FractioCfg, .bits = bits);
-const mmgr_u64 mant = EMBED_CALL(fract.mant,    FractioCfg, .bits = bits);
+const embed_u64 bits = EMBED_CALL(fract.to_bits, FractioCfg, .val  = x);
+const embed_u64 sign = EMBED_CALL(fract.sign,    FractioCfg, .bits = bits);
+const embed_u64 exp  = EMBED_CALL(fract.exp,     FractioCfg, .bits = bits);
+const embed_u64 mant = EMBED_CALL(fract.mant,    FractioCfg, .bits = bits);
 
-const mmgr_u64 back = EMBED_CALL(fract.merge,     FractioCfg, .sign = sign, .exp = exp, .mant = mant);
+const embed_u64 back = EMBED_CALL(fract.merge,     FractioCfg, .sign = sign, .exp = exp, .mant = mant);
 const double   y    = EMBED_CALL(fract.from_bits, FractioCfg, .bits = back);
 ```
 

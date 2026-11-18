@@ -16,7 +16,7 @@
 
 #include "config/mmgr_config.h"
 
-MMGR_INCIPE_DECLS
+EMBED_BEGIN_DECLS
 
 /**
  * @brief A byte region a pinned loculus retains out: the storage, its extent, and how far a reader went.
@@ -49,7 +49,7 @@ typedef struct
  *
  * @warning A pool wider than this needs a wider mask or a scan; the assertion below names which.
  */
-#define MMGR_RING_LOCULI_MAX MMGR_WORD_BITS
+#define MMGR_RING_LOCULI_MAX EMBED_WORD_BITS
 
 /**
  * @brief Loculi this build reserves, which a build may set before it includes this header.
@@ -63,7 +63,7 @@ typedef struct
 #define MMGR_RING_LOCULI 8u
 #endif
 
-MMGR_STATIC_ASSERT(
+EMBED_STATIC_ASSERT(
     MMGR_RING_LOCULI <= MMGR_RING_LOCULI_MAX,
     "the loculus masks are one machine word; widen them or fall back to a scan past MMGR_RING_LOCULI_MAX");
 
@@ -89,12 +89,12 @@ MMGR_STATIC_ASSERT(
 /**
  * @brief Storage a caller declares for one ring, whose contents belong to the implementation.
  *
- * @note MMGR_ALIGN aligns opaque to size_t.
+ * @note EMBED_ALIGN aligns opaque to size_t.
  * @warning The bytes carry no documented layout; the infin calls are the only accessors.
  */
 typedef struct
 {
-    MMGR_ALIGN(sizeof(size_t)) uint8_t opaque[MMGR_RING_WORDS * sizeof(size_t)]; /**< Private ring state. */
+    EMBED_ALIGN(sizeof(size_t)) uint8_t opaque[MMGR_RING_WORDS * sizeof(size_t)]; /**< Private ring state. */
 } mmgr_ring;
 
 /**
@@ -114,40 +114,40 @@ typedef struct
     const size_t bytes;       /**< Byte count the call moves or records. */
     const size_t off;         /**< Offset ahead of the tail that peek starts at. */
     const size_t idx;         /**< Loculus or segment the call acts on. */
-    const mmgr_word mask;     /**< Mask loculus_next picks the lowest set bit of. */
+    const embed_word mask;     /**< Mask loculus_next picks the lowest set bit of. */
     size_t *const out;        /**< Set to the segment index a next or front call chose [BORROWS]. */
 } InfinCfg;
 
 /**
  * @brief Type of the iteratio_infinita dispatch table.
  *
- * @note MMGR_NS_LAYOUT asserts the twenty members sit at consecutive MMGR_FP_SIZE offsets, with nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the twenty members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with nothing else.
  * @note The first eight are the byte ring, the next six the segment view, the last six the loculi.
  */
 typedef struct
 {
-    mmgr_bool (*init)(const InfinCfg *c);          /**< Lays a fresh ring into the caller's storage. */
+    embed_bool (*init)(const InfinCfg *c);          /**< Lays a fresh ring into the caller's storage. */
     size_t (*available)(const InfinCfg *c);        /**< Bytes that wait for a read. */
     size_t (*vacant)(const InfinCfg *c);           /**< Bytes still free to write. */
-    mmgr_bool (*read_byte)(const InfinCfg *c);     /**< Takes one byte and advances the tail. */
+    embed_bool (*read_byte)(const InfinCfg *c);     /**< Takes one byte and advances the tail. */
     size_t (*read)(const InfinCfg *c);             /**< Takes up to bytes and advances the tail once. */
     void (*peek)(const InfinCfg *c);               /**< Copies bytes out and does not advance the tail. */
     void (*consume)(const InfinCfg *c);            /**< Advances the tail past bytes. */
-    mmgr_bool (*put)(const InfinCfg *c);           /**< Writes a whole span, or refuses it entire. */
+    embed_bool (*put)(const InfinCfg *c);           /**< Writes a whole span, or refuses it entire. */
     size_t (*seg_inflight)(const InfinCfg *c);     /**< Segments filled and not yet released. */
-    mmgr_bool (*seg_next)(const InfinCfg *c);      /**< Index of the segment the producer fills next. */
+    embed_bool (*seg_next)(const InfinCfg *c);      /**< Index of the segment the producer fills next. */
     void (*seg_publish)(const InfinCfg *c);        /**< Makes the filled segment visible to the consumer. */
-    mmgr_bool (*seg_front)(const InfinCfg *c);     /**< Index of the segment the consumer takes next. */
+    embed_bool (*seg_front)(const InfinCfg *c);     /**< Index of the segment the consumer takes next. */
     void (*seg_release)(const InfinCfg *c);        /**< Frees the front segment. */
     uint8_t *(*seg_at)(const InfinCfg *c);         /**< The contiguous span of one segment. */
-    mmgr_word (*loculus_ready)(const InfinCfg *c); /**< Loculi that are free and not pinned. */
-    mmgr_iword (*loculus_next)(const InfinCfg *c); /**< Lowest set bit of a mask, or -1. */
-    mmgr_bool (*loculus_hold)(const InfinCfg *c);  /**< Takes a loculus and records its keepout. */
+    embed_word (*loculus_ready)(const InfinCfg *c); /**< Loculi that are free and not pinned. */
+    embed_iword (*loculus_next)(const InfinCfg *c); /**< Lowest set bit of a mask, or -1. */
+    embed_bool (*loculus_hold)(const InfinCfg *c);  /**< Takes a loculus and records its keepout. */
     const mmgr_ring_span *(*loculus_keepout)(const InfinCfg *c); /**< The region a pinned loculus retains out. */
     void (*loculus_drop)(const InfinCfg *c); /**< Gives a loculus back, and leaves its bytes alone. */
     void (*loculus_mark)(const InfinCfg *c); /**< Marks a loculus free. */
 } InfinitasNs;
-MMGR_NS_LAYOUT(InfinitasNs, init, available, vacant, read_byte, read, peek, consume, put, seg_inflight, seg_next,
+EMBED_TABLE_LAYOUT(InfinitasNs, init, available, vacant, read_byte, read, peek, consume, put, seg_inflight, seg_next,
                seg_publish, seg_front, seg_release, seg_at, loculus_ready, loculus_next, loculus_hold, loculus_keepout,
                loculus_drop, loculus_mark);
 
@@ -155,13 +155,13 @@ MMGR_NS_LAYOUT(InfinitasNs, init, available, vacant, read_byte, read, peek, cons
  * @brief Lays a fresh ring into c->ring, over the bytes at c->buf.
  *
  * @param[in] c Storage, bytes, capacity and segment count [BORROWS].
- * @return      MMGR_TRUE when the ring is ready, MMGR_FALSE when a size failed.
+ * @return      EMBED_TRUE when the ring is ready, EMBED_FALSE when a size failed.
  * @note Refuses a cap or nsegs that is 0 or not a power of two, and an nsegs above cap.
  * @note Marks every loculus free and none pinned.
  * @warning c->ring and c->buf are both the caller's, and the ring retains c->buf [BORROWS].
  * @warning c->buf must carry the alignment the caller's own accesses need; this call does not align it.
  */
-mmgr_bool mmgr_infin_init(const InfinCfg *c);
+embed_bool mmgr_infin_init(const InfinCfg *c);
 
 /**
  * @brief Returns the bytes that wait for a read.
@@ -186,12 +186,12 @@ size_t mmgr_infin_vacant(const InfinCfg *c);
  * @brief Takes one byte into c->dst and advances the tail past it.
  *
  * @param[in] c Ring and the destination byte [BORROWS].
- * @return      MMGR_TRUE when a byte came out, MMGR_FALSE when the ring was empty.
- * @note Writes through c->dst only when it returns MMGR_TRUE.
+ * @return      EMBED_TRUE when a byte came out, EMBED_FALSE when the ring was empty.
+ * @note Writes through c->dst only when it returns EMBED_TRUE.
  * @note One byte per call, and so the cost lies in the call. A caller that draws a
  *       run of bytes wants mmgr_infin_read, which moves them a word at a time under one tail store.
  */
-mmgr_bool mmgr_infin_read_byte(const InfinCfg *c);
+embed_bool mmgr_infin_read_byte(const InfinCfg *c);
 
 /**
  * @brief Takes up to c->bytes into c->dst and advances the tail once at the end.
@@ -226,12 +226,12 @@ void mmgr_infin_consume(const InfinCfg *c);
  * @brief Writes c->bytes of c->src into the ring, or refuses the whole span.
  *
  * @param[in] c Ring, the bytes to write and their count [BORROWS].
- * @return      MMGR_TRUE when the span went in, MMGR_FALSE when it would not fit.
+ * @return      EMBED_TRUE when the span went in, EMBED_FALSE when it would not fit.
  * @note Checks the whole span against mmgr_infin_vacant first. A partial write never happens.
  * @note Advances a local head across the wrap and publishes it once, and so no half span is ever visible.
  * @warning c->src must be readable for c->bytes.
  */
-mmgr_bool mmgr_infin_put(const InfinCfg *c);
+embed_bool mmgr_infin_put(const InfinCfg *c);
 
 /**
  * @brief Returns the segments filled and not yet released.
@@ -245,10 +245,10 @@ size_t mmgr_infin_seg_inflight(const InfinCfg *c);
  * @brief Reports the index of the segment the producer fills next.
  *
  * @param[in] c Ring, and where to write the index [BORROWS].
- * @return      MMGR_FALSE when every segment is in flight.
+ * @return      EMBED_FALSE when every segment is in flight.
  * @note The publish step is separate. A half-filled segment is never visible to the consumer.
  */
-mmgr_bool mmgr_infin_seg_next(const InfinCfg *c);
+embed_bool mmgr_infin_seg_next(const InfinCfg *c);
 
 /**
  * @brief Makes the filled segment visible to the consumer.
@@ -261,9 +261,9 @@ void mmgr_infin_seg_publish(const InfinCfg *c);
  * @brief Reports the index of the segment the consumer takes next.
  *
  * @param[in] c Ring, and where to write the index [BORROWS].
- * @return      MMGR_FALSE when none is in flight.
+ * @return      EMBED_FALSE when none is in flight.
  */
-mmgr_bool mmgr_infin_seg_front(const InfinCfg *c);
+embed_bool mmgr_infin_seg_front(const InfinCfg *c);
 
 /**
  * @brief Frees the front segment.
@@ -288,7 +288,7 @@ uint8_t *mmgr_infin_seg_at(const InfinCfg *c);
  * @return      The free mask with the pinned ones cleared, bounded to MMGR_RING_LOCULI.
  * @note A loculus is takeable only when both hold, and that leaves reuse safe.
  */
-mmgr_word mmgr_infin_loculus_ready(const InfinCfg *c);
+embed_word mmgr_infin_loculus_ready(const InfinCfg *c);
 
 /**
  * @brief Returns the index of the lowest set bit of c->mask.
@@ -297,17 +297,17 @@ mmgr_word mmgr_infin_loculus_ready(const InfinCfg *c);
  * @return      The index, or -1 when c->mask is empty.
  * @note Counts and not scans, and branches on nothing but the empty mask.
  */
-mmgr_iword mmgr_infin_loculus_next(const InfinCfg *c);
+embed_iword mmgr_infin_loculus_next(const InfinCfg *c);
 
 /**
  * @brief Takes loculus c->idx and records the c->bytes at c->src that it retains out.
  *
  * @param[in] c Ring, the loculus, and the region to record [BORROWS].
- * @return      MMGR_TRUE when this caller took it, MMGR_FALSE when it was already pinned.
+ * @return      EMBED_TRUE when this caller took it, EMBED_FALSE when it was already pinned.
  * @note The recorded region stays valid until mmgr_infin_loculus_drop. A reader walks it in place.
  * @warning An out-of-range c->idx names nothing, and so it reads as pinned and is never passed out.
  */
-mmgr_bool mmgr_infin_loculus_hold(const InfinCfg *c);
+embed_bool mmgr_infin_loculus_hold(const InfinCfg *c);
 
 /**
  * @brief Returns the region loculus c->idx retains out.
@@ -333,7 +333,7 @@ void mmgr_infin_loculus_drop(const InfinCfg *c);
  */
 void mmgr_infin_loculus_mark(const InfinCfg *c);
 
-MMGR_NS InfinitasNs iteratio_infinita MMGR_UNUSED = {
+EMBED_TABLE_STORAGE InfinitasNs iteratio_infinita EMBED_UNUSED = {
     .init = mmgr_infin_init,
     .available = mmgr_infin_available,
     .vacant = mmgr_infin_vacant,
@@ -356,7 +356,7 @@ MMGR_NS InfinitasNs iteratio_infinita MMGR_UNUSED = {
     .loculus_mark = mmgr_infin_loculus_mark,
 };
 
-MMGR_FINIS_DECLS
+EMBED_END_DECLS
 
 /** @} */
 

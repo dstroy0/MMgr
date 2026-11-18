@@ -892,7 +892,7 @@ EMBED_INLINE size_t cellul_pick_rows(const CellulCtx *args)
  *       word byte zero sits at. verbum_scrutor decides the same question the same way. The endian
  *       module answers a different one, the order of the bytes of a value on the wire, and does not apply.
  */
-#if !MMGR_HW_FAST_UNALIGNED
+#if !EMBED_FAST_UNALIGNED_LOAD
 EMBED_INLINE embed_word cellul_word_next(embed_word current, uint8_t next)
 {
 #if EMBED_BIG_ENDIAN
@@ -982,7 +982,7 @@ EMBED_INLINE const char *cellul_find_short(const char *hay, const char *needle, 
             // Where the hardware loads a word from any address in one instruction, that is cheaper
             // than a derivation. Where it does not, the load is a dozen instructions and a derivation
             // from the word already in hand costs three.
-#if MMGR_HW_FAST_UNALIGNED
+#if EMBED_FAST_UNALIGNED_LOAD
             const embed_word loaded_next = EMBED_CALL(word.load, ScrutWordCfg, .at = hay + at + 1u);
 #else
             // Explicit cast reads the byte past this word as unsigned, as the lane it fills does

@@ -23,7 +23,7 @@ suffixes and the fixed vocabulary survive and only the IDENTITY moves:
     ConfiniumNs ConfiniumVars ConfiniumV ConfiniumCtx  ->  X1Ns X1Vars X1V X1Ctx
     MMGR_CONFIN_BORROW CONFIN_OFF_W                    ->  MMGR_X1_BORROW X1_OFF_A
     mmgr_persistent_buf_alloc                          ->  mmgr_fn3
-    mmgr_word, uint8_t, size_t, static_assert, atomic_load  ->  unchanged
+    embed_word, uint8_t, size_t, static_assert, atomic_load  ->  unchanged
 
 The rest reads as "an entry, with the borrow, a cast of a region at an asserted offset". It has no
 opinion about whether that region is a hash state or a parser. That is the question worth a look.
@@ -197,19 +197,19 @@ STDLIB = {
 # the reader the shape and buys no independence.
 SHAPE = {
     "ok",
-    "mmgr_bool",
-    "mmgr_word",
-    "mmgr_idx",
-    "mmgr_u64",
-    "mmgr_u32",
-    "mmgr_u16",
-    "mmgr_u8",
-    "mmgr_i32",
-    "mmgr_i16",
-    "MMGR_TRUE",
-    "MMGR_FALSE",
-    "MMGR_INCIPE_DECLS",
-    "MMGR_FINIS_DECLS",
+    "embed_bool",
+    "embed_word",
+    "embed_index",
+    "embed_u64",
+    "embed_u32",
+    "embed_u16",
+    "embed_u8",
+    "embed_i32",
+    "embed_i16",
+    "EMBED_TRUE",
+    "EMBED_FALSE",
+    "EMBED_BEGIN_DECLS",
+    "EMBED_END_DECLS",
     "MMGR_CONFIN_ALIGN",
     "MMGR_CONFIN_MAX_ALIGN",
     "mmgr_config",

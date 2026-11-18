@@ -123,7 +123,7 @@ machine. @ref ref_performance explains how to run them and how to tell a result 
 ## Where LTO comes in
 
 Link-time optimization is essential, and it is worth being blunt about how much. These entries are
-generated in `verbum_scrutor.c` by `GENERIC_ENTRY` and called by name from every other module, and so no
+generated in `verbum_scrutor.c` by `EMBED_ENTRY` and called by name from every other module, and so no
 translation unit can inline them on its own. `mmgr_memor_chr` over 512 bytes measured **610 cycles**
 with them as out-of-line calls and **187** when the linker was allowed to inline them. On an
 ESP32-S3, `cellul.len` measured **26.6 cycles/byte without LTO against 5.0 with it**, worse than the

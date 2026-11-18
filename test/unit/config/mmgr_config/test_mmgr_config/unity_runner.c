@@ -8,9 +8,6 @@
 extern void setUp(void);
 extern void tearDown(void);
 extern void test_config_header_is_self_contained(void);
-extern void test_word_width_is_one_of_three(void);
-extern void test_scan_width_is_the_word_width(void);
-extern void test_index_never_exceeds_the_word(void);
 extern void test_tenant_bound_is_a_real_size(void);
 
 
@@ -78,12 +75,9 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("C:/Users/Douglas/Desktop/git_project/mmgrwork/MMgr/test/unit/config/mmgr_config/test_mmgr_config\\test_mmgr_config.c");
+  UnityBegin("test/unit/config/mmgr_config/test_mmgr_config\\test_mmgr_config.c");
   run_test(test_config_header_is_self_contained, "test_config_header_is_self_contained", 5);
-  run_test(test_word_width_is_one_of_three, "test_word_width_is_one_of_three", 10);
-  run_test(test_scan_width_is_the_word_width, "test_scan_width_is_the_word_width", 16);
-  run_test(test_index_never_exceeds_the_word, "test_index_never_exceeds_the_word", 22);
-  run_test(test_tenant_bound_is_a_real_size, "test_tenant_bound_is_a_real_size", 27);
+  run_test(test_tenant_bound_is_a_real_size, "test_tenant_bound_is_a_real_size", 10);
 
   return UNITY_END();
 }

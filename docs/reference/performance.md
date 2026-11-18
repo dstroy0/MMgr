@@ -62,7 +62,7 @@ It halves, roughly, per doubling. `eq` sits about 11% above `has_zero`, the `mov
 | linker permitted to inline them   |    187 |
 
 LTO is essential, and it is worth being blunt about how much. The SWAR primitives are generated
-in `verbum_scrutor.c` by `GENERIC_ENTRY` and called by name from every other module, and so no
+in `verbum_scrutor.c` by `EMBED_ENTRY` and called by name from every other module, and so no
 translation unit can inline them on its own; the build sets `CMAKE_INTERPROCEDURAL_OPTIMIZATION` for
 exactly that reason. Built without it, one machine-word step becomes three to five out-of-line calls,
 each with its argument struct spilled to the stack first, and `cellul.len` measured **26.6

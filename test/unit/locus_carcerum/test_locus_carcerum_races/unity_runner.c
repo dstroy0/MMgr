@@ -100,7 +100,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_races/test_locus_carcerum_races.c");
+  UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_races\\test_locus_carcerum_races.c");
   run_test(test_a_mask_is_every_bit_or_none_and_a_pick_reads_one_side, "test_a_mask_is_every_bit_or_none_and_a_pick_reads_one_side", 118);
   run_test(test_a_request_of_nothing_rounds_to_one_word, "test_a_request_of_nothing_rounds_to_one_word", 129);
   run_test(test_a_store_a_pass_must_not_land_lands_on_the_sink, "test_a_store_a_pass_must_not_land_lands_on_the_sink", 136);
@@ -108,10 +108,10 @@ int main(void)
   run_test(test_an_owner_word_is_read_back_as_its_record, "test_an_owner_word_is_read_back_as_its_record", 160);
   run_test(test_a_foot_is_counted_off_once_and_a_claim_not_permitted_touches_nothing, "test_a_foot_is_counted_off_once_and_a_claim_not_permitted_touches_nothing", 172);
   run_test(test_a_bump_the_gap_cannot_meet_leaves_the_boundary_moved_records_the_overrun_and_positions_its_words_on_the_sink, "test_a_bump_the_gap_cannot_meet_leaves_the_boundary_moved_records_the_overrun_and_positions_its_words_on_the_sink", 187);
-  run_test(test_after_a_refused_bump_every_bump_of_the_tier_is_refused_until_a_writer_settles, "test_after_a_refused_bump_every_bump_of_the_tier_is_refused_until_a_writer_settles", 219);
-  run_test(test_a_bump_not_permitted_moves_nothing, "test_a_bump_not_permitted_moves_nothing", 234);
-  run_test(test_a_bump_that_lands_positions_its_header_and_owner_word_and_counts, "test_a_bump_that_lands_positions_its_header_and_owner_word_and_counts", 246);
-  run_test(test_a_pass_that_finds_the_series_cellularum_closed_misses_and_touches_nothing, "test_a_pass_that_finds_the_series_cellularum_closed_misses_and_touches_nothing", 260);
+  run_test(test_after_a_refused_bump_every_bump_of_the_tier_is_refused_until_a_writer_settles, "test_after_a_refused_bump_every_bump_of_the_tier_is_refused_until_a_writer_settles", 220);
+  run_test(test_a_bump_not_permitted_moves_nothing, "test_a_bump_not_permitted_moves_nothing", 235);
+  run_test(test_a_bump_that_lands_positions_its_header_and_owner_word_and_counts, "test_a_bump_that_lands_positions_its_header_and_owner_word_and_counts", 247);
+  run_test(test_a_pass_that_finds_the_series_cellularum_closed_misses_and_touches_nothing, "test_a_pass_that_finds_the_series_cellularum_closed_misses_and_touches_nothing", 261);
   run_test(test_a_pass_through_a_closed_series_cellularum_opened_meanwhile_lands_on_its_second_try, "test_a_pass_through_a_closed_series_cellularum_opened_meanwhile_lands_on_its_second_try", 276);
   run_test(test_a_closed_series_cellularum_opened_wakes_the_sleepers_and_clears_both_bits, "test_a_closed_series_cellularum_opened_wakes_the_sleepers_and_clears_both_bits", 288);
   run_test(test_the_sweep_merges_free_runs_takes_the_first_that_fits_and_trims_the_end, "test_the_sweep_merges_free_runs_takes_the_first_that_fits_and_trims_the_end", 299);
@@ -125,12 +125,12 @@ int main(void)
   run_test(test_the_trim_walks_the_top_up_over_free_cells_and_stops_at_a_busy_one, "test_the_trim_walks_the_top_up_over_free_cells_and_stops_at_a_busy_one", 450);
   run_test(test_zeroing_starts_at_an_address_off_a_word_boundary, "test_zeroing_starts_at_an_address_off_a_word_boundary", 467);
   run_test(test_a_claim_sets_the_lowest_free_bit_and_a_full_table_claims_nothing, "test_a_claim_sets_the_lowest_free_bit_and_a_full_table_claims_nothing", 481);
-  run_test(test_a_claim_not_permitted_names_nothing, "test_a_claim_not_permitted_names_nothing", 502);
-  run_test(test_a_claim_lost_to_another_context_names_nothing_and_the_take_tries_once_more, "test_a_claim_lost_to_another_context_names_nothing_and_the_take_tries_once_more", 512);
-  run_test(test_the_highest_named_cell_below_a_bound_and_under_a_size, "test_the_highest_named_cell_below_a_bound_and_under_a_size", 525);
-  run_test(test_with_no_option_there_is_no_line_and_no_row, "test_with_no_option_there_is_no_line_and_no_row", 542);
-  run_test(test_a_span_past_a_cell_or_of_a_free_entry_does_not_fit, "test_a_span_past_a_cell_or_of_a_free_entry_does_not_fit", 557);
-  run_test(test_emptying_puts_the_record_back_at_rest, "test_emptying_puts_the_record_back_at_rest", 575);
+  run_test(test_a_claim_not_permitted_names_nothing, "test_a_claim_not_permitted_names_nothing", 501);
+  run_test(test_a_claim_lost_to_another_context_names_nothing_and_the_take_tries_once_more, "test_a_claim_lost_to_another_context_names_nothing_and_the_take_tries_once_more", 511);
+  run_test(test_the_highest_named_cell_below_a_bound_and_under_a_size, "test_the_highest_named_cell_below_a_bound_and_under_a_size", 524);
+  run_test(test_with_no_option_there_is_no_line_and_no_row, "test_with_no_option_there_is_no_line_and_no_row", 541);
+  run_test(test_a_span_past_a_cell_or_of_a_free_entry_does_not_fit, "test_a_span_past_a_cell_or_of_a_free_entry_does_not_fit", 556);
+  run_test(test_emptying_puts_the_record_back_at_rest, "test_emptying_puts_the_record_back_at_rest", 574);
 
   return UNITY_END();
 }

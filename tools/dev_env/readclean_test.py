@@ -30,9 +30,9 @@ def blind(text):
 print("the module's identity goes, and every role of it goes together")
 b = blind(
     "typedef struct { const uint8_t *msg; } Sha256UpdateArgs;\n"
-    "typedef struct { Sha256UpdateArgs update_args; mmgr_bool ok; } Sha256Vars;\n"
+    "typedef struct { Sha256UpdateArgs update_args; embed_bool ok; } Sha256Vars;\n"
     "extern Sha256Vars Sha256V;\n"
-    "typedef struct { void (*const update)(mmgr_word *restrict w); } Sha256Ns;\n"
+    "typedef struct { void (*const update)(embed_word *restrict w); } Sha256Ns;\n"
     "static const Sha256Ns Sha256 __attribute__((unused)) = {.update = mmgr_sha256_update};\n"
 )
 check("the name sha256 is gone entirely", "Sha256" not in b and "sha256" not in b)
@@ -44,9 +44,9 @@ check("and the bare table is that stem too", ("static const %sNs %s " % (stem, s
 
 print()
 print("the shape's own grammar survives, or there is nothing left to check conformity against")
-check("an entry's width type survives", "mmgr_word *restrict" in b)
+check("an entry's width type survives", "embed_word *restrict" in b)
 check("the entry is named as an entry, not as a local", "(*const e1)" in b)
-check("the outcome member retains its name", "mmgr_bool ok;" in b)
+check("the outcome member retains its name", "embed_bool ok;" in b)
 check("the attribute is not read as a call", "__attribute__((unused))" in b)
 check("an args record retains its role suffix", "Args " in b)
 
@@ -77,16 +77,16 @@ b = blind("#ifndef MMGR_FOO_H\n#define MMGR_FOO_H\n#endif\n")
 check("a directive keyword is grammar", b.count("#ifndef") == 1 and b.count("#define") == 1)
 check("its operand is still blinded", "MMGR_FOO_H" not in b)
 
-b = blind('#include "crypto/hash/sha256/sha256.h"\nSha256V.ok = MMGR_TRUE;\n')
+b = blind('#include "crypto/hash/sha256/sha256.h"\nSha256V.ok = EMBED_TRUE;\n')
 check("an include path is a location, not a claim", '#include "crypto/hash/sha256/sha256.h"' in b)
 check("and the name in code is still blinded", "Sha256V.ok" not in b)
-check("the shape's fixed vocabulary survives", "MMGR_TRUE" in b and ".ok = " in b)
+check("the shape's fixed vocabulary survives", "EMBED_TRUE" in b and ".ok = " in b)
 
 print()
 print("the table is one per run. A name crossing files stays itself")
 bl = RC.Blinder(set())
 h = bl.whole("extern FooVars FooV;\n")
-c = bl.whole("FooVars FooV;\nvoid f(void) { FooV.ok = MMGR_TRUE; }\n")
+c = bl.whole("FooVars FooV;\nvoid f(void) { FooV.ok = EMBED_TRUE; }\n")
 name = h.split("extern ")[1].split("Vars")[0]
 check("the header and the source agree on the name", ("%sV." % name) in c)
 

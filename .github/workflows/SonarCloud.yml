@@ -46,7 +46,7 @@ jobs:
       # --coverage on both compile and link. It implies -fprofile-arcs -ftest-coverage at compile
       # time and -lgcov at link time, and the compile half alone fails at link time.
       #
-      # -include test/support/coverage_inline.h drops always_inline off MMGR_INLINE for this build
+      # -include test/support/coverage_inline.h drops always_inline off EMBED_INLINE for this build
       # only. The gcc compiler honors always_inline at -O0. So without it a header entry gets a full
       # set of branch records at every call site. The report then counts optimizer copies and not
       # source branches. The header says the rest.

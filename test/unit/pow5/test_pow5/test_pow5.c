@@ -182,7 +182,7 @@ void test_the_binary_exponents_run_monotonically_in_both_tables(void)
 /**
  * @brief Checks that the narrowest legal embed_iword carries the widest exponent in the tables.
  *
- * @note mmgr_types.h raises #error unless EMBED_WORD_BITS is 16, 32 or 64, and so the narrowest
+ * @note embed_types.h raises #error unless EMBED_WORD_BITS is 16, 32 or 64, and so the narrowest
  *       embed_iword is embed_i16. The word16 environment is where this check binds.
  * @note -722 sits at index 8 of mmgr_pow5_down and is the furthest any e2 reaches from zero.
  */

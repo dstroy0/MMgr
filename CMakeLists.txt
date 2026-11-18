@@ -52,7 +52,7 @@ set(MMGR_PRAET_KNOBS "" CACHE STRING "DMA schedule knobs, NAME=value pairs separ
 # LTO, because this library is seventeen small modules that call each other and the calls between
 # them are the cost. Measured in test/bench: mmgr_memor_chr over 512 bytes is 610 cycles when its
 # SWAR entries are out-of-line calls and 187 when the linker may inline them. The hot entries are
-# MMGR_INLINE in their headers now: LTO carries nothing for those - it still does for
+# EMBED_INLINE in their headers now: LTO carries nothing for those - it still does for
 # every cross-module call that is not.
 if(MMGR_LTO)
   include(CheckIPOSupported)

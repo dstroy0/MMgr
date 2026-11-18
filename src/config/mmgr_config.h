@@ -1,7 +1,9 @@
 /**
  * @brief Build-time settings: widths, region sizes, feature switches and the region cut macros.
  *
- * @note Each tunable sits behind #ifndef, which lets a build set it first; MMGR_SWAR_BITS is the exception.
+ * @note Each tunable sits behind #ifndef, which lets a build set it first.
+ * @note embedded_types gives every platform fact and every type: the word, the index, the widths, the byte order,
+ *       the unaligned load, the attributes and the dispatch layout. This header gives none of them.
  */
 #ifndef MMGR_CONFIG_H
 #define MMGR_CONFIG_H
@@ -9,41 +11,9 @@
 /** @addtogroup mod_config
  *  @{ */
 
+#include "embed_compiler_directives.h"
+#include "embed_dispatch_layout.h"
 #include "embed_types.h"
-
-#include "config/mmgr_compiler_directives.h"
-
-/**
- * @brief Width in bits of mmgr_word, the register every SWAR lane operation runs in.
- *
- * @note Derived from UINTPTR_MAX as 64, 32 or 16 when the build does not set it.
- * @warning A target whose UINTPTR_MAX matches none of the three raises #error; pass -DMMGR_WORD_BITS.
- */
-#ifndef MMGR_WORD_BITS
-#if UINTPTR_MAX == 0xFFFFFFFFFFFFFFFFu
-#define MMGR_WORD_BITS 64
-#elif UINTPTR_MAX == 0xFFFFFFFFu
-#define MMGR_WORD_BITS 32
-#elif UINTPTR_MAX == 0xFFFFu
-#define MMGR_WORD_BITS 16
-#else
-#error "cannot derive MMGR_WORD_BITS from UINTPTR_MAX on this target - pass -DMMGR_WORD_BITS=16|32|64"
-#endif
-#endif
-
-/**
- * @brief Width in bits of mmgr_idx, the type that carries every offset and length.
- *
- * @note Follows MMGR_WORD_BITS below 32, and stops at 32 above that.
- * @warning mmgr_types.h accepts only 16 or 32, and asserts mmgr_idx fits inside mmgr_word.
- */
-#ifndef MMGR_INDEX_BITS
-#if MMGR_WORD_BITS < 32
-#define MMGR_INDEX_BITS MMGR_WORD_BITS
-#else
-#define MMGR_INDEX_BITS 32
-#endif
-#endif
 
 /**
  * @brief Alignment applied to every carved region, and the granularity each pool must be a multiple of.
@@ -54,18 +24,6 @@
 
 #define MMGR_ALIGN_BYTES 16u
 #endif
-
-#include "config/mmgr_types.h"
-
-/**
- * @brief Width in bits of one SWAR word, always equal to MMGR_WORD_BITS.
- *
- * @warning This replaces any earlier definition. A build cannot set the two widths apart.
- */
-#ifdef MMGR_SWAR_BITS
-#undef MMGR_SWAR_BITS
-#endif
-#define MMGR_SWAR_BITS MMGR_WORD_BITS
 
 /**
  * @brief Set to 1 to enable the library's debug-only checks.
@@ -206,32 +164,6 @@
  * @note Evaluates to void; the _Generic association list admits uint8_t only.
  */
 #define MMGR_MEMOR_IS_BYTE(x_) ((void)_Generic((x_), uint8_t: 0))
-
-/**
- * @brief Defines an entry point with a return value that forwards an argument pack.
- *
- * @param PREFIX     The public entry point prefix (e.g., mmgr_infin_)
- * @param BACKEND    The backend function prefix (e.g., infin_)
- * @param CTX_TYPE   The context structure type (e.g., InfinCtx)
- * @param CFG_TYPE   The config structure type (e.g., InfinCfg)
- * @param RET_TYPE   Return type of the function
- * @param NAME       The core name of the function
- * @param ...        The variadic argument pack/fields to forward
- */
-#define GENERIC_ENTRY(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, RET_TYPE, NAME, ...)                                        \
-    RET_TYPE PREFIX##NAME(const CFG_TYPE *c)                                                                           \
-    {                                                                                                                  \
-        return MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__);                                                        \
-    }
-
-/**
- * @brief Defines a void entry point that forwards an argument pack.
- */
-#define GENERIC_ENTRY_V(PREFIX, BACKEND, CTX_TYPE, CFG_TYPE, NAME, ...)                                                \
-    void PREFIX##NAME(const CFG_TYPE *c)                                                                               \
-    {                                                                                                                  \
-        MMGR_CALL(BACKEND##NAME, CTX_TYPE, __VA_ARGS__);                                                               \
-    }
 
 /** @} */
 

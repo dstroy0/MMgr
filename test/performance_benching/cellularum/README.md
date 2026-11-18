@@ -35,7 +35,7 @@ any time catches a whole pass.
 The bench compiles this component with `-flto`, and removes the `-fno-lto` that ESP-IDF appends to
 every link. Without that it measures something the library never does in a real build.
 
-The SWAR primitives are generated in `verbum_scrutor.c` by `GENERIC_ENTRY` and called by name from
+The SWAR primitives are generated in `verbum_scrutor.c` by `EMBED_ENTRY` and called by name from
 every other module. Nothing can inline them across translation units on its own, and the desktop
 build sets `CMAKE_INTERPROCEDURAL_OPTIMIZATION` for exactly that reason. Built without it, one
 four-byte word step becomes three to five windowed calls, each with its argument struct spilled to
@@ -75,7 +75,7 @@ Per 4-byte word, `cmp` went from ~18 instructions to ~6, as a word-wise memcmp d
 Three more changes followed, each measured on the part:
 
 - **The aligned load.** Every word was read through `word.load`, which goes to a type carrying
-  `MMGR_ALIGN(1)`. Neither shipping part has an unaligned word load, and so the compiler assembled one
+  `EMBED_ALIGN(1)`. Neither shipping part has an unaligned word load, and so the compiler assembled one
   out of four byte loads and six shifts, in the loop. The walks now step to the first word boundary
   and read the body through `word.load_al`. `len` went 3.788 cycles/byte to 3.055 on that alone.
 - **Two words a pass in `len`.** The load and the `has_zero` reading it are a dependent pair and
@@ -144,7 +144,7 @@ comparison is against that, not against a portable C libc.
 
 ### Dispatch costs nothing
 
-`MMGR_CALL` was measured against a direct call to the same entry, same work, same buffer:
+`EMBED_CALL` was measured against a direct call to the same entry, same work, same buffer:
 
 | target            | dispatch_len8 | direct_len8 |
 | ----------------- | ------------- | ----------- |
@@ -152,5 +152,5 @@ comparison is against that, not against a portable C libc.
 | ESP32-C6 (RISC-V) | 111.06        | 111.06      |
 
 Identical on both. The compound literal folds into registers and no argument struct is materialized.
-This is worth stating because it does not hold everywhere: on Cortex-M4, `MMGR_CALL` emitted a
+This is worth stating because it does not hold everywhere: on Cortex-M4, `EMBED_CALL` emitted a
 `memset` of the whole argument type per call. Neither of these parts does that.

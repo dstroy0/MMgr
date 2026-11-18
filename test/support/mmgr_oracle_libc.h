@@ -308,8 +308,8 @@ EMBED_INLINE size_t mmgr_oracle_verba_fixed(const VerbaFractioCfg *args)
     return mmgr_oracle_verba_written(args, tmp, snprintf(tmp, sizeof tmp, "%.*f", (int)decimals, args->real));
 }
 
-MMGR_DIAG_PUSH
-MMGR_DIAG_IGNORE("-Wfloat-conversion")
+EMBED_DIAGNOSTIC_PUSH
+EMBED_DIAGNOSTIC_IGNORE("-Wfloat-conversion")
 EMBED_INLINE embed_bool mmgr_oracle_signbit(const VerbaFractioCfg *args)
 {
     return (embed_bool)(signbit(args->real) != 0);
@@ -325,7 +325,7 @@ EMBED_INLINE embed_bool mmgr_oracle_isnan(const VerbaFractioCfg *args)
     return (embed_bool)(isnan(args->real) != 0);
 }
 
-MMGR_DIAG_POP
+EMBED_DIAGNOSTIC_POP
 
 EMBED_TABLE_STORAGE CellularumLaboroNs cellul_oracle EMBED_UNUSED = {
     .init = mmgr_oracle_init,

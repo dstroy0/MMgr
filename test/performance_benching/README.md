@@ -99,6 +99,6 @@ in them, and the same plus one call the optimizer may not remove.
 Both arms pay it. `len` over eight bytes is 112 cycles on the S3 against ROM `strnlen`'s 113, and 41
 of each is the call. A ratio at n=8 is mostly two call floors.
 
-`dispatch_len8` and `direct_len8` price `MMGR_CALL` itself, dispatching through the namespace table
+`dispatch_len8` and `direct_len8` price `EMBED_CALL` itself, dispatching through the namespace table
 against calling the entry by name. They come out identical - 112.02 both ways on the S3, 102.06 on
 the C6 - so the compound literal folds into registers and no argument struct is built.

@@ -49,7 +49,7 @@
  *
  * @note The compiler states the order in __BYTE_ORDER__, and so nothing here works it out. That is the
  *       toolchain's answer and not the library's, which retains it usable as a reference.
- *       MMGR_HW_BIG_ENDIAN is what the module branches on, and a read of it would put the same answer
+ *       EMBED_BIG_ENDIAN is what the module branches on, and a read of it would put the same answer
  *       on both sides of every comparison below.
  * @note A compile-time constant, and so every expectation below folds and no case carries a run-time
  *       branch on the order.

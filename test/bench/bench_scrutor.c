@@ -18,7 +18,7 @@ static void bench_nop(void)
         const uint64_t v_ = (uint64_t)r_;
         BENCH_RETAIN(v_);
     });
-    printf("scrut,nop,%u,%.4f,%.4f\n", MMGR_SWAR_BITS, cy, cy / (double)MMGR_SWAR_BYTES);
+    printf("scrut,nop,%u,%.4f,%.4f\n", EMBED_WORD_BITS, cy, cy / (double)MMGR_SWAR_BYTES);
     fflush(stdout);
 }
 
@@ -32,7 +32,7 @@ static void bench_nop(void)
             const uint64_t v_ = (uint64_t)(EXPR);                                                                      \
             BENCH_RETAIN(v_);                                                                                          \
         });                                                                                                            \
-        printf("scrut,%s,%u,%.4f,%.4f\n", LABEL, MMGR_SWAR_BITS, cy_, cy_ / (double)MMGR_SWAR_BYTES);                  \
+        printf("scrut,%s,%u,%.4f,%.4f\n", LABEL, EMBED_WORD_BITS, cy_, cy_ / (double)MMGR_SWAR_BYTES);                  \
         fflush(stdout);                                                                                                \
     } while (0)
 

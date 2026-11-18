@@ -110,8 +110,8 @@ int main(void)
   run_test(test_a_max_security_give_naming_another_owner_zeroes_nothing, "test_a_max_security_give_naming_another_owner_zeroes_nothing", 287);
   run_test(test_a_growth_naming_another_owner_is_refused_and_told, "test_a_growth_naming_another_owner_is_refused_and_told", 299);
   run_test(test_a_cell_answers_the_owner_it_counts_to, "test_a_cell_answers_the_owner_it_counts_to", 310);
-  run_test(test_a_cell_given_back_twice_counts_off_once_and_tells_nothing, "test_a_cell_given_back_twice_counts_off_once_and_tells_nothing", 325);
-  run_test(test_a_max_security_temporary_give_zeroes_the_cell_and_counts_it_off, "test_a_max_security_temporary_give_zeroes_the_cell_and_counts_it_off", 338);
+  run_test(test_a_cell_given_back_twice_counts_off_once_and_tells_nothing, "test_a_cell_given_back_twice_counts_off_once_and_tells_nothing", 326);
+  run_test(test_a_max_security_temporary_give_zeroes_the_cell_and_counts_it_off, "test_a_max_security_temporary_give_zeroes_the_cell_and_counts_it_off", 339);
 
   return UNITY_END();
 }

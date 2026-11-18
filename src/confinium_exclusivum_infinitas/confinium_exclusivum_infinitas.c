@@ -14,17 +14,17 @@
 /**
  * @brief The attributes that make an access at an arbitrary address legal.
  *
- * @note MMGR_ALIGN(1) states the address carries no alignment; MMGR_ALIAS states the type may alias.
+ * @note EMBED_ALIGN(1) states the address carries no alignment; EMBED_ALIAS states the type may alias.
  * @warning Either half expands to nothing where its attribute is unavailable.
  */
-#define RING_RAW MMGR_ALIGN(1) MMGR_ALIAS
+#define RING_RAW EMBED_ALIGN(1) EMBED_ALIAS
 
 /**
- * @brief Bytes the mover steps at a time: 8 at MMGR_WORD_BITS 64 or more, 4 at 32 or more, 2 otherwise.
+ * @brief Bytes the mover steps at a time: 8 at EMBED_WORD_BITS 64 or more, 4 at 32 or more, 2 otherwise.
  */
-#if MMGR_WORD_BITS >= 64
+#if EMBED_WORD_BITS >= 64
 #define RING_STEP 8
-#elif MMGR_WORD_BITS >= 32
+#elif EMBED_WORD_BITS >= 32
 #define RING_STEP 4
 #else
 #define RING_STEP 2
@@ -34,11 +34,11 @@
  * @brief The unsigned type RING_STEP bytes wide.
  */
 #if RING_STEP >= 8
-typedef mmgr_u64 ring_step_word;
+typedef embed_u64 ring_step_word;
 #elif RING_STEP >= 4
-typedef mmgr_u32 ring_step_word;
+typedef embed_u32 ring_step_word;
 #else
-typedef mmgr_u16 ring_step_word;
+typedef embed_u16 ring_step_word;
 #endif
 
 /**
@@ -52,8 +52,8 @@ typedef ring_step_word ring_raw_word RING_RAW;
  * @note A tail is shorter than one step. So these carry it, and not a step that would reach past
  *       what the caller gave.
  */
-typedef mmgr_u32 ring_raw_u32 RING_RAW;
-typedef mmgr_u16 ring_raw_u16 RING_RAW;
+typedef embed_u32 ring_raw_u32 RING_RAW;
+typedef embed_u16 ring_raw_u16 RING_RAW;
 
 /**
  * @brief Builds the mask of the lowest n bits of type T.
@@ -126,7 +126,7 @@ typedef mmgr_u16 ring_raw_u16 RING_RAW;
  *       region needs room past what the caller gave, and the destination only takes writes, never reads.
  * @warning The two regions must not overlap.
  */
-MMGR_INLINE void ring_move(uint8_t *dst, const uint8_t *src, size_t sz)
+EMBED_INLINE void ring_move(uint8_t *dst, const uint8_t *src, size_t sz)
 {
     size_t words = sz / (size_t)RING_STEP;
     const size_t rem = sz - (words * (size_t)RING_STEP);
@@ -177,65 +177,47 @@ MMGR_INLINE void ring_move(uint8_t *dst, const uint8_t *src, size_t sz)
  *
  * @note A per-octet count times this sums every octet into the top one.
  */
-#define RING_ONES ((mmgr_word)(((mmgr_word) ~(mmgr_word)0) / 0xFFu))
+#define RING_ONES ((embed_word)(((embed_word) ~(embed_word)0) / 0xFFu))
 
 /**
  * @brief A word with 0x55 in every octet, which pairs the bits for the first fold.
  */
-#define RING_PAIRS ((mmgr_word)(((mmgr_word) ~(mmgr_word)0) / 3u))
+#define RING_PAIRS ((embed_word)(((embed_word) ~(embed_word)0) / 3u))
 
 /**
  * @brief A word with 0x33 in every octet, which pairs the counts for the second fold.
  */
-#define RING_QUADS ((mmgr_word)(((mmgr_word) ~(mmgr_word)0) / 5u))
+#define RING_QUADS ((embed_word)(((embed_word) ~(embed_word)0) / 5u))
 
 /**
  * @brief A word with 0x0F in every octet, which holds each octet's count after the third fold.
  */
-#define RING_OCTETS ((mmgr_word)(((mmgr_word) ~(mmgr_word)0) / 17u))
+#define RING_OCTETS ((embed_word)(((embed_word) ~(embed_word)0) / 17u))
 
 /**
  * @brief Counts the zero bits below the lowest set bit of x.
  *
  * @param[in] x Value to measure.
- * @return      Trailing zero count, 0 through MMGR_WORD_BITS.
+ * @return      Trailing zero count, 0 through EMBED_WORD_BITS.
  * @note The lowest set bit, isolated and with one taken off, leaves exactly that many bits set. So the
  *       trailing zero count is a population count.
  * @note The count folds in place a lane at a time. Then one multiply sums every octet into the top
  *       one, which the final shift reads out. Every constant derives from the word, and so the same
  *       four steps run at any width.
  * @note No step branches on the value.
- * @warning An x of 0 returns MMGR_WORD_BITS; every caller tests for an empty mask first.
+ * @warning An x of 0 returns EMBED_WORD_BITS; every caller tests for an empty mask first.
  */
-MMGR_INLINE mmgr_iword ring_trail(mmgr_word x)
+EMBED_INLINE embed_iword ring_trail(embed_word x)
 {
-    // Explicit cast retains the two's complement negation at mmgr_word, which picks out the lowest set bit
-    mmgr_word v = (mmgr_word)((x & (mmgr_word)(0u - x)) - (mmgr_word)1);
+    // Explicit cast retains the two's complement negation at embed_word, which picks out the lowest set bit
+    embed_word v = (embed_word)((x & (embed_word)(0u - x)) - (embed_word)1);
 
-    // Explicit casts hold each fold at mmgr_word: pairs, then quads, then whole octets
-    v = (mmgr_word)(v - ((v >> 1) & RING_PAIRS));
-    v = (mmgr_word)((v & RING_QUADS) + ((v >> 2) & RING_QUADS));
-    v = (mmgr_word)((v + (v >> 4)) & RING_OCTETS);
-    return (mmgr_iword)((mmgr_word)(v * RING_ONES) >> (MMGR_WORD_BITS - 8u));
+    // Explicit casts hold each fold at embed_word: pairs, then quads, then whole octets
+    v = (embed_word)(v - ((v >> 1) & RING_PAIRS));
+    v = (embed_word)((v & RING_QUADS) + ((v >> 2) & RING_QUADS));
+    v = (embed_word)((v + (v >> 4)) & RING_OCTETS);
+    return (embed_iword)((embed_word)(v * RING_ONES) >> (EMBED_WORD_BITS - 8u));
 }
-
-/**
- * @brief Acquire load of an atomic member.
- *
- * @param[in] p Address of the atomic to read [BORROWS].
- * @return      The value read.
- * @note Acquire ordering, and so writes released by the other side are visible after it.
- */
-#define MMGR_ATOMIC_LOAD(p) atomic_load_explicit((p), memory_order_acquire)
-
-/**
- * @brief Release store to an atomic member.
- *
- * @param[in] p Address of the atomic to write [BORROWS].
- * @param[in] v Value to store.
- * @note Release ordering, and so buffer writes made before it are visible to a reader with acquire ordering.
- */
-#define MMGR_ATOMIC_STORE(p, v) atomic_store_explicit((p), (v), memory_order_release)
 
 /**
  * @brief The whole ring state, positioned into the caller's mmgr_ring storage.
@@ -248,12 +230,12 @@ typedef struct
     size_t cap;               /**< Bytes in buf, always a power of two. */
     size_t nsegs;             /**< Segments in the ring, a power of two. */
     size_t seg;               /**< Bytes per segment, cap divided by nsegs. */
-    _Atomic size_t head;      /**< Write position, advanced by the producer. */
-    _Atomic size_t tail;      /**< Read position, advanced by the consumer. */
-    _Atomic size_t claim;     /**< Segments the producer filled, a count that only rises. */
-    _Atomic size_t rel;       /**< Segments the consumer released, a count that only rises. */
-    _Atomic mmgr_word gratis; /**< Bit i set while loculus i is free to take. */
-    _Atomic mmgr_word pinned; /**< Bit i set while loculus i still owns bytes in flight. */
+    embed_atomic_usize head;      /**< Write position, advanced by the producer. */
+    embed_atomic_usize tail;      /**< Read position, advanced by the consumer. */
+    embed_atomic_usize claim;     /**< Segments the producer filled, a count that only rises. */
+    embed_atomic_usize rel;       /**< Segments the consumer released, a count that only rises. */
+    embed_atomic_word gratis; /**< Bit i set while loculus i is free to take. */
+    embed_atomic_word pinned; /**< Bit i set while loculus i still owns bytes in flight. */
     /**
      * @brief Region each pinned loculus retains out, recorded at the hold.
      *
@@ -263,13 +245,13 @@ typedef struct
     mmgr_ring_span retain[(MMGR_RING_LOCULI > 0u) ? MMGR_RING_LOCULI : 1u];
 } RingState;
 
-MMGR_STATIC_ASSERT(sizeof(RingState) <= sizeof(mmgr_ring),
+EMBED_STATIC_ASSERT(sizeof(RingState) <= sizeof(mmgr_ring),
                    "MMGR_RING_WORDS is short: a consumer cannot declare room for the ring");
 
 /**
  * @brief Arguments for every backend in this file, grouped by the calls that read them.
  *
- * @note Each backend reads one group; MMGR_CALL zeroes the members the caller omits.
+ * @note Each backend reads one group; EMBED_CALL zeroes the members the caller omits.
  */
 typedef struct
 {
@@ -279,7 +261,7 @@ typedef struct
     size_t bytes;       /**< Byte count the call moves or records. */
     size_t off;         /**< Offset ahead of the tail that peek starts at. */
     size_t idx;         /**< Loculus or segment the call acts on. */
-    mmgr_word mask;     /**< Mask loculus_next picks the lowest set bit of. */
+    embed_word mask;     /**< Mask loculus_next picks the lowest set bit of. */
     size_t *out;        /**< Set to the segment index a next or front call chose [BORROWS]. */
 } InfinCtx;
 
@@ -289,9 +271,9 @@ typedef struct
  * @param[in] r Ring storage the caller declared [BORROWS].
  * @return      The state positioned into it [BORROWS].
  * @note The cast goes through void *; mmgr_ring aligns opaque to size_t.
- * @warning The state is only valid after mmgr_infin_init returned MMGR_TRUE for this ring.
+ * @warning The state is only valid after mmgr_infin_init returned EMBED_TRUE for this ring.
  */
-MMGR_INLINE RingState *ring_of(mmgr_ring *r)
+EMBED_INLINE RingState *ring_of(mmgr_ring *r)
 {
     return (RingState *)(void *)r->opaque;
 }
@@ -304,19 +286,19 @@ MMGR_INLINE RingState *ring_of(mmgr_ring *r)
  * @note The bound is here and not at each call site. A shift past the word never happens.
  * @note An out-of-range loculus names nothing, and so it reads as pinned and is never passed out.
  */
-MMGR_INLINE mmgr_word ring_loculus_bit(size_t idx)
+EMBED_INLINE embed_word ring_loculus_bit(size_t idx)
 {
 #if MMGR_RING_LOCULI == 0u
     // A build with no loculi names none, and so the bound below would compare against zero and always hold
     (void)idx;
-    return (mmgr_word)0;
+    return (embed_word)0;
 #else
     if (idx >= (size_t)MMGR_RING_LOCULI)
     {
-        return (mmgr_word)0;
+        return (embed_word)0;
     }
-    // Explicit casts build the loculus bit at mmgr_word width, as the masks it tests against
-    return (mmgr_word)((mmgr_word)1 << idx);
+    // Explicit casts build the loculus bit at embed_word width, as the masks it tests against
+    return (embed_word)((embed_word)1 << idx);
 #endif
 }
 
@@ -326,9 +308,9 @@ MMGR_INLINE mmgr_word ring_loculus_bit(size_t idx)
  * @return The mask.
  * @note Full width when the loculus count fills the word, the case a shift could not build.
  */
-MMGR_INLINE mmgr_word ring_loculus_all(void)
+EMBED_INLINE embed_word ring_loculus_all(void)
 {
-    return RING_LOW_MASK(mmgr_word, (size_t)MMGR_RING_LOCULI, (size_t)MMGR_RING_LOCULI_MAX);
+    return RING_LOW_MASK(embed_word, (size_t)MMGR_RING_LOCULI, (size_t)MMGR_RING_LOCULI_MAX);
 }
 
 /**
@@ -351,7 +333,7 @@ typedef struct
  * @warning want stops at cap: two runs cannot express more than one lap. A larger count would
  *          take the second run past the end of the buffer.
  */
-MMGR_INLINE RingRun ring_run(const RingState *s, size_t at, size_t want)
+EMBED_INLINE RingRun ring_run(const RingState *s, size_t at, size_t want)
 {
     const size_t n = (want > s->cap) ? s->cap : want;
     const size_t room = s->cap - at;
@@ -376,7 +358,7 @@ MMGR_INLINE RingRun ring_run(const RingState *s, size_t at, size_t want)
  *       twice. Two copies of it make this entry too large to inline well, which costs far more than
  *       the loop does.
  */
-MMGR_INLINE size_t ring_move_out(RingState *s, size_t at, uint8_t *dst, size_t want)
+EMBED_INLINE size_t ring_move_out(RingState *s, size_t at, uint8_t *dst, size_t want)
 {
     const RingRun r = ring_run(s, at, want);
     size_t done = 0u;
@@ -404,7 +386,7 @@ MMGR_INLINE size_t ring_move_out(RingState *s, size_t at, uint8_t *dst, size_t w
  * @return             The offset one past the bytes moved, wrapped.
  * @note The mirror of ring_move_out, and the reason a fill and a drain cost the same per byte.
  */
-MMGR_INLINE size_t ring_move_in(RingState *s, size_t at, const uint8_t *src, size_t want)
+EMBED_INLINE size_t ring_move_in(RingState *s, size_t at, const uint8_t *src, size_t want)
 {
     const RingRun r = ring_run(s, at, want);
     size_t done = 0u;
@@ -432,7 +414,7 @@ MMGR_INLINE size_t ring_move_in(RingState *s, size_t at, const uint8_t *src, siz
  * @note Takes the cursors and not the ring. A caller with one of them from its own load
  *       reaches the same arithmetic without reading it twice.
  */
-MMGR_INLINE size_t ring_used(size_t h, size_t t, size_t cap)
+EMBED_INLINE size_t ring_used(size_t h, size_t t, size_t cap)
 {
     return MMGR_RING_WRAP(h - t, cap);
 }
@@ -446,7 +428,7 @@ MMGR_INLINE size_t ring_used(size_t h, size_t t, size_t cap)
  * @return        cap minus one, minus the readable bytes.
  * @note One byte stays back so a full ring and an empty one never share a cursor pair.
  */
-MMGR_INLINE size_t ring_free(size_t h, size_t t, size_t cap)
+EMBED_INLINE size_t ring_free(size_t h, size_t t, size_t cap)
 {
     return (cap - 1u) - ring_used(h, t, cap);
 }
@@ -457,9 +439,9 @@ MMGR_INLINE size_t ring_free(size_t h, size_t t, size_t cap)
  * @param[in] c Ring to inspect [BORROWS].
  * @return      Distance from tail to head, wrapped into the ring.
  */
-MMGR_INLINE size_t infin_available(const InfinCtx *c)
+EMBED_INLINE size_t infin_available(const InfinCtx *c)
 {
-    return ring_used(MMGR_ATOMIC_LOAD(&c->s->head), MMGR_ATOMIC_LOAD(&c->s->tail), c->s->cap);
+    return ring_used(embed_atomic_usize_load(&c->s->head), embed_atomic_usize_load(&c->s->tail), c->s->cap);
 }
 
 /**
@@ -468,28 +450,28 @@ MMGR_INLINE size_t infin_available(const InfinCtx *c)
  * @param[in] c Ring to inspect [BORROWS].
  * @return      cap minus one, minus the readable bytes.
  */
-MMGR_INLINE size_t infin_vacant(const InfinCtx *c)
+EMBED_INLINE size_t infin_vacant(const InfinCtx *c)
 {
-    return ring_free(MMGR_ATOMIC_LOAD(&c->s->head), MMGR_ATOMIC_LOAD(&c->s->tail), c->s->cap);
+    return ring_free(embed_atomic_usize_load(&c->s->head), embed_atomic_usize_load(&c->s->tail), c->s->cap);
 }
 
 /**
  * @brief Takes one byte from the tail and advances past it.
  *
  * @param[in,out] c Ring and the destination byte [BORROWS].
- * @return          MMGR_TRUE when a byte came out, MMGR_FALSE when the ring was empty.
+ * @return          EMBED_TRUE when a byte came out, EMBED_FALSE when the ring was empty.
  */
-MMGR_INLINE mmgr_bool infin_read_byte(const InfinCtx *c)
+EMBED_INLINE embed_bool infin_read_byte(const InfinCtx *c)
 {
-    const size_t t = MMGR_ATOMIC_LOAD(&c->s->tail);
+    const size_t t = embed_atomic_usize_load(&c->s->tail);
 
-    if (t == MMGR_ATOMIC_LOAD(&c->s->head))
+    if (t == embed_atomic_usize_load(&c->s->head))
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
     *c->dst = c->s->buf[t];
-    MMGR_ATOMIC_STORE(&c->s->tail, MMGR_RING_WRAP(t + 1u, c->s->cap));
-    return MMGR_TRUE;
+    embed_atomic_usize_store(&c->s->tail, MMGR_RING_WRAP(t + 1u, c->s->cap));
+    return EMBED_TRUE;
 }
 
 /**
@@ -499,13 +481,13 @@ MMGR_INLINE mmgr_bool infin_read_byte(const InfinCtx *c)
  * @return          Bytes actually taken.
  * @note Publishes the tail once, after the move, and not per byte.
  */
-MMGR_INLINE size_t infin_read(const InfinCtx *c)
+EMBED_INLINE size_t infin_read(const InfinCtx *c)
 {
-    const size_t t = MMGR_ATOMIC_LOAD(&c->s->tail);
-    const size_t have = ring_used(MMGR_ATOMIC_LOAD(&c->s->head), t, c->s->cap);
+    const size_t t = embed_atomic_usize_load(&c->s->tail);
+    const size_t have = ring_used(embed_atomic_usize_load(&c->s->head), t, c->s->cap);
     const size_t n = (have < c->bytes) ? have : c->bytes;
 
-    MMGR_ATOMIC_STORE(&c->s->tail, ring_move_out(c->s, t, c->dst, n));
+    embed_atomic_usize_store(&c->s->tail, ring_move_out(c->s, t, c->dst, n));
     return n;
 }
 
@@ -515,9 +497,9 @@ MMGR_INLINE size_t infin_read(const InfinCtx *c)
  * @param[in,out] c Ring, destination, byte count and start offset [BORROWS].
  * @warning Copies c->bytes regardless of whether that many are available.
  */
-MMGR_INLINE void infin_peek(const InfinCtx *c)
+EMBED_INLINE void infin_peek(const InfinCtx *c)
 {
-    const size_t at = MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&c->s->tail) + c->off, c->s->cap);
+    const size_t at = MMGR_RING_WRAP(embed_atomic_usize_load(&c->s->tail) + c->off, c->s->cap);
 
     (void)ring_move_out(c->s, at, c->dst, c->bytes);
 }
@@ -527,28 +509,28 @@ MMGR_INLINE void infin_peek(const InfinCtx *c)
  *
  * @param[in,out] c Ring and the byte count to drop [BORROWS].
  */
-MMGR_INLINE void infin_consume(const InfinCtx *c)
+EMBED_INLINE void infin_consume(const InfinCtx *c)
 {
-    MMGR_ATOMIC_STORE(&c->s->tail, MMGR_RING_WRAP(MMGR_ATOMIC_LOAD(&c->s->tail) + c->bytes, c->s->cap));
+    embed_atomic_usize_store(&c->s->tail, MMGR_RING_WRAP(embed_atomic_usize_load(&c->s->tail) + c->bytes, c->s->cap));
 }
 
 /**
  * @brief Writes c->bytes of c->src into the ring, or refuses the whole span.
  *
  * @param[in,out] c Ring, the bytes to write and their count [BORROWS].
- * @return          MMGR_TRUE when the span went in, MMGR_FALSE when it would not fit.
+ * @return          EMBED_TRUE when the span went in, EMBED_FALSE when it would not fit.
  * @note The head stays local across the move and publishes once, and so no half span is visible.
  */
-MMGR_INLINE mmgr_bool infin_put(const InfinCtx *c)
+EMBED_INLINE embed_bool infin_put(const InfinCtx *c)
 {
-    const size_t h = MMGR_ATOMIC_LOAD(&c->s->head);
+    const size_t h = embed_atomic_usize_load(&c->s->head);
 
-    if (c->bytes > ring_free(h, MMGR_ATOMIC_LOAD(&c->s->tail), c->s->cap))
+    if (c->bytes > ring_free(h, embed_atomic_usize_load(&c->s->tail), c->s->cap))
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
-    MMGR_ATOMIC_STORE(&c->s->head, ring_move_in(c->s, h, c->src, c->bytes));
-    return MMGR_TRUE;
+    embed_atomic_usize_store(&c->s->head, ring_move_in(c->s, h, c->src, c->bytes));
+    return EMBED_TRUE;
 }
 
 /**
@@ -557,9 +539,9 @@ MMGR_INLINE mmgr_bool infin_put(const InfinCtx *c)
  * @param[in] c Ring to inspect [BORROWS].
  * @return      The distance between the two counters.
  */
-MMGR_INLINE size_t infin_seg_inflight(const InfinCtx *c)
+EMBED_INLINE size_t infin_seg_inflight(const InfinCtx *c)
 {
-    return MMGR_ATOMIC_LOAD(&c->s->claim) - MMGR_ATOMIC_LOAD(&c->s->rel);
+    return embed_atomic_usize_load(&c->s->claim) - embed_atomic_usize_load(&c->s->rel);
 }
 
 /**
@@ -572,27 +554,27 @@ MMGR_INLINE size_t infin_seg_inflight(const InfinCtx *c)
  * @note Both ends reduce to this: the counter goes into range by mask and reports. Only the test for
  *       whether a segment exists differs, and so each end retains its own and passes the answer down.
  */
-MMGR_INLINE mmgr_bool ring_seg_pick(const InfinCtx *c, size_t cursor, mmgr_bool ok)
+EMBED_INLINE embed_bool ring_seg_pick(const InfinCtx *c, size_t cursor, embed_bool ok)
 {
     if (!ok)
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
     *c->out = cursor & (c->s->nsegs - 1u);
-    return MMGR_TRUE;
+    return EMBED_TRUE;
 }
 
 /**
  * @brief Reports the index of the segment the producer fills next.
  *
  * @param[in,out] c Ring, and where to write the index [BORROWS].
- * @return          MMGR_FALSE when every segment is in flight.
+ * @return          EMBED_FALSE when every segment is in flight.
  */
-MMGR_INLINE mmgr_bool infin_seg_next(const InfinCtx *c)
+EMBED_INLINE embed_bool infin_seg_next(const InfinCtx *c)
 {
-    const size_t claim = MMGR_ATOMIC_LOAD(&c->s->claim);
+    const size_t claim = embed_atomic_usize_load(&c->s->claim);
 
-    return ring_seg_pick(c, claim, (claim - MMGR_ATOMIC_LOAD(&c->s->rel)) < c->s->nsegs);
+    return ring_seg_pick(c, claim, (claim - embed_atomic_usize_load(&c->s->rel)) < c->s->nsegs);
 }
 
 /**
@@ -602,9 +584,9 @@ MMGR_INLINE mmgr_bool infin_seg_next(const InfinCtx *c)
  * @note A publish and a release are the same step on opposite counters, and so both reach this.
  * @note One side owns each counter, and so the read and the write need no atomicity between them.
  */
-MMGR_INLINE void ring_bump(_Atomic size_t *p)
+EMBED_INLINE void ring_bump(embed_atomic_usize *p)
 {
-    MMGR_ATOMIC_STORE(p, MMGR_ATOMIC_LOAD(p) + 1u);
+    embed_atomic_usize_store(p, embed_atomic_usize_load(p) + 1u);
 }
 
 /**
@@ -612,7 +594,7 @@ MMGR_INLINE void ring_bump(_Atomic size_t *p)
  *
  * @param[in,out] c Ring to advance [BORROWS].
  */
-MMGR_INLINE void infin_seg_publish(const InfinCtx *c)
+EMBED_INLINE void infin_seg_publish(const InfinCtx *c)
 {
     ring_bump(&c->s->claim);
 }
@@ -621,13 +603,13 @@ MMGR_INLINE void infin_seg_publish(const InfinCtx *c)
  * @brief Reports the index of the segment the consumer takes next.
  *
  * @param[in,out] c Ring, and where to write the index [BORROWS].
- * @return          MMGR_FALSE when none is in flight.
+ * @return          EMBED_FALSE when none is in flight.
  */
-MMGR_INLINE mmgr_bool infin_seg_front(const InfinCtx *c)
+EMBED_INLINE embed_bool infin_seg_front(const InfinCtx *c)
 {
-    const size_t rel = MMGR_ATOMIC_LOAD(&c->s->rel);
+    const size_t rel = embed_atomic_usize_load(&c->s->rel);
 
-    return ring_seg_pick(c, rel, MMGR_ATOMIC_LOAD(&c->s->claim) != rel);
+    return ring_seg_pick(c, rel, embed_atomic_usize_load(&c->s->claim) != rel);
 }
 
 /**
@@ -635,7 +617,7 @@ MMGR_INLINE mmgr_bool infin_seg_front(const InfinCtx *c)
  *
  * @param[in,out] c Ring to advance [BORROWS].
  */
-MMGR_INLINE void infin_seg_release(const InfinCtx *c)
+EMBED_INLINE void infin_seg_release(const InfinCtx *c)
 {
     ring_bump(&c->s->rel);
 }
@@ -646,7 +628,7 @@ MMGR_INLINE void infin_seg_release(const InfinCtx *c)
  * @param[in] c Ring and the segment index [BORROWS].
  * @return      Its first byte inside the ring buffer [BORROWS].
  */
-MMGR_INLINE uint8_t *infin_seg_at(const InfinCtx *c)
+EMBED_INLINE uint8_t *infin_seg_at(const InfinCtx *c)
 {
     return &c->s->buf[c->idx * c->s->seg];
 }
@@ -657,9 +639,9 @@ MMGR_INLINE uint8_t *infin_seg_at(const InfinCtx *c)
  * @param[in] c Ring to inspect [BORROWS].
  * @return      The free mask with the pinned ones cleared, bounded to the loculi this build has.
  */
-MMGR_INLINE mmgr_word infin_loculus_ready(const InfinCtx *c)
+EMBED_INLINE embed_word infin_loculus_ready(const InfinCtx *c)
 {
-    return MMGR_ATOMIC_LOAD(&c->s->gratis) & ~MMGR_ATOMIC_LOAD(&c->s->pinned) & ring_loculus_all();
+    return embed_atomic_word_load(&c->s->gratis) & ~embed_atomic_word_load(&c->s->pinned) & ring_loculus_all();
 }
 
 /**
@@ -668,11 +650,11 @@ MMGR_INLINE mmgr_word infin_loculus_ready(const InfinCtx *c)
  * @param[in] c The mask to pick from [BORROWS].
  * @return      The index, or -1 when c->mask is empty.
  */
-MMGR_INLINE mmgr_iword infin_loculus_next(const InfinCtx *c)
+EMBED_INLINE embed_iword infin_loculus_next(const InfinCtx *c)
 {
-    if (c->mask == (mmgr_word)0)
+    if (c->mask == (embed_word)0)
     {
-        return (mmgr_iword)-1;
+        return (embed_iword)-1;
     }
     return ring_trail(c->mask);
 }
@@ -681,28 +663,28 @@ MMGR_INLINE mmgr_iword infin_loculus_next(const InfinCtx *c)
  * @brief Takes loculus c->idx and records the region it retains out.
  *
  * @param[in,out] c Ring, the loculus, and the region to record [BORROWS].
- * @return          MMGR_TRUE when this caller took the loculus.
+ * @return          EMBED_TRUE when this caller took the loculus.
  */
-MMGR_INLINE mmgr_bool infin_loculus_hold(const InfinCtx *c)
+EMBED_INLINE embed_bool infin_loculus_hold(const InfinCtx *c)
 {
-    const mmgr_word bit = ring_loculus_bit(c->idx);
+    const embed_word bit = ring_loculus_bit(c->idx);
 
-    if (bit == (mmgr_word)0)
+    if (bit == (embed_word)0)
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
 
-    const mmgr_word prev = atomic_fetch_or_explicit(&c->s->pinned, bit, memory_order_acquire);
+    const embed_word prev = embed_atomic_word_fetch_or(&c->s->pinned, bit);
 
     if ((prev & bit) != 0u)
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
     // Explicit cast drops the source qualifier: the span records a region it never writes through
     c->s->retain[c->idx].buf = (uint8_t *)(uintptr_t)c->src;
     c->s->retain[c->idx].cap = c->bytes;
     c->s->retain[c->idx].pos = 0u;
-    return MMGR_TRUE;
+    return EMBED_TRUE;
 }
 
 /**
@@ -711,7 +693,7 @@ MMGR_INLINE mmgr_bool infin_loculus_hold(const InfinCtx *c)
  * @param[in] c Ring and the loculus [BORROWS].
  * @return      The recorded span, or NULL when c->idx names none [BORROWS].
  */
-MMGR_INLINE const mmgr_ring_span *infin_loculus_keepout(const InfinCtx *c)
+EMBED_INLINE const mmgr_ring_span *infin_loculus_keepout(const InfinCtx *c)
 {
 #if MMGR_RING_LOCULI == 0u
     // A build with no loculi retains nothing out, and so there is no span to hand back
@@ -732,10 +714,10 @@ MMGR_INLINE const mmgr_ring_span *infin_loculus_keepout(const InfinCtx *c)
  * @param[in,out] c Ring and the loculus [BORROWS].
  * @note Leaves the recorded span and the bytes alone. A restream can run again.
  */
-MMGR_INLINE void infin_loculus_drop(const InfinCtx *c)
+EMBED_INLINE void infin_loculus_drop(const InfinCtx *c)
 {
-    // Explicit cast retains the complement at mmgr_word width, as the atomic it clears
-    (void)atomic_fetch_and_explicit(&c->s->pinned, (mmgr_word)~ring_loculus_bit(c->idx), memory_order_release);
+    // Explicit cast retains the complement at embed_word width, as the atomic it clears
+    (void)embed_atomic_word_fetch_and(&c->s->pinned, (embed_word)~ring_loculus_bit(c->idx));
 }
 
 /**
@@ -743,9 +725,9 @@ MMGR_INLINE void infin_loculus_drop(const InfinCtx *c)
  *
  * @param[in,out] c Ring and the loculus [BORROWS].
  */
-MMGR_INLINE void infin_loculus_mark(const InfinCtx *c)
+EMBED_INLINE void infin_loculus_mark(const InfinCtx *c)
 {
-    (void)atomic_fetch_or_explicit(&c->s->gratis, ring_loculus_bit(c->idx), memory_order_release);
+    (void)embed_atomic_word_fetch_or(&c->s->gratis, ring_loculus_bit(c->idx));
 }
 
 /**
@@ -753,18 +735,18 @@ MMGR_INLINE void infin_loculus_mark(const InfinCtx *c)
  *
  * @note Documented at the declaration in confinium_exclusivum_infinitas.h.
  */
-mmgr_bool mmgr_infin_init(const InfinCfg *c)
+embed_bool mmgr_infin_init(const InfinCfg *c)
 {
     MMGR_ASSERT(c->ring != NULL, "a ring needs storage");
     MMGR_ASSERT(c->buf != NULL, "a ring needs a buffer");
 
     if ((c->cap == 0u) || !MMGR_RING_POW2(c->cap))
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
     if ((c->nsegs == 0u) || !MMGR_RING_POW2(c->nsegs) || (c->nsegs > c->cap))
     {
-        return MMGR_FALSE;
+        return EMBED_FALSE;
     }
 
     RingState *const s = ring_of(c->ring);
@@ -773,12 +755,12 @@ mmgr_bool mmgr_infin_init(const InfinCfg *c)
     s->cap = c->cap;
     s->nsegs = c->nsegs;
     s->seg = c->cap / c->nsegs;
-    atomic_init(&s->head, 0u);
-    atomic_init(&s->tail, 0u);
-    atomic_init(&s->claim, 0u);
-    atomic_init(&s->rel, 0u);
-    atomic_init(&s->gratis, ring_loculus_all());
-    atomic_init(&s->pinned, (mmgr_word)0);
+    embed_atomic_usize_store(&s->head, 0u);
+    embed_atomic_usize_store(&s->tail, 0u);
+    embed_atomic_usize_store(&s->claim, 0u);
+    embed_atomic_usize_store(&s->rel, 0u);
+    embed_atomic_word_store(&s->gratis, ring_loculus_all());
+    embed_atomic_word_store(&s->pinned, (embed_word)0);
 #if MMGR_RING_LOCULI > 0u
     for (size_t i = 0; i < (size_t)MMGR_RING_LOCULI; i++)
     {
@@ -787,18 +769,18 @@ mmgr_bool mmgr_infin_init(const InfinCfg *c)
         s->retain[i].pos = 0u;
     }
 #endif
-    return MMGR_TRUE;
+    return EMBED_TRUE;
 }
 
 /**
  * @brief The state argument every entry point but one forwards.
  *
- * @note Names c from the entry point's own parameter, and so the table below carries fields alone.
+ * @note Names args from the entry point's own parameter, and so the table below carries fields alone.
  */
-#define RING_S .s = ring_of(c->ring)
+#define RING_S .s = ring_of(args->ring)
 
 /**
- * @brief Binds this module's four fixed arguments to GENERIC_ENTRY.
+ * @brief Binds this module's four fixed arguments to EMBED_ENTRY.
  *
  * @param[in] ret  Return type of the entry point.
  * @param[in] name Name after the mmgr_infin_ and infin_ prefixes, which the two share.
@@ -806,16 +788,16 @@ mmgr_bool mmgr_infin_init(const InfinCfg *c)
  *       once here, and the table below states only what each entry differs in.
  * @note The variadic part is the argument pack, never empty, and so no comma has to go.
  */
-#define RING_ENTRY(ret, name, ...) GENERIC_ENTRY(mmgr_infin_, infin_, InfinCtx, InfinCfg, ret, name, __VA_ARGS__)
+#define RING_ENTRY(ret, name, ...) EMBED_ENTRY(mmgr_infin_, infin_, InfinCtx, InfinCfg, ret, name, __VA_ARGS__)
 
 /**
- * @brief Binds the same four to GENERIC_ENTRY_V, for an entry that returns nothing.
+ * @brief Binds the same four to EMBED_ENTRY_V, for an entry that returns nothing.
  *
  * @param[in] name Name after the mmgr_infin_ and infin_ prefixes, which the two share.
  * @note Separate from RING_ENTRY because a void function cannot return an expression, and so the
  *       two cannot share one body.
  */
-#define RING_ENTRY_V(name, ...) GENERIC_ENTRY_V(mmgr_infin_, infin_, InfinCtx, InfinCfg, name, __VA_ARGS__)
+#define RING_ENTRY_V(name, ...) EMBED_ENTRY_V(mmgr_infin_, infin_, InfinCtx, InfinCfg, name, __VA_ARGS__)
 
 /**
  * @brief The public surface, one line per entry point.
@@ -824,20 +806,20 @@ mmgr_bool mmgr_infin_init(const InfinCfg *c)
  */
 RING_ENTRY(size_t, available, RING_S)
 RING_ENTRY(size_t, vacant, RING_S)
-RING_ENTRY(mmgr_bool, read_byte, RING_S, .dst = c->dst)
-RING_ENTRY(size_t, read, RING_S, .dst = c->dst, .bytes = c->bytes)
-RING_ENTRY_V(peek, RING_S, .dst = c->dst, .bytes = c->bytes, .off = c->off)
-RING_ENTRY_V(consume, RING_S, .bytes = c->bytes)
-RING_ENTRY(mmgr_bool, put, RING_S, .src = c->src, .bytes = c->bytes)
+RING_ENTRY(embed_bool, read_byte, RING_S, .dst = args->dst)
+RING_ENTRY(size_t, read, RING_S, .dst = args->dst, .bytes = args->bytes)
+RING_ENTRY_V(peek, RING_S, .dst = args->dst, .bytes = args->bytes, .off = args->off)
+RING_ENTRY_V(consume, RING_S, .bytes = args->bytes)
+RING_ENTRY(embed_bool, put, RING_S, .src = args->src, .bytes = args->bytes)
 RING_ENTRY(size_t, seg_inflight, RING_S)
-RING_ENTRY(mmgr_bool, seg_next, RING_S, .out = c->out)
+RING_ENTRY(embed_bool, seg_next, RING_S, .out = args->out)
 RING_ENTRY_V(seg_publish, RING_S)
-RING_ENTRY(mmgr_bool, seg_front, RING_S, .out = c->out)
+RING_ENTRY(embed_bool, seg_front, RING_S, .out = args->out)
 RING_ENTRY_V(seg_release, RING_S)
-RING_ENTRY(uint8_t *, seg_at, RING_S, .idx = c->idx)
-RING_ENTRY(mmgr_word, loculus_ready, RING_S)
-RING_ENTRY(mmgr_iword, loculus_next, .mask = c->mask)
-RING_ENTRY(mmgr_bool, loculus_hold, RING_S, .idx = c->idx, .src = c->src, .bytes = c->bytes)
-RING_ENTRY(const mmgr_ring_span *, loculus_keepout, RING_S, .idx = c->idx)
-RING_ENTRY_V(loculus_drop, RING_S, .idx = c->idx)
-RING_ENTRY_V(loculus_mark, RING_S, .idx = c->idx)
+RING_ENTRY(uint8_t *, seg_at, RING_S, .idx = args->idx)
+RING_ENTRY(embed_word, loculus_ready, RING_S)
+RING_ENTRY(embed_iword, loculus_next, .mask = args->mask)
+RING_ENTRY(embed_bool, loculus_hold, RING_S, .idx = args->idx, .src = args->src, .bytes = args->bytes)
+RING_ENTRY(const mmgr_ring_span *, loculus_keepout, RING_S, .idx = args->idx)
+RING_ENTRY_V(loculus_drop, RING_S, .idx = args->idx)
+RING_ENTRY_V(loculus_mark, RING_S, .idx = args->idx)

@@ -79,7 +79,7 @@ static size_t find_swar(const uint8_t *p, size_t n, uint8_t c)
                                         .val = (uint8_t)TARGET);                                                       \
             BENCH_RETAIN(q_);                                                                                          \
         });                                                                                                            \
-        printf("eq_strategy,%u,%u,%.1f,%.4f,%.4f,%.4f,%.4f,%s\n", MMGR_SWAR_BITS, (unsigned)(STRIDE), avg_, cb_, cs_,  \
+        printf("eq_strategy,%u,%u,%.1f,%.4f,%.4f,%.4f,%.4f,%s\n", EMBED_WORD_BITS, (unsigned)(STRIDE), avg_, cb_, cs_,  \
                cm_, cb_ / cm_, (cb_ < cm_) ? "bytewise" : "memor.chr");                                                \
         fflush(stdout);                                                                                                \
     } while (0)
