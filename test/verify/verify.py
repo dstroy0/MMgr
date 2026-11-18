@@ -42,8 +42,8 @@ SPECIAL = {
     "memoriam_praetereo": (["src/memoriam_praetereo/memoriam_praetereo.c", "src/memoriam_praetereo/praet_ordo.c",
                             "src/memoriam_praetereo/praet_descriptor.c"],
                            ["MMGR_ENABLE_DMA=1", "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u",
-                            "PRAET_KEEPALIVE_MICROS=250u", "PRAET_RECOVERY=1", "PRAET_CLOCK_HZ=240000000u",
-                            "PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"]),
+                            "PRAET_KEEPALIVE_MICROS=250u", "PRAET_RECOVERY=1", "EMBED_CLOCK_HZ=240000000u",
+                            "EMBED_CLOCK_SOURCE=EMBED_CLOCK_CALLER"]),
     "impensa_ancorae_acus": (["src/impensa_ancorae_acus/impensa_ancorae_acus_generic.c"], ["FUZZ_ANCORAE_BARRED=32u"]),
 }
 

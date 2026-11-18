@@ -1,7 +1,7 @@
 # Configuring a praet schedule context
 
 **Purpose:** Declare a schedule context that compiles, and read any diagnostic this configuration produces without opening the headers.
-**Scope:** `src/memoriam_praetereo/praet_praefinitum.h`, `praet_horologiorum_custos.h`, `praet_platform_detection.h`, `praet_iudex.h`, `praet_ordo.h`, `praet_ordo.c`
+**Scope:** `src/memoriam_praetereo/praet_praefinitum.h`, `embed_clock.h` of embedded_types, `praet_iudex.h`, `praet_ordo.h`, `praet_ordo.c`
 
 The schedule is in `src/memoriam_praetereo/` and compiles when `MMGR_ENABLE_DMA` is on. Every path below without a directory is in that one.
 
@@ -9,11 +9,11 @@ The schedule is in `src/memoriam_praetereo/` and compiles when `MMGR_ENABLE_DMA`
 
 Four things answer a configuration, and they answer it in different places.
 
-Six build knobs arrive as `-D` on the command line or as a `#define` ahead of the include. A CMake build passes them as one list in `MMGR_PRAET_KNOBS`, which reaches the library and every suite over it. Four of them describe the part, and are read in `praet_praefinitum.h`. Two more describe the clock, and are read in `praet_horologiorum_custos.h`, which also reads a seventh knob on one arm.
+Six build knobs arrive as `-D` on the command line or as a `#define` ahead of the include. A CMake build passes them as one list in `MMGR_PRAET_KNOBS`, which reaches the library and every suite over it. Four of them describe the part, and are read in `praet_praefinitum.h`. Two more describe the clock, and are read in `embed_clock.h`, which also reads a seventh knob on one arm.
 
 One answer is given at the declaration instead, as a token passed to `PraetOrdoContext` (`praet_ordo.h:219-225`). It is not a build knob, and setting the build knob that used to hold it stops the build (`praet_praefinitum.h:118-121`).
 
-Several facts are derived from the architecture and are not answerable at all. `praet_platform_detection.h` reads what the compiler predefines and settles which family this is, how wide its register is, and whether it defines a cycle counter. One of those decides what an unanswered clock source falls back to (`praet_horologiorum_custos.h:71-82`).
+Several facts are derived from the architecture and are not answerable at all. `embed_clock.h` reads what the compiler predefines and settles which family this is, how wide its register is, and whether it defines a cycle counter. One of those decides what an unanswered clock source falls back to (`embed_clock.h`).
 
 `MMGR_ACCEPT_DEFAULTS` is the last piece. It changes nothing about which value a knob takes. It changes whether an incomplete configuration stops the build (`praet_iudex.h:30-37`).
 
@@ -30,12 +30,12 @@ warning: #warning "PRAET_CHANNELS was not set and took the library default of 8.
 warning: #warning "PRAET_SETTLE_MICROS was not set and took the library default of 0, so this build waits for nothing after an attach. Set it to what your engine takes to come up."
 warning: #warning "PRAET_KEEPALIVE_MICROS was not set and took the library default of 1000. Set it to how long a moving channel may go unkicked on your part before it has stopped."
 warning: #warning "PRAET_RECOVERY was not set and took the library default of 0. A stalled transfer cannot be backed out or scrubbed in this build. Set it to 1 to have that machinery, 0 to say you meant to leave it out."
-warning: #warning "No clock is declared, so PRAET_CLOCK_HZ took the library default of 1000000 and a tick is read as one microsecond. Every deadline in this module is then wrong by whatever the real frequency is. Set it to the frequency of the clock this reads."
-warning: #warning "PRAET_CLOCK_SOURCE was not set and was derived as PRAET_CLOCK_CALLER, because this architecture defines no cycle counter a timer could be pinned to. Say so, and supply the clock."
+warning: #warning "No clock is declared, so EMBED_CLOCK_HZ took the library default of 1000000 and a tick is read as one microsecond. Every deadline in this module is then wrong by whatever the real frequency is. Set it to the frequency of the clock this reads."
+warning: #warning "EMBED_CLOCK_SOURCE was not set and was derived as EMBED_CLOCK_CALLER, because this architecture defines no cycle counter a timer could be pinned to. Say so, and supply the clock."
 error: #error "This build did not declare every knob this module reads. Each one that took a library default is named in a warning above this line, with the value it took and what to set it to. Set them, or define MMGR_ACCEPT_DEFAULTS to build on the defaults and retain the warnings as the record of which ones you took."
 ```
 
-`PRAET_CLOCK_CORE` is absent from that list because the derivation put this build on the caller's clock, and nothing pins a timer there. On an architecture that defines a counter, the source falls back to `PRAET_CLOCK_OWN` and the core joins the list.
+`EMBED_CLOCK_CORE` is absent from that list because the derivation put this build on the caller's clock, and nothing pins a timer there. On an architecture that defines a counter, the source falls back to `EMBED_CLOCK_OWN` and the core joins the list.
 
 Nothing in this depends on a build system. These are preprocessor directives, and so `gcc` or `clang` invoked on one file behaves the way any tree driving them does. A retain-going build (`ninja -k 0`, `make -k`) collects failures across translation units, the same idea at a different scale and is not something this needs.
 
@@ -76,25 +76,25 @@ With it off, `praet_ordo_relatio` takes no span and `praet_ordo_efficere` takes 
 still runs. A channel still reads stalled; nothing states which bytes were
 touched.
 
-### PRAET_CLOCK_HZ
+### EMBED_CLOCK_HZ
 
-Ticks the clock counts in one second. Every deadline in this module is microseconds, and this is what a tick is scaled against (`praet_horologiorum_custos.h:132`).
+Ticks the clock counts in one second. Every deadline in this module is microseconds, and this is what a tick is scaled against (`embed_clock.h`).
 
-Two conditions hold at compile time. The frequency divides evenly into microseconds, and it is at least one megahertz (`praet_horologiorum_custos.h:147-152`). Every part this library targets runs at a whole number of megahertz, and a clock below one megahertz cannot resolve a microsecond.
+Two conditions hold at compile time. The frequency divides evenly into microseconds, and it is at least one megahertz (`embed_clock.h`). Every part this library targets runs at a whole number of megahertz, and a clock below one megahertz cannot resolve a microsecond.
 
-Default 1000000, with a warning (`praet_horologiorum_custos.h:54-59`). That default reads a tick as a microsecond. It estimates no part's frequency, because an estimate would make every deadline wrong by however much it missed by.
+Default 1000000, with a warning (`embed_clock.h`). That default reads a tick as a microsecond. It estimates no part's frequency, because an estimate would make every deadline wrong by however much it missed by.
 
-### PRAET_CLOCK_SOURCE
+### EMBED_CLOCK_SOURCE
 
-`PRAET_CLOCK_CALLER` where the caller already runs a counter this reads. `PRAET_CLOCK_OWN` where this pins its own timer to a core. A third value stops the build (`praet_horologiorum_custos.h:86-88`).
+`EMBED_CLOCK_CALLER` where the caller already runs a counter this reads. `EMBED_CLOCK_OWN` where this pins its own timer to a core. A third value stops the build (`embed_clock.h`).
 
-Unset, it is derived from `PRAET_PLATFORM_HAS_CYCLE_COUNTER` (`praet_horologiorum_custos.h:71-82`). Both arms warn, and each says which way it went and why.
+Unset, it is derived from `EMBED_ARCH_CYCLE_COUNTER` (`embed_clock.h`). Both arms warn, and each says which way it went and why.
 
-### PRAET_CLOCK_CORE
+### EMBED_CLOCK_CORE
 
-The core a pinned timer runs on. Read only where the source is `PRAET_CLOCK_OWN`, and setting it on the other arm stops the build (`praet_horologiorum_custos.h:119-122`).
+The core a pinned timer runs on. Read only where the source is `EMBED_CLOCK_OWN`, and setting it on the other arm stops the build (`embed_clock.h`).
 
-Default `PRAET_PLATFORM_CLOCK_CORE`, with a warning (`praet_horologiorum_custos.h:108-113`).
+Default `EMBED_CLOCK_CORE_DEFAULT`, with a warning (`embed_clock.h`).
 
 ## The declaration
 
@@ -209,15 +209,15 @@ own unit. The library object carries the weak default, and the strong definition
 
 ## What the architecture decides
 
-`praet_platform_detection.h` names no part, vendor or board. A list of parts covers the ones known on the day it was written and misses every part released afterwards, and so the test is on the architecture level that every member of a family defines. An ATSAMD21 answers the ARMv6-M question the way every other Cortex-M0+ does.
+`embed_clock.h` names no part, vendor or board. A list of parts covers the ones known on the day it was written and misses every part released afterwards, and so the test is on the architecture level that every member of a family defines. An ATSAMD21 answers the ARMv6-M question the way every other Cortex-M0+ does.
 
 The family comes from `__arm__` or `__aarch64__` or `__thumb__`, from `__riscv`, and from `__XTENSA__` or `__xtensa__`. Anything else is a host build. Exactly one of the four is selected, and an assertion says so.
 
 Within ARM, the subfamily comes from `__ARM_ARCH` and `__ARM_ARCH_PROFILE`. Those two name every Cortex subfamily, and a pre-Cortex core defines neither profile nor a level above 6. Within RISC-V it is `__riscv_xlen` with the embedded profiles reported by `__riscv_32e`, `__riscv_64e` or `__riscv_abi_rve`. Within Xtensa it is the calling convention, `__XTENSA_WINDOWED_ABI__` or `__XTENSA_CALL0_ABI__`.
 
-`PRAET_PLATFORM_HAS_CYCLE_COUNTER` is the single one derived fact that changes behavior. It is 0 on ARMv6-M, which has no DWT at all, and on a host build, which has no core to pin a timer to. It is 1 elsewhere. The flag says the architecture defines a counter and never that this part implemented it: DWT_CYCCNT is optional even where the DWT is present, RISC-V `cycle` can be closed off by `mcounteren`, and an Xtensa core can be configured without the timer option. Finding out for certain is the port's job, and this decides which default to take.
+`EMBED_ARCH_CYCLE_COUNTER` is the single one derived fact that changes behavior. It is 0 on ARMv6-M, which has no DWT at all, and on a host build, which has no core to pin a timer to. It is 1 elsewhere. The flag says the architecture defines a counter and never that this part implemented it: DWT_CYCCNT is optional even where the DWT is present, RISC-V `cycle` can be closed off by `mcounteren`, and an Xtensa core can be configured without the timer option. Finding out for certain is the port's job, and this decides which default to take.
 
-`PRAET_PLATFORM_XLEN` is the register width, and `EMBED_WORD_BITS` is asserted not to exceed it. The environments build at 16 and 32 bits on a 64-bit host deliberately, and so narrower is expected and only wider is wrong.
+`EMBED_REGISTER_BITS` is the register width, and `EMBED_WORD_BITS` is asserted not to exceed it. The environments build at 16 and 32 bits on a 64-bit host deliberately, and so narrower is expected and only wider is wrong.
 
 Unaligned access is `EMBED_FAST_UNALIGNED_LOAD`, which `embed_compiler_directives.h:375-382` already provides. This module does not define its own.
 
@@ -232,13 +232,13 @@ Every row is a configuration and what it produces. `warning` continues; `error` 
 | Any knob unset, `MMGR_ACCEPT_DEFAULTS` defined                            | one warning per unset knob, builds            | `praet_iudex.h:30`                    |
 | `PRAET_RECOVERY` neither 0 nor 1                                          | error                                         | `praet_praefinitum.h:111-113`         |
 | `PRAET_RECOVERY_CRC` defined at all                                       | error                                         | `praet_praefinitum.h:118-121`         |
-| `PRAET_CLOCK_SOURCE` neither token                                        | error                                         | `praet_horologiorum_custos.h:86-88`   |
-| `PRAET_CLOCK_SOURCE` is `PRAET_CLOCK_OWN`, architecture has no counter    | error                                         | `praet_horologiorum_custos.h:93-96`   |
-| `PRAET_CLOCK_CORE` set, source is `PRAET_CLOCK_CALLER`                    | error                                         | `praet_horologiorum_custos.h:119-122` |
-| `PRAET_CLOCK_HZ` not a whole number of megahertz                          | assert                                        | `praet_horologiorum_custos.h:147-148` |
-| `PRAET_CLOCK_HZ` below one megahertz                                      | assert                                        | `praet_horologiorum_custos.h:150-152` |
-| `EMBED_WORD_BITS` wider than the register                                 | assert                                        | `praet_platform_detection.h:312`      |
-| More than one architecture family selected, or none                       | assert                                        | `praet_platform_detection.h:79`       |
+| `EMBED_CLOCK_SOURCE` neither token                                        | error                                         | `embed_clock.h`   |
+| `EMBED_CLOCK_SOURCE` is `EMBED_CLOCK_OWN`, architecture has no counter    | error                                         | `embed_clock.h`   |
+| `EMBED_CLOCK_CORE` set, source is `EMBED_CLOCK_CALLER`                    | error                                         | `embed_clock.h` |
+| `EMBED_CLOCK_HZ` not a whole number of megahertz                          | assert                                        | `embed_clock.h` |
+| `EMBED_CLOCK_HZ` below one megahertz                                      | assert                                        | `embed_clock.h` |
+| `EMBED_WORD_BITS` wider than the register                                 | assert                                        | `embed_clock.h`      |
+| More than one architecture family selected, or none                       | assert                                        | `embed_clock.h`       |
 | Declaration token mistyped                                                | error naming the token given                  | `praet_ordo.h:138`                    |
 | Declaration token is a value, such as `1`                                 | error naming the value given                  | `praet_ordo.h:148`                    |
 | `AD_VERBI_CONFINIUM_RESTITUE_PAULATIM_CRC_ENABLE` with `PRAET_RECOVERY` 0 | assert                                        | `praet_ordo.h:221-224`                |
@@ -273,7 +273,7 @@ to, and so the clock is the caller's and no core is named:
 -DPRAET_KEEPALIVE_MICROS=250u
 -DPRAET_RECOVERY=1
 -DPRAET_CLOCK_HZ=240000000u
--DPRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER
+-DPRAET_CLOCK_SOURCE=EMBED_CLOCK_CALLER
 ```
 
 ```c
@@ -289,12 +289,12 @@ answered. Measured on this host with GCC 13.2.0 at `-O2 -Wall -Wextra`.
 An ESP32-S3 at its top frequency wants the same knobs with the clock pinned instead:
 
 ```
--DPRAET_CLOCK_SOURCE=PRAET_CLOCK_OWN
+-DPRAET_CLOCK_SOURCE=EMBED_CLOCK_OWN
 -DPRAET_CLOCK_CORE=1u
 ```
 
 Xtensa defines a cycle counter, so that arm is available there. It is refused on a host, where the
-same two lines produce the `praet_horologiorum_custos.h:93-96` error alongside the token's line. The S3 build has
+same two lines produce the `embed_clock.h` error alongside the token's line. The S3 build has
 not been run; what has been checked is that a host refuses it, the derivation working.
 
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>

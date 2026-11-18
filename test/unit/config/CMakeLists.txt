@@ -5,8 +5,8 @@
 # mmgr_oracle_libc.h has no suite: it is what the suites measure against.
 #
 # The widths, the compiler directives and the dispatch layout are embedded_types', and that
-# repository carries their suite. The string shim and the vector layer over embedded_types' lane are
-# this repository's, and each has its suite here.
+# repository carries their suite, as it does for the lane and the clock selection. The string shim is
+# this repository's, and it has its suite here.
 
 add_subdirectory(mmgr_string_shim)
-add_subdirectory(mmgr_vector)
+

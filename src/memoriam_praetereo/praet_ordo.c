@@ -397,7 +397,7 @@ void praet_ordo_advance(PraetOrdo *context, embed_word micros)
 
 void praet_ordo_advance_ticks(PraetOrdo *context, embed_word ticks)
 {
-    praet_ordo_advance(context, PRAET_CLOCK_MICROS(ticks));
+    praet_ordo_advance(context, EMBED_CLOCK_MICROS(ticks));
 }
 
 void praet_ordo_raise(PraetOrdo *context)

@@ -38,7 +38,7 @@
 
 // Where the microseconds come from, and what a tick is worth against them. Every deadline below is
 // microseconds, and so nothing here means anything without it
-#include "memoriam_praetereo/praet_horologiorum_custos.h"
+#include "embed_clock.h"
 
 // Last, and after every knob reported. This is the single one place a configuration stops the build. So
 // a build that misses several knobs hears about all of them instead of the first

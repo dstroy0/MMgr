@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-09-01
  *
- * @note Included last, after praet_praefinitum.h and praet_horologiorum_custos.h both had their say. Each of them
+ * @note Included last, after praet_praefinitum.h and embed_clock.h both had their say. Each of them
  *       gives every unset knob a default, a warning that names it, and a flag. This reads the flags.
  * @note Why the stop is here and not at each knob: an #error halts its translation unit where it
  *       is. A build with four knobs unset would report the first, get a fix, then report the
@@ -27,14 +27,14 @@
 /** @addtogroup mod_praet
  *  @{ */
 
-#include "memoriam_praetereo/praet_horologiorum_custos.h"
+#include "embed_clock.h"
 #include "memoriam_praetereo/praet_praefinitum.h"
 
 #if !defined(MMGR_ACCEPT_DEFAULTS)
 
 #if defined(PRAET_UNSET_CHANNELS) || defined(PRAET_UNSET_SETTLE_MICROS) || defined(PRAET_UNSET_KEEPALIVE_MICROS) ||    \
-    defined(PRAET_UNSET_RECOVERY) || defined(PRAET_UNSET_CLOCK_HZ) || defined(PRAET_UNSET_CLOCK_SOURCE) ||             \
-    defined(PRAET_UNSET_CLOCK_CORE)
+    defined(PRAET_UNSET_RECOVERY) || defined(EMBED_UNSET_CLOCK_HZ) || defined(EMBED_UNSET_CLOCK_SOURCE) ||             \
+    defined(EMBED_UNSET_CLOCK_CORE)
 #error                                                                                                                 \
     "This build did not declare every knob this module reads. Each one that took a library default is named in a warning above this line, with the value it took and what to set it to. Set them, or define MMGR_ACCEPT_DEFAULTS to build on the defaults and retain the warnings as the record of which ones you took."
 #endif

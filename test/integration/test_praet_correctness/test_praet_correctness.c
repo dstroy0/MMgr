@@ -1122,7 +1122,7 @@ void test_a_build_without_recovery_still_stalls_and_records_none(void)
  */
 void test_ticks_scale_into_microseconds(void)
 {
-    const embed_word per_micro = (embed_word)PRAET_TICKS_PER_MICRO;
+    const embed_word per_micro = (embed_word)EMBED_CLOCK_TICKS_PER_MICRO;
 
     praet_ordo_reset(&s_schedule);
     praet_case_attach_and_settle(1u);
@@ -1155,13 +1155,13 @@ void test_ticks_scale_into_microseconds(void)
  */
 void test_the_scaling_uses_the_declared_frequency(void)
 {
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)(PRAET_CLOCK_HZ / 1000000u), (embed_word)PRAET_TICKS_PER_MICRO,
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE((embed_word)(EMBED_CLOCK_HZ / 1000000u), (embed_word)EMBED_CLOCK_TICKS_PER_MICRO,
                                      "the ticks per microsecond do not come from the declared frequency");
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, PRAET_CLOCK_MICROS((embed_word)PRAET_TICKS_PER_MICRO),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(1u, EMBED_CLOCK_MICROS((embed_word)EMBED_CLOCK_TICKS_PER_MICRO),
                                      "a microsecond of ticks did not convert to one microsecond");
 
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, PRAET_CLOCK_MICROS((embed_word)PRAET_TICKS_PER_MICRO - 1u),
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0u, EMBED_CLOCK_MICROS((embed_word)EMBED_CLOCK_TICKS_PER_MICRO - 1u),
                                      "a partial microsecond of ticks was rounded up");
 }
 

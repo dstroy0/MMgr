@@ -611,7 +611,7 @@ def undriven_deps(path):
 # columns all start from these. Each replaces a knob by name where it asks a different question.
 PRAET_KNOBS = (
     "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u", "PRAET_KEEPALIVE_MICROS=250u",
-    "PRAET_RECOVERY=1", "PRAET_CLOCK_HZ=240000000u", "PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER",
+    "PRAET_RECOVERY=1", "EMBED_CLOCK_HZ=240000000u", "EMBED_CLOCK_SOURCE=EMBED_CLOCK_CALLER",
 )
 
 
@@ -1632,8 +1632,8 @@ HOST_GCC = os.environ.get("MMGR_HOST_GCC", r"C:\Strawberry\c\bin\gcc.exe")
 
 # A target with a counter pins its own timer. One without needs a clock from the caller, and to
 # ask it to pin one is the refusal row.
-CLOCK_OWN = ["-DPRAET_CLOCK_SOURCE=PRAET_CLOCK_OWN", "-DPRAET_CLOCK_CORE=0u"]
-CLOCK_CALLER = ["-DPRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"]
+CLOCK_OWN = ["-DPRAET_CLOCK_SOURCE=EMBED_CLOCK_OWN", "-DPRAET_CLOCK_CORE=0u"]
+CLOCK_CALLER = ["-DPRAET_CLOCK_SOURCE=EMBED_CLOCK_CALLER"]
 
 # name, compiler, arch flags, (arm, riscv, xtensa, xlen, counter), clock, must_build, text a refusal needs
 TARGETS = (
@@ -1667,7 +1667,7 @@ TARGETS = (
 # Every knob the probe reads that is not this table's subject. A row only fails for its own reason.
 # The clock source is each row's own: it stays out here.
 TARGET_KNOBS = ["-DMMGR_ENABLE_DMA=1", "-DMMGR_ENABLE_EXTRAM=0"] + [
-    "-D" + knob for knob in PRAET_KNOBS if not knob.startswith("PRAET_CLOCK_SOURCE=")]
+    "-D" + knob for knob in PRAET_KNOBS if not knob.startswith("EMBED_CLOCK_SOURCE=")]
 
 PRAET_SUITE = os.path.join(INTEGRATION, "test_praet_correctness")
 
@@ -1760,7 +1760,7 @@ REMOTE_COLUMNS = (
     ("word16  ", [], ["-DEMBED_WORD_BITS=16"]),
     ("settle=0", ["PRAET_SETTLE_MICROS=0u"], []),
     ("crcoff  ", [], [CRC_OFF]),
-    ("clk1MHz ", ["PRAET_CLOCK_HZ=1000000u"], []),
+    ("clk1MHz ", ["EMBED_CLOCK_HZ=1000000u"], []),
     ("norecov ", ["PRAET_RECOVERY=0"], [CRC_OFF]),
     ("examine ", ["PRAET_PROCURATOR=1"], []),
     ("optimize", ["PRAET_OPTIMIZE=1"], []),

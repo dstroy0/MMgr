@@ -114,7 +114,7 @@
  * @brief Set to 1 to build the memoriam_praetereo DMA path.
  *
  * @note mmgr.h includes memoriam_praetereo.h only when this holds. The schedule's knobs have their reads in
- *       memoriam_praetereo/praet_praefinitum.h and memoriam_praetereo/praet_horologiorum_custos.h.
+ *       memoriam_praetereo/praet_praefinitum.h and embed_clock.h.
  */
 #ifndef MMGR_ENABLE_DMA
 #define MMGR_ENABLE_DMA 0

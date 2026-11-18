@@ -378,7 +378,7 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         case 8: {
             const embed_word ticks = (embed_word)fuzz_below(&input, 60000u);
             praet_ordo_advance_ticks(&s_ordo, ticks);
-            s_model.elapsed += ticks / (embed_word)PRAET_TICKS_PER_MICRO;
+            s_model.elapsed += ticks / (embed_word)EMBED_CLOCK_TICKS_PER_MICRO;
             s_model.raised = 1;
             break;
         }

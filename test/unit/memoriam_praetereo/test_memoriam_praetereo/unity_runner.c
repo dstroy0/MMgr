@@ -90,8 +90,8 @@ int main(void)
   run_test(test_polling_an_unported_build_returns, "test_polling_an_unported_build_returns", 185);
   run_test(test_an_unported_build_reports_no_completion, "test_an_unported_build_reports_no_completion", 197);
   run_test(test_an_unported_build_reports_no_progress_and_stalls, "test_an_unported_build_reports_no_progress_and_stalls", 215);
-  run_test(test_the_completion_event_carries_every_reported_field, "test_the_completion_event_carries_every_reported_field", 242);
-  run_test(test_the_completion_event_splits_time_into_two_fields, "test_the_completion_event_splits_time_into_two_fields", 272);
+  run_test(test_the_completion_event_carries_every_reported_field, "test_the_completion_event_carries_every_reported_field", 244);
+  run_test(test_the_completion_event_splits_time_into_two_fields, "test_the_completion_event_splits_time_into_two_fields", 274);
 
   return UNITY_END();
 }

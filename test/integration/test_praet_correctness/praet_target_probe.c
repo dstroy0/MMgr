@@ -21,11 +21,11 @@
 // `harness.py targets` sets it
 #include "memoriam_praetereo/memoriam_praetereo.h"
 
-EMBED_STATIC_ASSERT(PRAET_PLATFORM_ARM == EXPECT_ARM, "the ARM flag is not what this target gives");
-EMBED_STATIC_ASSERT(PRAET_PLATFORM_RISCV == EXPECT_RISCV, "the RISC-V flag is not what this target gives");
-EMBED_STATIC_ASSERT(PRAET_PLATFORM_XTENSA == EXPECT_XTENSA, "the Xtensa flag is not what this target gives");
-EMBED_STATIC_ASSERT(PRAET_PLATFORM_XLEN == EXPECT_XLEN, "the register width is not what this target gives");
-EMBED_STATIC_ASSERT(PRAET_PLATFORM_HAS_CYCLE_COUNTER == EXPECT_COUNTER,
+EMBED_STATIC_ASSERT(EMBED_ARCH_ARM == EXPECT_ARM, "the ARM flag is not what this target gives");
+EMBED_STATIC_ASSERT(EMBED_ARCH_RISCV == EXPECT_RISCV, "the RISC-V flag is not what this target gives");
+EMBED_STATIC_ASSERT(EMBED_ARCH_XTENSA == EXPECT_XTENSA, "the Xtensa flag is not what this target gives");
+EMBED_STATIC_ASSERT(EMBED_REGISTER_BITS == EXPECT_XLEN, "the register width is not what this target gives");
+EMBED_STATIC_ASSERT(EMBED_ARCH_CYCLE_COUNTER == EXPECT_COUNTER,
                     "the cycle counter capability is not what this target gives");
 
 /**

@@ -97,7 +97,7 @@ a build answers them. From CMake, pass them as one list in `MMGR_PRAET_KNOBS`, w
 library and every suite over it:
 
 ```
--DMMGR_PRAET_KNOBS="PRAET_CHANNELS=8u;PRAET_SETTLE_MICROS=40u;PRAET_KEEPALIVE_MICROS=250u;PRAET_RECOVERY=1;PRAET_CLOCK_HZ=240000000u;PRAET_CLOCK_SOURCE=PRAET_CLOCK_CALLER"
+-DMMGR_PRAET_KNOBS="PRAET_CHANNELS=8u;PRAET_SETTLE_MICROS=40u;PRAET_KEEPALIVE_MICROS=250u;PRAET_RECOVERY=1;EMBED_CLOCK_HZ=240000000u;EMBED_CLOCK_SOURCE=EMBED_CLOCK_CALLER"
 ```
 
 | knob                     |            default when unset | what it changes                                                 |
@@ -106,9 +106,9 @@ library and every suite over it:
 | `PRAET_SETTLE_MICROS`    |                           `0` | microseconds the engine takes to come up after an attach        |
 | `PRAET_KEEPALIVE_MICROS` |                        `1000` | microseconds a moving channel may go unkicked before it stalls  |
 | `PRAET_RECOVERY`         |                           `0` | whether a stalled transfer can be backed out or scrubbed        |
-| `PRAET_CLOCK_HZ`         |                     `1000000` | ticks per second of the clock the deadlines are scaled from     |
-| `PRAET_CLOCK_SOURCE`     | derived from the architecture | `PRAET_CLOCK_CALLER` or `PRAET_CLOCK_OWN`                       |
-| `PRAET_CLOCK_CORE`       |   `PRAET_PLATFORM_CLOCK_CORE` | the core a pinned timer runs on, read only on `PRAET_CLOCK_OWN` |
+| `EMBED_CLOCK_HZ`         |                     `1000000` | ticks per second of the clock the deadlines are scaled from     |
+| `EMBED_CLOCK_SOURCE`     | derived from the architecture | `EMBED_CLOCK_CALLER` or `EMBED_CLOCK_OWN`                       |
+| `EMBED_CLOCK_CORE`       |   `EMBED_CLOCK_CORE_DEFAULT` | the core a pinned timer runs on, read only on `EMBED_CLOCK_OWN` |
 
 Each unset knob takes its default and raises a warning naming itself. After every knob has been
 read, `praet_iudex.h` stops the build once if any of them was unset. Define `MMGR_ACCEPT_DEFAULTS` to

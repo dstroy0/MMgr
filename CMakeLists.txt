@@ -31,8 +31,8 @@ option(MMGR_ENABLE_DMA "The part has a DMA engine" OFF)
 option(MMGR_ENABLE_EXTRAM "The part has external RAM" OFF)
 
 # The DMA schedule's knobs, as NAME=value pairs separated by semicolons: PRAET_CHANNELS,
-# PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS, PRAET_RECOVERY, PRAET_CLOCK_HZ and PRAET_CLOCK_SOURCE,
-# with PRAET_CLOCK_CORE where the clock source reads one. Empty by default, because none of them has
+# PRAET_SETTLE_MICROS, PRAET_KEEPALIVE_MICROS, PRAET_RECOVERY, EMBED_CLOCK_HZ and EMBED_CLOCK_SOURCE,
+# with EMBED_CLOCK_CORE where the clock source reads one. Empty by default, because none of them has
 # a value that is right for every part. An unset knob gets its name in a warning and
 # src/memoriam_praetereo/praet_iudex.h stops the build, unless MMGR_ACCEPT_DEFAULTS is in the list.
 # Read only where MMGR_ENABLE_DMA is on.
