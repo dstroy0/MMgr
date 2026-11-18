@@ -8,6 +8,7 @@ import LocusCarcerum.Lowest
 import LocusCarcerum.Order
 import LocusCarcerum.Packed
 import LocusCarcerum.Pass
+import LocusCarcerum.Regions
 import LocusCarcerum.Entry
 import LocusCarcerum.Sleep
 import LocusCarcerum.Spill

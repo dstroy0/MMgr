@@ -94,7 +94,36 @@ EMBED_BEGIN_DECLS
 #define MMGR_MOVABLE_BACKOFF_MAX_MS 25600u
 #endif
 
+/**
+ * @brief The regions of the temporary tier: one stack of cells for each place the host gives a thread, modulo this
+ *        count. 0 makes the temporary tier one stack that every thread shares.
+ *
+ * @note A take goes to the region that the thread's place selects, embed_thread_place() modulo this count. A give
+ *       goes to the region that holds the cell, from any thread. A region's depth never passes
+ *       MMGR_CARCER_REGION_BYTES. A take the region cannot hold sweeps the region, takes the last free run that
+ *       holds it, and else refuses. theory/locus_carcerum/LocusCarcerum/Regions.lean proves the bound, and
+ *       Stacks.lean proves the sinking of one shared stack that the regions stop.
+ * @note The regions lie at the top of the cellblock, MMGR_CARCER_REGION_AREA bytes in all, and the gap lies below
+ *       them. The host defines embed_thread_place beside embed_clock_ns, as embed_turnstile.h says.
+ */
+#ifndef MMGR_CARCER_REGIONS
+#define MMGR_CARCER_REGIONS 0u
+#endif
+
+/**
+ * @brief Bytes of each region: its cells with their headers and owner words. A multiple of MMGR_CARCER_ALIGN.
+ *
+ * @note The max payload of one temporary take is this less a cell's two words.
+ */
+#ifndef MMGR_CARCER_REGION_BYTES
+#define MMGR_CARCER_REGION_BYTES 0u
+#endif
+
+/** @brief Bytes the regions take off the top of every cellblock, 0 where the temporary tier is one stack. */
+#define MMGR_CARCER_REGION_AREA ((size_t)MMGR_CARCER_REGIONS * (size_t)MMGR_CARCER_REGION_BYTES)
+
 #include "embed_atomic.h"
+#include "embed_lane.h"
 #include "embed_turnstile.h"
 
 /**
@@ -128,6 +157,16 @@ EMBED_STATIC_ASSERT((MMGR_CARCER_ALIGN & (MMGR_CARCER_ALIGN - 1u)) == 0u,
  */
 EMBED_STATIC_ASSERT((MMGR_ALIGN_BYTES % MMGR_CARCER_ALIGN) == 0u,
                     "MMGR_ALIGN_BYTES must be a multiple of MMGR_CARCER_ALIGN, the grain a cell's words are on");
+
+#if MMGR_CARCER_REGIONS > 0u
+/**
+ * @brief Asserts each region is whole grains and holds one cell: its two words and one grain of payload.
+ */
+EMBED_STATIC_ASSERT(((size_t)MMGR_CARCER_REGION_BYTES % MMGR_CARCER_ALIGN) == 0u,
+                    "MMGR_CARCER_REGION_BYTES must be a multiple of MMGR_CARCER_ALIGN");
+EMBED_STATIC_ASSERT((size_t)MMGR_CARCER_REGION_BYTES >= (4u * MMGR_CARCER_ALIGN),
+                    "MMGR_CARCER_REGION_BYTES is too small for one cell");
+#endif
 
 /**
  * @brief One owner of cells: its name, its key, the payload bytes of its cells now on both tiers, and
@@ -383,7 +422,19 @@ void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner
  * @note The member in_use is this cellblock's total, counted where each owner's is. The member
  *       persistent_in_use is the part of it in the persistent tier, which a sort reads. The member movable is
  *       the option mmgr_movable_init assigns, and it reads zero without it.
+ * @note Where MMGR_CARCER_REGIONS is above 0, the temporary tier is the regions, and the top in bounds stays at
+ *       the regions' start. Each region's depth is the bytes its stack holds from its end down, on a lane of its
+ *       own. A take bumps the depth of the region the thread's place selects by one fetch-add, and a bump the
+ *       region cannot hold goes back by one fetch-sub before the take goes on to the writer's path.
  */
+#if MMGR_CARCER_REGIONS > 0u
+/** @brief One region of the temporary tier: the bytes its stack holds from its end down, on a lane of its own. */
+typedef struct
+{
+    EMBED_ALIGN(EMBED_LANE_BYTES) embed_atomic_usize depth; /**< Bytes positioned from the region's end down. */
+} CarcerRegion;
+#endif
+
 typedef struct
 {
     uint8_t *const base;       /**< First byte of the cellblock [BORROWS]. */
@@ -402,6 +453,9 @@ typedef struct
     embed_atomic_usize temporary_hw;  /**< The max bytes taken from the top so far. */
 #endif
     EmbedTurnstiles turnstiles; /**< The lanes a pass badges in at. */
+#if MMGR_CARCER_REGIONS > 0u
+    CarcerRegion regions[MMGR_CARCER_REGIONS]; /**< The depth of each region's stack. */
+#endif
 } SeriesCellularum;
 
 /** @brief The high-water members' first values, or nothing where the build tracks none. */
@@ -411,17 +465,25 @@ typedef struct
 #define MMGR_CARCER_STATE_HW
 #endif
 
+/** @brief The regions' first depths, every one 0, or nothing where the temporary tier is one stack. */
+#if MMGR_CARCER_REGIONS > 0u
+#define MMGR_CARCER_STATE_REGIONS , {{EMBED_ATOMIC_INIT(0u)}}
+#else
+#define MMGR_CARCER_STATE_REGIONS
+#endif
+
 /**
  * @brief A cellblock's state as it is over bytes_ bytes at base_ with no cell taken. Both tiers are
  *        empty, every mark is at zero, and the zero fill of the storage covers the turnstiles.
  *
  * @param[in] base_  First byte of the cellblock [BORROWS].
  * @param[in] bytes_ Bytes in the cellblock.
+ * @note The temporary top starts at the regions' start, which is the cellblock's size where there is no region.
  */
 #define MMGR_CARCER_STATE(base_, bytes_)                                                                               \
     {(base_),                                                                                                          \
      (bytes_),                                                                                                         \
-     EMBED_ATOMIC_INIT((embed_atomic_usize_value)(bytes_) << MMGR_CARCER_HALF_BITS),                                   \
+     EMBED_ATOMIC_INIT((embed_atomic_usize_value)((bytes_) - MMGR_CARCER_REGION_AREA) << MMGR_CARCER_HALF_BITS),       \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
@@ -429,7 +491,7 @@ typedef struct
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u) MMGR_CARCER_STATE_HW,                                                                       \
-     {0}}
+     {0} MMGR_CARCER_STATE_REGIONS}
 
 /**
  * @brief The identity a movable cell's taker holds: a const pointer to the cell's entry in the
@@ -539,6 +601,44 @@ EMBED_INLINE size_t mmgr_series_cellularum_temporary_top(const SeriesCellularum 
 }
 
 /**
+ * @brief The bytes one region's stack holds from its end down.
+ *
+ * @param[in] series Cellblock to read [BORROWS].
+ * @param[in] region The region, below MMGR_CARCER_REGIONS.
+ * @return           The depth, in bytes, 0 where the temporary tier is one stack.
+ */
+EMBED_INLINE size_t mmgr_series_cellularum_region_depth(const SeriesCellularum *series, size_t region)
+{
+#if MMGR_CARCER_REGIONS > 0u
+    // Explicit cast reads the word as the bytes it counts
+    return (size_t)embed_atomic_usize_load(&series->regions[region].depth);
+#else
+    (void)series;
+    (void)region;
+    return 0u;
+#endif
+}
+
+/**
+ * @brief Whether every region is empty.
+ *
+ * @param[in] series Cellblock to read [BORROWS].
+ * @return           EMBED_TRUE where no region holds a cell, and where the temporary tier is one stack.
+ */
+EMBED_INLINE embed_bool mmgr_series_cellularum_regions_idle(const SeriesCellularum *series)
+{
+    size_t held = 0u;
+    size_t region;
+
+    for (region = 0u; region < (size_t)MMGR_CARCER_REGIONS; region++)
+    {
+        held |= mmgr_series_cellularum_region_depth(series, region);
+    }
+    // Explicit cast narrows the int result of the test to the embed_bool container
+    return (embed_bool)(held == 0u);
+}
+
+/**
  * @brief Whether a cellblock has no cell out.
  *
  * @param[in] series Cellblock to read [BORROWS].
@@ -548,7 +648,8 @@ EMBED_INLINE embed_bool mmgr_series_cellularum_idle(const SeriesCellularum *seri
 {
     // Explicit cast narrows the int result of the test to the embed_bool container
     return (embed_bool)((mmgr_series_cellularum_persistent_end(series) == 0u) &&
-                        (mmgr_series_cellularum_temporary_top(series) == series->size));
+                        (mmgr_series_cellularum_temporary_top(series) == (series->size - MMGR_CARCER_REGION_AREA)) &&
+                        mmgr_series_cellularum_regions_idle(series));
 }
 
 /**
@@ -726,8 +827,8 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, persistent_buf_alloc, persistent_buf_releas
  */
 #define MMGR_CARCER_BODY(prisonsite_, type_, name_, wipe_to_zero_on_release_)                                          \
     MMGR_PARS_CLAIMED_ONCE(name_);                                                                                     \
-    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) >= (2u * MMGR_CARCER_ALIGN),                                 \
-                        #prisonsite_ "." #name_ " is too small for one cell");                                         \
+    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) >= (MMGR_CARCER_REGION_AREA + (2u * MMGR_CARCER_ALIGN)),     \
+                        #prisonsite_ "." #name_ " is too small for its regions and one cell");                         \
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) <= MMGR_CARCER_BYTES_MAX,                                    \
                         #prisonsite_ "." #name_ " is larger than a tier boundary's half word can name");               \
     static SeriesCellularum prisonsite_##_##name_##_ctx = MMGR_CARCER_STATE(mmgr_pars_storage_##name_, name_##_bytes); \

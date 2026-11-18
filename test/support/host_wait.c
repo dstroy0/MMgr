@@ -162,3 +162,25 @@ unsigned long long host_clock_ms(void)
     return ((unsigned long long)clock_time.tv_sec * 1000u) + ((unsigned long long)clock_time.tv_nsec / 1000000u);
 }
 #endif
+
+/** @brief The thread-local storage class of the compiler: C11's keyword, or the declaration specifier of MSVC. */
+#if defined(_MSC_VER) && !defined(__clang__)
+#define HOST_THREAD_LOCAL __declspec(thread)
+#else
+#define HOST_THREAD_LOCAL _Thread_local
+#endif
+
+/** @brief The places given out so far. The next thread that calls takes the count as its place. */
+static embed_atomic_u32 s_places_given = EMBED_ATOMIC_INIT(0u);
+
+/** @brief The place of this thread plus one, and 0 before its first call. */
+static HOST_THREAD_LOCAL embed_u32 t_place_plus_one;
+
+embed_u32 embed_thread_place(void)
+{
+    if (t_place_plus_one == 0u)
+    {
+        t_place_plus_one = embed_atomic_u32_fetch_add(&s_places_given, 1u) + 1u;
+    }
+    return t_place_plus_one - 1u;
+}

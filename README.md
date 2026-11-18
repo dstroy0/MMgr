@@ -89,6 +89,8 @@ That theory holds the turnstile proofs for the passes and the drain. `Pass.lean`
 | `Spill.lean`     | the spill, the bump at the end, and the two growths                                             |
 | `Give.lean`      | a cell goes off the count of its owner one time                                                 |
 | `Temporary.lean` | the temporary tier is the persistent tier mirrored: its sweep, its last fit and its positioning |
+| `Stacks.lean`    | one temporary stack that two threads share sinks past every depth, and a stack for each thread does not |
+| `Regions.lean`   | a region of the temporary tier stays within its size over any interleaving, and a refused take moves no cell |
 | `Boundary.lean`  | a free cell stays at the edge only while its trim bit is set                                    |
 | `Fragment.lean`  | the fragmentation value is 100 or less                                                          |
 | `Futex.lean`     | the address wait that GenMC runs has the behavior of the futex contract and no other            |

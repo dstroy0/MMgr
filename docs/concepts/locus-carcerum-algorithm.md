@@ -162,6 +162,27 @@ and that no free operation is in progress. Then no free cell is at the edge of $
 3. If $T - E \ge n$, set $Q := (T - n, p) \cdot Q$ and $T := T - n$. Return $T + 8$.
 4. If not, return $\bot$.
 
+### 3.8 Regions
+
+Where the build declares $N > 0$ regions of $R$ bytes, the temporary tier is the regions, and $T = S - N R$ never moves.
+Region $i$ lies from $S - (i + 1) R$ to $S - i R$, with a depth $D_i$, the bytes its stack holds from its end down. A
+thread's place $k$, which the host gives, selects region $i = k \bmod N$ for its takes.
+
+Bump in region $i$, need $n$: $D_i := D_i + n$ by one fetch-add. If $D_i \le R$ after it, the cell lies at
+$S - i R - D_i$. If not, $D_i := D_i - n$ by one fetch-sub, before the pass ends, and the take goes to the spill.
+So a writer that drains the passes reads every $D_i$ exact.
+
+Spill in region $i$, need $n$ (exclusive): the region swept as §3.5 sweeps the tier, from $S - i R - D_i$ to
+$S - i R$. The free run at its top returns to the region's gap. Then the last run that holds $n$, else the gap
+where it holds $n$, else $\bot$ with no busy cell moved.
+
+Free of a cell in region $i$: as §3.4, with the region's top $S - i R - D_i$ in place of $T$. The trim of §3.5
+sweeps each region and sets each $D_i$ from the free run at its top.
+
+`Regions.lean` proves that $D_i \le R$ holds after any sequence of takes and gives from any thread. It proves
+that a refused take moves no busy cell, and that the regions together stay within $N R$. `Stacks.lean` proves
+that one stack two threads share sinks past every depth, and the regions stop that.
+
 ## 4. Lemmas
 
 A **round** is a max interval between two exclusive operations. In a round, only the operations of §3.1, §3.2
