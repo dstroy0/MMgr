@@ -3,6 +3,7 @@ import LocusCarcerum.Bounds
 import LocusCarcerum.Fragment
 import LocusCarcerum.Futex
 import LocusCarcerum.Give
+import LocusCarcerum.Idle
 import LocusCarcerum.Layout
 import LocusCarcerum.Lowest
 import LocusCarcerum.Order

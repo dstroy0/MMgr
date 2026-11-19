@@ -1626,7 +1626,8 @@ EMBED_INLINE void *carcer_taken(SeriesCellularum *series, size_t size, const Cel
     static uintptr_t (*const larges[2])(SeriesCellularum *, const CarcerTakeCtx *) = {carcer_spilled_none,
                                                                                        CARCER_LARGE_TRIED};
     const size_t want = carcer_want(size);
-    const size_t listed = permit & carcer_all(mmgr_owner_listed(owner)) & carcer_all(size <= series->size) &
+    // a size at or over the cellblock's permits nothing, and a cellblock not yet placed has size 0
+    const size_t listed = permit & carcer_all(mmgr_owner_listed(owner)) & carcer_all(size < series->size) &
                           (carcer_all(want <= CARCER_DOWN_WANT_MAX) | ~down);
     const CellOwner *const safe = carcer_pick_at(listed, carcer_owner_record(owner), &carcer_owner_none);
     const CarcerTakeCtx take = {want, safe, down, listed, carcer_region_of_place(want)};
@@ -1927,8 +1928,8 @@ static void *carcer_grown(SeriesCellularum *site, void *prisoner, size_t size, c
     carcer_owned(series, prisoner, given);
     carcer_shut(series);
     const CarcerCell cell = carcer_cell_read(series, safe, named, given);
-    // a size over the cellblock's fails before the round, and the round never wraps
-    const size_t fits = carcer_all(size <= series->size);
+    // a size at or over the cellblock's fails before the round, and the round never wraps
+    const size_t fits = carcer_all(size < series->size);
     const size_t want = carcer_want(size);
     const size_t grows = cell.proceeds & fits & carcer_all(want > cell.size);
     const size_t extra = (want - cell.size) & grows;
@@ -2737,7 +2738,9 @@ size_t mmgr_align_up_buf(size_t size)
 
 void mmgr_series_cellularum_emptied(SeriesCellularum *series)
 {
-    embed_atomic_usize_store(&series->bounds, carcer_bounds(0u, series->size - MMGR_CARCER_REGION_AREA));
+    // a cellblock over a hospes pool not yet placed has size 0, and both boundaries stay at 0
+    embed_atomic_usize_store(&series->bounds, carcer_bounds(0u, (series->size - MMGR_CARCER_REGION_AREA) &
+                                                                    carcer_all(series->size != 0u)));
 #if MMGR_CARCER_REGIONS > 0u
     memor.set(&(MemoriaCfg){.dst = series->regions, .val = 0u, .bytes = sizeof(series->regions)});
 #endif
@@ -2753,4 +2756,38 @@ void mmgr_series_cellularum_emptied(SeriesCellularum *series)
     embed_atomic_word_store(&series->closed, 0u);
     embed_atomic_usize_store(&series->sink, 0u);
     memor.set(&(MemoriaCfg){.dst = &series->turnstiles, .val = 0u, .bytes = sizeof(series->turnstiles)});
+}
+
+embed_bool mmgr_series_cellularum_placed(SeriesCellularum *series, uint8_t *storage, size_t bytes)
+{
+    const size_t least = (size_t)MMGR_CARCER_REGION_AREA + (2u * (size_t)MMGR_CARCER_ALIGN);
+    const size_t fits = carcer_all(storage != NULL) & carcer_all(bytes >= least) &
+                        carcer_all(bytes <= (size_t)MMGR_CARCER_BYTES_MAX);
+
+    series->base = carcer_pick_at(fits, storage, series->base);
+    series->size = carcer_pick(fits, bytes, series->size);
+    mmgr_series_cellularum_emptied(series);
+    return (embed_bool)(fits & 1u);
+}
+
+void mmgr_series_cellularum_idle_each(SeriesCellularum *series, CarcerIdleEach each, void *context)
+{
+    carcer_shut(series);
+    const embed_atomic_usize_value word = embed_atomic_usize_load(&series->bounds);
+    const size_t end = carcer_bounds_end(word);
+    const size_t top = carcer_bounds_top(word);
+
+    // the gap between the tiers; a top below the end is a refused bump's overrun not yet settled, and the gap reads 0
+    each(context, series->base + end, (top - end) & carcer_all(top >= end));
+#if MMGR_CARCER_REGIONS > 0u
+    for (size_t region = 0u; region < (size_t)MMGR_CARCER_REGION_COUNT; region += 1u)
+    {
+        const size_t region_end = carcer_region_end(series, region);
+        const size_t bytes = carcer_region_bytes(region);
+
+        // the region's room from its start up to its depth: the stack grows down from its end
+        each(context, series->base + (region_end - bytes), bytes - carcer_region_depth(series, region));
+    }
+#endif
+    carcer_opened(series);
 }

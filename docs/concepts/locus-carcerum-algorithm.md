@@ -182,6 +182,11 @@ where it holds $n$, else $\bot$ with no busy cell moved.
 Free of a cell in region $i$: as §3.4, with the region's top $S - i R - D_i$ in place of $T$. The trim of §3.5
 sweeps each region and sets each $D_i$ from the free run at its top.
 
+The idle walk passes the program, with the cellblock closed, the gap $[E, T)$ and each region's room
+$[S - L - (i + 1) R, S - L - i R - D_i)$, the large region's from $S - L$. `Idle.lean` proves that no byte of a
+span lies in a cell. A cellblock over a hospes pool has $S = 0$ until the program places it, and a take of $n$
+bytes permits nothing unless $n < S$. `Idle.lean` proves that an unplaced cellblock refuses every take.
+
 `Regions.lean` proves that each $D_i$ stays within its region's bound after any sequence of takes and gives from
 any thread. It proves that a refused take moves no busy cell, and that the regions together stay within
 $N R + L$. `Stacks.lean` proves that one stack two threads share sinks past every depth. A thread's own region

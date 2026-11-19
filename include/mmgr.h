@@ -204,6 +204,10 @@
  *       names the bytes wherever the system put them.
  * @note For bytes that must come from the system. A graphics device that places a buffer over them
  *       opens the allocation they are, which an array in the program's image is not.
+ * @note A cellblock over this pool is declared with MMGR_MINIMUM_SECURITY_HOSPES or MMGR_MAXIMUM_SECURITY_HOSPES,
+ *       and placed once with mmgr_series_cellularum_placed before its first take. It refuses every take before
+ *       that. The pages a take touched can then go back to the system through mmgr_series_cellularum_idle_each,
+ *       which an array in the image does not allow.
  */
 #define ParsMemoriaeHospes(name_)                                                                                      \
     MMGR_PARS_DECLARED_ONCE(name_);                                                                                    \

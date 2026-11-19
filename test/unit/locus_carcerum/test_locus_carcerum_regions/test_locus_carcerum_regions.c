@@ -46,6 +46,11 @@ LocusCarcerum(cells, MMGR_MINIMUM_SECURITY(regioned));
 #define BLOCK (&cells_regioned_ctx)
 #define GUARD (&cells.regioned)
 
+// A cellblock over a hospes pool, and the storage a case places it on
+ParsMemoriaeHospes(given);
+LocusCarcerum(given_site, MMGR_MINIMUM_SECURITY_HOSPES(given));
+EMBED_ALIGN(MMGR_ALIGN_BYTES) static uint8_t s_given[REGIONED_BYTES];
+
 // The owners every case takes for, declared with the cellblock as the program's table
 #define REGIONED_OWNERS(owner_) owner_(s_one, "one") owner_(s_two, "two")
 MMGR_OWNERS(REGIONED_OWNERS)
@@ -190,6 +195,79 @@ void test_a_take_neither_the_thread_region_nor_the_large_region_holds_is_refused
     TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, first));
     TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, rest));
     TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, whole));
+}
+
+// The spans one walk of the idle storage passed: how many, and each one's start and bytes
+typedef struct
+{
+    size_t count;
+    const unsigned char *at[MMGR_CARCER_REGION_COUNT + 1u];
+    size_t bytes[MMGR_CARCER_REGION_COUNT + 1u];
+} IdleSpans;
+
+static void idle_span_each(void *context, void *at, size_t bytes)
+{
+    IdleSpans *const spans = (IdleSpans *)context;
+
+    if (spans->count < (MMGR_CARCER_REGION_COUNT + 1u))
+    {
+        spans->at[spans->count] = (const unsigned char *)at;
+        spans->bytes[spans->count] = bytes;
+    }
+    spans->count += 1u;
+}
+
+void test_the_idle_spans_are_the_gap_and_each_regions_room_above_its_depth(void)
+{
+    void *const persistent = GUARD->persistent_buf_alloc(PAYLOAD, s_one);
+    void *const temporary = GUARD->temporary_buf_alloc(PAYLOAD, s_two);
+    IdleSpans spans = {0u, {NULL}, {0u}};
+
+    TEST_ASSERT_NOT_NULL(persistent);
+    TEST_ASSERT_NOT_NULL(temporary);
+    mmgr_series_cellularum_idle_each(BLOCK, idle_span_each, &spans);
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_COUNT + 1u, spans.count);
+    // the gap: from the persistent end, past the one cell, to the regions' area
+    TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_regioned + CELL, spans.at[0]);
+    TEST_ASSERT_EQUAL_size_t(REGIONED_BYTES - MMGR_CARCER_REGION_AREA - CELL, spans.bytes[0]);
+    // each thread's region from its start to its depth, this thread's one cell less
+    for (size_t region = 0u; region < MMGR_CARCER_REGIONS; region += 1u)
+    {
+        const size_t held = (region == own_region()) ? CELL : 0u;
+        const size_t end = REGIONED_BYTES - MMGR_CARCER_LARGE_REGION_BYTES - (region * MMGR_CARCER_REGION_BYTES);
+
+        TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_regioned + end - MMGR_CARCER_REGION_BYTES, spans.at[1u + region]);
+        TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES - held, spans.bytes[1u + region]);
+    }
+    // the large region, whole
+    TEST_ASSERT_EQUAL_PTR(mmgr_pars_storage_regioned + REGIONED_BYTES - MMGR_CARCER_LARGE_REGION_BYTES,
+                          spans.at[1u + MMGR_CARCER_REGIONS]);
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_LARGE_REGION_BYTES, spans.bytes[1u + MMGR_CARCER_REGIONS]);
+    // the cellblock is open again: a take goes through
+    TEST_ASSERT_NOT_NULL(GUARD->temporary_buf_alloc(PAYLOAD, s_two));
+}
+
+void test_a_cellblock_over_a_hospes_pool_refuses_every_take_until_placed_and_then_takes_from_the_storage_given(void)
+{
+    mmgr_series_cellularum_emptied(&given_site_given_ctx);
+    given_site_given_ctx.base = NULL;
+    given_site_given_ctx.size = 0u;
+    TEST_ASSERT_NULL(given_site.given.persistent_buf_alloc(PAYLOAD, s_one));
+    TEST_ASSERT_NULL(given_site.given.temporary_buf_alloc(PAYLOAD, s_one));
+    TEST_ASSERT_FALSE(mmgr_series_cellularum_placed(&given_site_given_ctx, NULL, REGIONED_BYTES));
+    TEST_ASSERT_FALSE(mmgr_series_cellularum_placed(&given_site_given_ctx, s_given, MMGR_CARCER_REGION_AREA));
+    TEST_ASSERT_NULL(given_site.given.persistent_buf_alloc(PAYLOAD, s_one));
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_placed(&given_site_given_ctx, s_given, REGIONED_BYTES));
+    void *const persistent = given_site.given.persistent_buf_alloc(PAYLOAD, s_one);
+    void *const temporary = given_site.given.temporary_buf_alloc(PAYLOAD, s_two);
+
+    TEST_ASSERT_NOT_NULL(persistent);
+    TEST_ASSERT_NOT_NULL(temporary);
+    TEST_ASSERT_TRUE(((const uint8_t *)persistent >= s_given) && ((const uint8_t *)persistent < s_given + REGIONED_BYTES));
+    TEST_ASSERT_TRUE(((const uint8_t *)temporary >= s_given) && ((const uint8_t *)temporary < s_given + REGIONED_BYTES));
+    given_site.given.persistent_buf_release(persistent, s_one);
+    given_site.given.persistent_buf_release(temporary, s_two);
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_idle(&given_site_given_ctx));
 }
 
 void test_a_temporary_take_over_the_large_regions_room_is_refused_ahead_of_the_pass(void)

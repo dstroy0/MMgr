@@ -466,8 +466,8 @@ typedef struct
 
 typedef struct
 {
-    uint8_t *const base;       /**< First byte of the cellblock [BORROWS]. */
-    const size_t size;         /**< Bytes in the cellblock. */
+    uint8_t *base;             /**< First byte of the cellblock [BORROWS]; NULL over a hospes pool until placed. */
+    size_t size;               /**< Bytes in the cellblock; 0 over a hospes pool until placed. */
     embed_atomic_usize bounds; /**< The persistent end in the low half, the temporary top in the high. */
     embed_atomic_usize
         persistent_overrun;               /**< Bytes refused takes moved the persistent end by since the last writer. */
@@ -513,6 +513,23 @@ typedef struct
     {(base_),                                                                                                          \
      (bytes_),                                                                                                         \
      EMBED_ATOMIC_INIT((embed_atomic_usize_value)((bytes_) - MMGR_CARCER_REGION_AREA) << MMGR_CARCER_HALF_BITS),       \
+     EMBED_ATOMIC_INIT(0u),                                                                                            \
+     EMBED_ATOMIC_INIT(0u),                                                                                            \
+     EMBED_ATOMIC_INIT(0u),                                                                                            \
+     EMBED_ATOMIC_INIT(0u),                                                                                            \
+     EMBED_ATOMIC_INIT(0u),                                                                                            \
+     EMBED_ATOMIC_INIT(0u),                                                                                            \
+     EMBED_ATOMIC_INIT(0u) MMGR_CARCER_STATE_HW,                                                                       \
+     {0} MMGR_CARCER_STATE_REGIONS}
+
+/**
+ * @brief The record of a cellblock over a hospes pool before the program places it: no base, no size, both
+ *        boundaries at 0, so every take is refused until mmgr_series_cellularum_placed gives the storage.
+ */
+#define MMGR_CARCER_STATE_HOSPES                                                                                       \
+    {NULL,                                                                                                             \
+     0u,                                                                                                               \
+     EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
@@ -675,10 +692,12 @@ EMBED_INLINE embed_bool mmgr_series_cellularum_regions_idle(const SeriesCellular
  */
 EMBED_INLINE embed_bool mmgr_series_cellularum_idle(const SeriesCellularum *series)
 {
-    // Explicit cast narrows the int result of the test to the embed_bool container
-    return (embed_bool)((mmgr_series_cellularum_persistent_end(series) == 0u) &&
-                        (mmgr_series_cellularum_temporary_top(series) == (series->size - MMGR_CARCER_REGION_AREA)) &&
-                        mmgr_series_cellularum_regions_idle(series));
+    // Explicit cast narrows the int result of the test to the embed_bool container. A cellblock over a hospes pool
+    // not yet placed has size 0 and no cell out
+    return (embed_bool)((series->size == 0u) ||
+                        ((mmgr_series_cellularum_persistent_end(series) == 0u) &&
+                         (mmgr_series_cellularum_temporary_top(series) == (series->size - MMGR_CARCER_REGION_AREA)) &&
+                         mmgr_series_cellularum_regions_idle(series)));
 }
 
 /**
@@ -840,13 +859,16 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, persistent_buf_alloc, persistent_buf_releas
  * @param[in] name_       Pool under the cellblock, which is also its name as a member of its site
  *                        [BORROWS].
  * @param[in] wipe_to_zero_on_release_ 1 where a release zeroes the cell first, 0 where it does not.
+ * @param[in] hospes_     1 where the pool is a hospes pool the program places at run time, 0 where its
+ *                        storage is the array its declaration emitted.
  * @note The site name is part of every symbol. Two sites may each hold a cellblock of the same name,
  *       at different security levels, with no collision.
  * @note wipe_to_zero_on_release_ is a literal: the branch it guards folds away and the security
- *       level costs nothing to read.
+ *       level costs nothing to read. hospes_ is a literal as well: it selects the record's initializer.
  * @note The extent comes from the pool two ways. The count name_##_bytes is the one its declaration
  *       received and is what the record carries, and sizeof is what the compiler positioned down. The
- *       asserts test the second: they say something the first cannot say about itself.
+ *       asserts test the second: they say something the first cannot say about itself. A hospes pool has
+ *       neither: its record starts empty, and mmgr_series_cellularum_placed tests the extent it is given.
  * @warning A pool too small to hold one cell fails the build. Only the alignment is a power of two,
  *          and nothing reads the size as a mask. A bad size is a mistake the language would
  *          otherwise accept. A wrong name or guard type fails on its own. Two pools are separate
@@ -854,13 +876,9 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, persistent_buf_alloc, persistent_buf_releas
  * @note No upper bound. The pool states how much storage the cellblock gets, and nothing in the
  *       library sizes anything from a ceiling over it.
  */
-#define MMGR_CARCER_BODY(prisonsite_, type_, name_, wipe_to_zero_on_release_)                                          \
+#define MMGR_CARCER_BODY(prisonsite_, type_, name_, wipe_to_zero_on_release_, hospes_)                                 \
     MMGR_PARS_CLAIMED_ONCE(name_);                                                                                     \
-    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) >= (MMGR_CARCER_REGION_AREA + (2u * MMGR_CARCER_ALIGN)),     \
-                        #prisonsite_ "." #name_ " is too small for its regions and one cell");                         \
-    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) <= MMGR_CARCER_BYTES_MAX,                                    \
-                        #prisonsite_ "." #name_ " is larger than a tier boundary's half word can name");               \
-    static SeriesCellularum prisonsite_##_##name_##_ctx = MMGR_CARCER_STATE(mmgr_pars_storage_##name_, name_##_bytes); \
+    EMBED_CAT(MMGR_CARCER_STORAGE_, hospes_)(prisonsite_, name_)                                                       \
     MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size, const CellOwner *owner)  \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
@@ -910,16 +928,40 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, persistent_buf_alloc, persistent_buf_releas
     MMGR_CARCER_MOVABLE_ENTRIES(prisonsite_, name_, wipe_to_zero_on_release_, &prisonsite_##_##name_##_ctx)
 
 /**
+ * @brief A cellblock's record over the array its pool's declaration emitted: the asserts on the array's extent, and
+ *        the record with the array as its base and the pool's count as its size.
+ *
+ * @param[in] prisonsite_ Site of the cellblock, which the record's symbol carries.
+ * @param[in] name_       Pool under the cellblock.
+ */
+#define MMGR_CARCER_STORAGE_0(prisonsite_, name_)                                                                      \
+    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) >= (MMGR_CARCER_REGION_AREA + (2u * MMGR_CARCER_ALIGN)),     \
+                        #prisonsite_ "." #name_ " is too small for its regions and one cell");                         \
+    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) <= MMGR_CARCER_BYTES_MAX,                                    \
+                        #prisonsite_ "." #name_ " is larger than a tier boundary's half word can name");               \
+    static SeriesCellularum prisonsite_##_##name_##_ctx = MMGR_CARCER_STATE(mmgr_pars_storage_##name_, name_##_bytes);
+
+/**
+ * @brief A cellblock's record over a hospes pool: empty until the program places it.
+ *
+ * @param[in] prisonsite_ Site of the cellblock, which the record's symbol carries.
+ * @param[in] name_       Pool under the cellblock.
+ */
+#define MMGR_CARCER_STORAGE_1(prisonsite_, name_)                                                                      \
+    static SeriesCellularum prisonsite_##_##name_##_ctx = MMGR_CARCER_STATE_HOSPES;
+
+/**
  * @brief One cellblock as a member of its site's type.
  *
  * @param[in] prisonsite_ Site of the cellblock, unused here.
  * @param[in] type_       MinimumSecurityGuard or MaxSecurityGuard, the member's type.
  * @param[in] name_       Pool under the cellblock, and the name of the member.
  * @param[in] wipe_to_zero_on_release_ Security flag, unused here.
- * @note Takes all four because the three readers share one tuple shape, as MMGR_MINIMUM_SECURITY
+ * @param[in] hospes_     Hospes flag, unused here.
+ * @note Takes all five because the three readers share one tuple shape, as MMGR_MINIMUM_SECURITY
  *       describes.
  */
-#define MMGR_CARCER_MEM(prisonsite_, type_, name_, wipe_to_zero_on_release_) type_ name_;
+#define MMGR_CARCER_MEM(prisonsite_, type_, name_, wipe_to_zero_on_release_, hospes_) type_ name_;
 
 /**
  * @brief One cellblock's entries, in the order its guard declares them.
@@ -928,10 +970,11 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, persistent_buf_alloc, persistent_buf_releas
  * @param[in] type_       Guard type, unused here.
  * @param[in] name_       Pool whose name the symbols carry alongside the site's.
  * @param[in] wipe_to_zero_on_release_ Security flag, unused here.
+ * @param[in] hospes_     Hospes flag, unused here.
  * @note MinimumSecurityGuard and MaxSecurityGuard declare the same thirteen members in the same
  *       order. One initializer serves either level.
  */
-#define MMGR_CARCER_SEAT(prisonsite_, type_, name_, wipe_to_zero_on_release_)                                          \
+#define MMGR_CARCER_SEAT(prisonsite_, type_, name_, wipe_to_zero_on_release_, hospes_)                                 \
     {prisonsite_##_##name_##_persistent_buf_alloc, prisonsite_##_##name_##_persistent_buf_release,                     \
      prisonsite_##_##name_##_temporary_buf_alloc,  prisonsite_##_##name_##_who_owns_buf,                               \
      prisonsite_##_##name_##_buf_available,        prisonsite_##_##name_##_buf_grow,                                   \
@@ -951,20 +994,41 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, persistent_buf_alloc, persistent_buf_releas
  * @note Expands to a tuple in place of code. The site reads the same list three times, once for
  *       the cellblocks' bodies, once for its own members, once for their entries. An element has to
  *       stay data until the site says which of the three readings it gets.
+ * @note The tuple's last element says whether the pool is a hospes pool: 0 here, the storage the array
+ *       the pool's declaration emitted.
  */
-#define MMGR_MINIMUM_SECURITY(name_) (MinimumSecurityGuard, name_, 0)
+#define MMGR_MINIMUM_SECURITY(name_) (MinimumSecurityGuard, name_, 0, 0)
 
 /**
  * @brief Declares a max security cellblock over a pool.
  *
  * @param[in] name_ Pool under the cellblock, which is also its name as a member of its site
  *                  [BORROWS].
- * @note The trailing 1 is the wipe flag MMGR_CARCER_BODY reads to pick the release that zeroes on both
- *       tiers. The choice of this over MMGR_MINIMUM_SECURITY settles a cellblock's level, and
+ * @note The 1 after the name is the wipe flag MMGR_CARCER_BODY reads to pick the release that zeroes on
+ *       both tiers. The choice of this over MMGR_MINIMUM_SECURITY settles a cellblock's level, and
  *       nothing after the declaration can change it.
  * @note Carries no size, for the reason MMGR_MINIMUM_SECURITY gives.
  */
-#define MMGR_MAXIMUM_SECURITY(name_) (MaxSecurityGuard, name_, 1)
+#define MMGR_MAXIMUM_SECURITY(name_) (MaxSecurityGuard, name_, 1, 0)
+
+/**
+ * @brief Declares a minimum security cellblock over a hospes pool, one ParsMemoriaeHospes declared: the program
+ *        gives the storage once, with mmgr_series_cellularum_placed, before the first take.
+ *
+ * @param[in] name_ Hospes pool under the cellblock, which is also its name as a member of its site
+ *                  [BORROWS].
+ * @note The cellblock refuses every take until it is placed. The storage comes from the system, outside the
+ *       program's image, where a program wants the pages a take touched given back while no cell holds them.
+ */
+#define MMGR_MINIMUM_SECURITY_HOSPES(name_) (MinimumSecurityGuard, name_, 0, 1)
+
+/**
+ * @brief Declares a max security cellblock over a hospes pool, as MMGR_MINIMUM_SECURITY_HOSPES with the wipe on
+ *        release.
+ *
+ * @param[in] name_ Hospes pool under the cellblock [BORROWS].
+ */
+#define MMGR_MAXIMUM_SECURITY_HOSPES(name_) (MaxSecurityGuard, name_, 1, 1)
 
 /**
  * @brief Strips a tuple's parentheses.
@@ -1410,6 +1474,41 @@ size_t mmgr_align_up_buf(size_t size);
  * @note Nothing outside the tiers reads as a cell, and so no cell's words change.
  */
 void mmgr_series_cellularum_emptied(SeriesCellularum *series);
+
+/**
+ * @brief Places a cellblock declared over a hospes pool on the storage the program gives: its base and its size
+ *        set, and the cellblock emptied over them.
+ *
+ * @param[in,out] series  Cellblock to place [BORROWS].
+ * @param[in]     storage First byte of the storage, aligned to MMGR_ALIGN_BYTES [BORROWS].
+ * @param[in]     bytes   Bytes of the storage.
+ * @return                EMBED_TRUE where the cellblock is placed. EMBED_FALSE where storage is NULL, the bytes are
+ *                        fewer than the regions and one cell need, or more than a tier boundary's half word can
+ *                        name: nothing changed, and the cellblock refuses every take as before.
+ * @note Called once, at a time no context reaches the cellblock, before its first take; the program keeps the
+ *       storage for as long as the cellblock lives. A cellblock over an array its declaration emitted has its base
+ *       from the linker and is never placed. theory/locus_carcerum/LocusCarcerum/Idle.lean proves that a cellblock
+ *       of size 0 refuses every take.
+ */
+embed_bool mmgr_series_cellularum_placed(SeriesCellularum *series, uint8_t *storage, size_t bytes);
+
+/** @brief A span of a cellblock's storage no cell holds, passed to the program: where it starts and its bytes. */
+typedef void (*CarcerIdleEach)(void *context, void *at, size_t bytes);
+
+/**
+ * @brief Passes each span of the cellblock's storage that no cell holds to `each`, with the cellblock closed: the
+ *        gap between the tiers, and the room of each region above its depth.
+ *
+ * @param[in,out] series  Cellblock to read [BORROWS].
+ * @param[in]     each    The call for each span, run with the cellblock closed.
+ * @param[in]     context What `each` is passed first [BORROWS].
+ * @note The program gives a span's pages back to the system where it wishes, and the next take that reaches them
+ *       reads what a page the system gives afresh holds. No cell's words lie in a span, and no take or give runs
+ *       while the cellblock is closed, so a span the call reads is idle for as long as the call runs.
+ *       theory/locus_carcerum/LocusCarcerum/Idle.lean proves that no byte of a span lies in a cell.
+ * @note A free cell inside a tier, under a busy one, is no span: its words are the tier's.
+ */
+void mmgr_series_cellularum_idle_each(SeriesCellularum *series, CarcerIdleEach each, void *context);
 
 /**
  * @brief Counts bytes that lie in no cellblock to an owner, as a ring's or a page's are.

@@ -5,6 +5,12 @@ MMgr is a memory manager in C11 that uses no heap. A pool is a block of bytes th
 has external RAM and you set `MMGR_ENABLE_EXTRAM`. The declaration of a pool sets the memory that the
 pool is in. No later step reads an address to find the memory.
 
+Use `ParsMemoriaeHospes` for a pool whose bytes the system gives at run time. A cellblock over it takes
+`MMGR_MINIMUM_SECURITY_HOSPES` in its declaration. The program places the cellblock once with
+`mmgr_series_cellularum_placed` before the first take, and the cellblock refuses every take before that. A
+program places a cellblock there so that `mmgr_series_cellularum_idle_each` can give idle pages back to the
+system. An array in the program's image does not allow that.
+
 `LocusCarcerum` makes pools into a prison site. Each cellblock uses the pool that its declaration names.
 The warden is a const struct with the name of the site. The warden holds the cellblocks as its members,
 and each call goes through the warden.
@@ -90,7 +96,8 @@ That theory holds the turnstile proofs for the passes and the drain. `Pass.lean`
 | `Give.lean`      | a cell goes off the count of its owner one time                                                 |
 | `Temporary.lean` | the temporary tier is the persistent tier mirrored: its sweep, its last fit and its positioning |
 | `Stacks.lean`    | one temporary stack that two threads share sinks past every depth, and a stack for each thread does not |
-| `Regions.lean`   | a region of the temporary tier stays within its size over any interleaving, and a refused take moves no cell |
+| `Regions.lean`   | a region of the temporary tier stays within its size over any interleaving, through the fall to the large region, and a refused take moves no cell |
+| `Idle.lean`      | the spans the idle walk passes hold no byte of a cell, and an unplaced cellblock refuses every take |
 | `Boundary.lean`  | a free cell stays at the edge only while its trim bit is set                                    |
 | `Fragment.lean`  | the fragmentation value is 100 or less                                                          |
 | `Futex.lean`     | the address wait that GenMC runs has the behavior of the futex contract and no other            |
