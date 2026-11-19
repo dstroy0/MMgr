@@ -79,28 +79,6 @@ EMBED_BEGIN_DECLS
 #error "MMGR_MOVABLE_SETTLE_PERCENT must be from 1 to 100"
 #endif
 
-/** @brief The milliseconds between the mover's readings of its cellblock. */
-#ifndef MMGR_MOVABLE_READ_MS
-#define MMGR_MOVABLE_READ_MS 100u
-#endif
-
-/** @brief The readings in a row that must find the cellblock quiet before the mover sorts. */
-#ifndef MMGR_MOVABLE_QUIET_READINGS
-#define MMGR_MOVABLE_QUIET_READINGS 3u
-#endif
-
-/** @brief The longest the mover waits between readings after a sort it backed off from. */
-#ifndef MMGR_MOVABLE_BACKOFF_MAX_MS
-#define MMGR_MOVABLE_BACKOFF_MAX_MS 25600u
-#endif
-
-/** @brief The longest the mover waits between readings of a settled cellblock that no pass touched since the last
- * reading. Each such reading doubles the wait up to this. A pass or a rise brings the next reading back to
- * MMGR_MOVABLE_READ_MS. */
-#ifndef MMGR_MOVABLE_IDLE_MAX_MS
-#define MMGR_MOVABLE_IDLE_MAX_MS 1000u
-#endif
-
 /**
  * @brief The regions of the temporary tier: one stack of cells for each place the host gives a thread, modulo this
  *        count. 0 makes the temporary tier one stack that every thread shares.
@@ -569,17 +547,19 @@ typedef struct CarcerMovableEntry CarcerMovableEntry;
  *       each entry tests one word, and its movable_buf_alloc answers NULL.
  * @note storage holds the table, its claim bits and the rows. It lies outside the prison, and so nothing of the
  *       option pins a tier or counts as a cell. A pool declared at compile time gives it a link-time address.
- * @note width bounds the lanes the cellblock's turnstiles may have open while the mover reads it quiet. Quiet
- *       is twice the lanes open at or under width plus one, with no pass since the mover's last reading. The
- *       system's logical processors bound it: no more contexts than that run at once.
+ * @note width bounds the lanes the cellblock's turnstiles may have open while a sort's moves go on. Quiet is
+ *       twice the lanes open at or under width plus one, with no pass since the sort's last move. The system's
+ *       logical processors bound it: no more contexts than that run at once.
  * @note rows are the rows of touches, one a lane and the last for the lanes past them, which
  *       mmgr_movable_touches reads.
- * @note thread_started and thread_wait together are the mover's thread. With either unset, nothing moves a cell
- *       on its own, and a caller can still call mmgr_movable_buf_move. The member thread_id badges a pass
- *       that names no owner. The member thread_yield runs between a sort's moves, with the cellblock open.
- * @note thread_wait answers EMBED_FALSE to end the mover. The member thread_moving, where set, hears as each
- *       sort's moves start and end. A mover at low priority can then raise itself across the copies a reader
- *       may wait on.
+ * @note thread_started, thread_wait and thread_wake together are the mover's thread. With thread_started or
+ *       thread_wait unset, nothing moves a cell on its own, and a caller can still call mmgr_movable_buf_move.
+ *       The member thread_id badges a pass that names no owner. The member thread_yield runs between a sort's
+ *       moves, with the cellblock open.
+ * @note thread_wait sleeps the mover until thread_wake wakes it, and answers EMBED_FALSE to end the mover. A give
+ *       that leaves the persistent tier's fragmentation at or over MMGR_MOVABLE_SETTLE_PERCENT calls thread_wake.
+ *       No timer runs the mover. The member thread_moving, where set, hears as each sort's moves start and end. A
+ *       mover at low priority can then raise itself across the copies a reader may wait on.
  */
 typedef struct
 {
@@ -589,9 +569,10 @@ typedef struct
     const size_t width;         /**< The lanes open bound the mover reads quiet under, one at the fewest. */
     const size_t rows;          /**< Rows of touches, one a lane, the last shared by the lanes past it. */
     embed_bool (*const thread_started)(void (*run)(void *context), void *context); /**< Starts the mover. */
-    size_t (*const thread_id)(void); /**< The id of the thread that calls, for a pass that names no owner. */
-    embed_bool (*const thread_wait)(uint32_t milliseconds); /**< Sleeps the mover, EMBED_FALSE to end it. */
-    void (*const thread_yield)(void);               /**< Gives up the processor between a sort's moves, where set. */
+    size_t (*const thread_id)(void);       /**< The id of the thread that calls, for a pass that names no owner. */
+    embed_bool (*const thread_wait)(void); /**< Sleeps the mover until a wake, EMBED_FALSE to end it. */
+    void (*const thread_wake)(void);       /**< Wakes the mover from thread_wait, where set. */
+    void (*const thread_yield)(void);      /**< Gives up the processor between a sort's moves, where set. */
     void (*const thread_moving)(embed_bool moving); /**< Told as each move starts and ends, where set. */
 } CarcerMovableInitCfg;
 
@@ -1669,15 +1650,12 @@ embed_bool mmgr_movable_buf_move(SeriesCellularum *series);
  * @brief The mover: what the thread the program gave runs, until its thread_wait answers EMBED_FALSE.
  *
  * @param[in,out] series Cellblock with the option assigned and thread_wait given [BORROWS].
- * @note Each MMGR_MOVABLE_READ_MS it reads the cellblock, and fragmentation under MMGR_MOVABLE_SETTLE_PERCENT
- *       ends the reading. Over it, MMGR_MOVABLE_QUIET_READINGS in a row must find the cellblock quiet. Quiet
- *       is twice the lanes its turnstiles have open at or under the option's width plus one, with no pass
- *       since the last reading. It then moves cells one at a time, the cellblock open and the processor
- *       yielded between moves. It reads the same after each: a pass, or lanes open past quiet, says the moves
- *       meet pressure, and it backs off.
- * @note Each backoff doubles the wait, up to MMGR_MOVABLE_BACKOFF_MAX_MS. A sort that ends with nothing left
- *       to move resets the wait, and the mover remembers the fragmentation it left. Nothing runs again until
- *       the reading rises past that or falls under the threshold first.
+ * @note The mover sleeps in thread_wait until a give that leaves the fragmentation at or over
+ *       MMGR_MOVABLE_SETTLE_PERCENT wakes it through thread_wake. A measure over the threshold then sorts: cells
+ *       moved one at a time, the cellblock open and the processor yielded between moves. The sort goes on while
+ *       the cellblock is quiet, as the option's width defines quiet, and a pass between moves backs it off.
+ * @note A sort that ends with nothing left to move leaves its measure with the mover. The mover does not sort again
+ *       until a measure rises past that or falls under the threshold first. No timer runs the mover.
  */
 void mmgr_movable_run(SeriesCellularum *series);
 

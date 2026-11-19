@@ -51,9 +51,6 @@ for reading the high-water marks.
 | ----------------------------- | ------: | ------------------------------------------------------------------ |
 | `MMGR_CARCER_OWNERS`          |   `128` | the max owners a program's owner table holds                       |
 | `MMGR_MOVABLE_SETTLE_PERCENT` |    `25` | the fragmentation at which a cellblock's mover sorts               |
-| `MMGR_MOVABLE_READ_MS`        |   `100` | the milliseconds between the mover's readings                      |
-| `MMGR_MOVABLE_QUIET_READINGS` |     `3` | the readings in a row of low occupancy before it locks a turnstile |
-| `MMGR_MOVABLE_BACKOFF_MAX_MS` | `25600` | the longest it waits after a sort it backed off from               |
 
 A cellblock is shared by every context that reaches it, with no switch and no lock. Every boundary,
 every cell's claim and every count is an atomic word from `embedded_types`, moved in one step each, and
