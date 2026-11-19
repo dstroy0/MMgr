@@ -92,6 +92,7 @@ That theory holds the turnstile proofs for the passes and the drain. `Pass.lean`
 | `Word.lean`      | the arithmetic of the word, the request guard, and the limit on the bumps in progress           |
 | `Layout.lean`    | the sweep retains the bytes, the busy cells and the count of each owner                         |
 | `Take.lean`      | a take over a free run, and the count that the mover retains                                    |
+| `Move.lean`      | the move ends with the sweep: the tier ends busy, every count stays, a lone cell ends the tier  |
 | `Spill.lean`     | the spill, the bump at the end, and the two growths                                             |
 | `Give.lean`      | a cell goes off the count of its owner one time                                                 |
 | `Temporary.lean` | the temporary tier is the persistent tier mirrored: its sweep, its last fit and its positioning |

@@ -95,7 +95,8 @@
 #define CARCER_DOWN_BUMP carcer_region_bumped
 #define CARCER_DOWN_SPILL carcer_region_spilled
 #define CARCER_DOWN_WANT_MAX                                                                                           \
-    (((MMGR_CARCER_LARGE_REGION_BYTES > 0u) ? (size_t)MMGR_CARCER_LARGE_REGION_BYTES : (size_t)MMGR_CARCER_REGION_BYTES) - \
+    (((MMGR_CARCER_LARGE_REGION_BYTES > 0u) ? (size_t)MMGR_CARCER_LARGE_REGION_BYTES                                   \
+                                            : (size_t)MMGR_CARCER_REGION_BYTES) -                                      \
      CARCER_HDR)
 #define CARCER_TIER_DOWN ((size_t)0u)
 #else
@@ -1584,7 +1585,7 @@ static uintptr_t carcer_spilled_none(SeriesCellularum *series, // NOSONAR
 static uintptr_t carcer_large_tried(SeriesCellularum *series, const CarcerTakeCtx *take)
 {
     static uintptr_t (*const spills[2])(SeriesCellularum *, const CarcerTakeCtx *) = {carcer_spilled_none,
-                                                                                       carcer_region_spilled};
+                                                                                      carcer_region_spilled};
     // Explicit cast carries the owner's place as the badge's id
     const uintptr_t bumped =
         carcer_passed(series, (embed_atomic_word_value)take->owner->place, carcer_region_bumped, take);
@@ -1624,7 +1625,7 @@ EMBED_INLINE void *carcer_taken(SeriesCellularum *series, size_t size, const Cel
     static uintptr_t (*const spills[2][2])(SeriesCellularum *, const CarcerTakeCtx *) = {
         {carcer_spilled_none, carcer_spilled}, {carcer_spilled_none, CARCER_DOWN_SPILL}};
     static uintptr_t (*const larges[2])(SeriesCellularum *, const CarcerTakeCtx *) = {carcer_spilled_none,
-                                                                                       CARCER_LARGE_TRIED};
+                                                                                      CARCER_LARGE_TRIED};
     const size_t want = carcer_want(size);
     // a size at or over the cellblock's permits nothing, and a cellblock not yet placed has size 0
     const size_t listed = permit & carcer_all(mmgr_owner_listed(owner)) & carcer_all(size < series->size) &
@@ -2488,6 +2489,12 @@ embed_bool mmgr_movable_buf_move(SeriesCellularum *series)
         refused = carcer_pick(is & ~sweep.found, size, refused);
         below = carcer_pick(is, payload, below);
     }
+    // A run larger than the cell splits, and its rest stays free under the end with the cell's old place above it.
+    // The persistent trim bit makes the open sweep the tier, which winds the end back over them (Move.lean,
+    // move_ends). A release of the moved cell then finds it at the boundary.
+    // Explicit cast carries the pick into the closed word's width
+    (void)embed_atomic_word_fetch_or(&series->closed,
+                                     (embed_atomic_word_value)carcer_pick(moved, CARCER_TRIM_PERSISTENT, 0u));
     carcer_opened(series);
     // Explicit cast narrows the mask's low bit to the embed_bool container
     return (embed_bool)(moved & 1u);
@@ -2749,8 +2756,8 @@ size_t mmgr_align_up_buf(size_t size)
 void mmgr_series_cellularum_emptied(SeriesCellularum *series)
 {
     // a cellblock over a hospes pool not yet placed has size 0, and both boundaries stay at 0
-    embed_atomic_usize_store(&series->bounds, carcer_bounds(0u, (series->size - MMGR_CARCER_REGION_AREA) &
-                                                                    carcer_all(series->size != 0u)));
+    embed_atomic_usize_store(
+        &series->bounds, carcer_bounds(0u, (series->size - MMGR_CARCER_REGION_AREA) & carcer_all(series->size != 0u)));
 #if MMGR_CARCER_REGIONS > 0u
     memor.set(&(MemoriaCfg){.dst = series->regions, .val = 0u, .bytes = sizeof(series->regions)});
 #endif
@@ -2771,8 +2778,8 @@ void mmgr_series_cellularum_emptied(SeriesCellularum *series)
 embed_bool mmgr_series_cellularum_placed(SeriesCellularum *series, uint8_t *storage, size_t bytes)
 {
     const size_t least = (size_t)MMGR_CARCER_REGION_AREA + (2u * (size_t)MMGR_CARCER_ALIGN);
-    const size_t fits = carcer_all(storage != NULL) & carcer_all(bytes >= least) &
-                        carcer_all(bytes <= (size_t)MMGR_CARCER_BYTES_MAX);
+    const size_t fits =
+        carcer_all(storage != NULL) & carcer_all(bytes >= least) & carcer_all(bytes <= (size_t)MMGR_CARCER_BYTES_MAX);
 
     series->base = carcer_pick_at(fits, storage, series->base);
     series->size = carcer_pick(fits, bytes, series->size);

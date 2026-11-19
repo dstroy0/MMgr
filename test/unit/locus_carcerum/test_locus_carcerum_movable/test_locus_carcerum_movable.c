@@ -484,6 +484,27 @@ void test_a_move_into_a_run_retained_whole_counts_the_run_and_its_release_counts
     TEST_ASSERT_EQUAL_size_t(MOVING_BYTES, plain.moving.buf_available());
 }
 
+// A move into a run larger than the cell splits the run. The free rest and the cell's old place lie above the moved
+// cell. The move winds the end down over them, and the cell's release then reads the cellblock idle.
+void test_a_move_into_a_run_that_splits_trims_the_end_over_the_rest_and_the_old_place(void)
+{
+    const CarcerMovableEntry *const alone = marked(0x26u);
+    const size_t one_cell = plain.moving.buf_available();
+
+    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(alone, s_mover));
+    void *const low = plain.moving.persistent_buf_alloc(192u, s_mover);
+    const CarcerMovableEntry *const cell = marked(0x27u);
+
+    plain.moving.persistent_buf_release(low, s_mover);
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_movable_buf_move(&plain_moving_ctx), "the run below holds the cell and a rest");
+    assert_marked(cell, 64u, 0x27u);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(one_cell, plain.moving.buf_available(),
+                                     "the end comes down over the run's rest and the cell's old place");
+    TEST_ASSERT_TRUE(plain.moving.movable_buf_release(cell, s_mover));
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_idle(&plain_moving_ctx),
+                             "the cellblock reads idle after the one release");
+}
+
 void test_a_move_finds_nothing_where_no_free_cell_is_below(void)
 {
     const CarcerMovableEntry *const cell = marked(0x44u);
