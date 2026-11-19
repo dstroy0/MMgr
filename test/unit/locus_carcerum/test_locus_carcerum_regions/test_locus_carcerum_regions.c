@@ -7,17 +7,19 @@
  */
 /**
  * @file test_locus_carcerum_regions.c
- * @brief The temporary tier as regions: a take in the region the thread's place selects, a give that trims the
- *        region that holds the cell from any thread, the sweep inside a region, the refusal a full region answers,
- *        the growth of a region's newest cell, and the gap below the regions.
+ * @brief The temporary tier as regions: a take in the region the thread's place selects, a take over a region's room
+ *        in the large region, a give that trims the region that holds the cell from any thread, the sweep inside a
+ *        region, the refusal a full region answers, the growth of a region's newest cell, and the gap below the
+ *        regions.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-18
  *
- * @note Compiles the translation unit in with two regions of 1024 bytes, so the knobs are the suite's and the
- *       file-local helpers are callable.
+ * @note Compiles the translation unit in with two regions of 1024 bytes and a large region of 2048, so the knobs are
+ *       the suite's and the file-local helpers are callable.
  */
 #define MMGR_CARCER_REGIONS 2u
 #define MMGR_CARCER_REGION_BYTES 1024u
+#define MMGR_CARCER_LARGE_REGION_BYTES 2048u
 #include "locus_carcerum/locus_carcerum.h"
 
 #include "embed_atomic.h"
@@ -32,10 +34,10 @@
 #define MMGR_MISNAMED_IN_THIS_UNIT 1
 #include "locus_carcerum/locus_carcerum.c"
 
-#define REGIONED_BYTES 4096u
+#define REGIONED_BYTES 8192u
 #define PAYLOAD (MMGR_CARCER_ALIGN * 4u)
 #define CELL (CARCER_HDR + PAYLOAD)
-#define AREA ((size_t)MMGR_CARCER_REGIONS * (size_t)MMGR_CARCER_REGION_BYTES)
+#define LARGE ((size_t)MMGR_CARCER_REGIONS)
 #define ROUNDS 200u
 
 ParsMemoriaeInternae(regioned, REGIONED_BYTES);
@@ -77,13 +79,19 @@ static size_t region_of(const void *prisoner)
     return carcer_region_of_off(BLOCK, carcer_off_of(BLOCK, prisoner), carcer_all(1));
 }
 
+// The region this thread's small takes go to
+static size_t own_region(void)
+{
+    return carcer_region_of_place(PAYLOAD);
+}
+
 // The depth of one region
 static size_t depth_of(size_t region)
 {
     return mmgr_series_cellularum_region_depth(BLOCK, region);
 }
 
-// A region filled: one cell of PAYLOAD at its end, and one over the rest. The first cell is answered.
+// This thread's region filled: one cell of PAYLOAD at its end, and one over the rest. The first cell is answered.
 static void *region_filled(void **rest)
 {
     void *const first = GUARD->temporary_buf_alloc(PAYLOAD, s_one);
@@ -91,21 +99,36 @@ static void *region_filled(void **rest)
     *rest = GUARD->temporary_buf_alloc(MMGR_CARCER_REGION_BYTES - CELL - CARCER_HDR, s_one);
     TEST_ASSERT_NOT_NULL(first);
     TEST_ASSERT_NOT_NULL(*rest);
-    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(carcer_region_of_place()));
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(own_region()));
     return first;
 }
 
 void test_a_temporary_take_lands_in_the_region_of_the_thread_and_deepens_it_by_the_cell(void)
 {
     void *const prisoner = GUARD->temporary_buf_alloc(PAYLOAD, s_one);
-    const size_t region = carcer_region_of_place();
+    const size_t region = own_region();
 
     TEST_ASSERT_NOT_NULL(prisoner);
+    TEST_ASSERT_TRUE(region < MMGR_CARCER_REGIONS);
     TEST_ASSERT_EQUAL_size_t(region, region_of(prisoner));
     TEST_ASSERT_EQUAL_size_t(CELL, depth_of(region));
     TEST_ASSERT_EQUAL_size_t(0u, depth_of(1u - region));
-    TEST_ASSERT_EQUAL_size_t(REGIONED_BYTES - AREA, mmgr_series_cellularum_temporary_top(BLOCK));
+    TEST_ASSERT_EQUAL_size_t(0u, depth_of(LARGE));
+    TEST_ASSERT_EQUAL_size_t(REGIONED_BYTES - MMGR_CARCER_REGION_AREA, mmgr_series_cellularum_temporary_top(BLOCK));
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, mmgr_owner_in_use(s_one));
+}
+
+void test_a_take_over_a_regions_room_lands_in_the_large_region(void)
+{
+    void *const prisoner = GUARD->temporary_buf_alloc(MMGR_CARCER_REGION_BYTES, s_one);
+
+    TEST_ASSERT_NOT_NULL(prisoner);
+    TEST_ASSERT_EQUAL_size_t(LARGE, region_of(prisoner));
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES + CARCER_HDR, depth_of(LARGE));
+    TEST_ASSERT_EQUAL_size_t(0u, depth_of(own_region()));
+    GUARD->persistent_buf_release(prisoner, s_one);
+    TEST_ASSERT_EQUAL_size_t(0u, depth_of(LARGE));
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_idle(BLOCK));
 }
 
 void test_a_give_of_the_newest_cell_returns_the_region_to_empty_and_the_cellblock_reads_idle(void)
@@ -113,7 +136,7 @@ void test_a_give_of_the_newest_cell_returns_the_region_to_empty_and_the_cellbloc
     void *const prisoner = GUARD->temporary_buf_alloc(PAYLOAD, s_one);
 
     GUARD->persistent_buf_release(prisoner, s_one);
-    TEST_ASSERT_EQUAL_size_t(0u, depth_of(carcer_region_of_place()));
+    TEST_ASSERT_EQUAL_size_t(0u, depth_of(own_region()));
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_in_use(s_one));
     TEST_ASSERT_TRUE(mmgr_series_cellularum_idle(BLOCK));
 }
@@ -125,11 +148,11 @@ void test_a_take_the_region_cannot_hold_sweeps_the_region_and_takes_a_freed_run(
 
     // the first cell is at the region's end, under the rest: its give leaves a free cell below no top
     GUARD->persistent_buf_release(first, s_one);
-    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(carcer_region_of_place()));
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(own_region()));
     void *const again = GUARD->temporary_buf_alloc(PAYLOAD, s_two);
 
     TEST_ASSERT_EQUAL_PTR(first, again);
-    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(carcer_region_of_place()));
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(own_region()));
     TEST_ASSERT_EQUAL_PTR(s_two, mmgr_owner_of_buf(BLOCK, again));
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, mmgr_owner_in_use(s_two));
 }
@@ -141,18 +164,19 @@ void test_a_take_no_path_of_the_region_holds_is_refused_and_changes_no_cell(void
     const size_t in_use = mmgr_owner_in_use(s_one);
 
     TEST_ASSERT_NULL(GUARD->temporary_buf_alloc(PAYLOAD, s_two));
-    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(carcer_region_of_place()));
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(own_region()));
+    TEST_ASSERT_EQUAL_size_t(0u, depth_of(LARGE));
     TEST_ASSERT_EQUAL_size_t(in_use, mmgr_owner_in_use(s_one));
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_in_use(s_two));
     TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, first));
     TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, rest));
 }
 
-void test_a_temporary_take_over_a_regions_room_is_refused_ahead_of_the_pass(void)
+void test_a_temporary_take_over_the_large_regions_room_is_refused_ahead_of_the_pass(void)
 {
-    TEST_ASSERT_NULL(GUARD->temporary_buf_alloc(MMGR_CARCER_REGION_BYTES, s_one));
-    TEST_ASSERT_NULL(GUARD->temporary_buf_alloc(MMGR_CARCER_REGION_BYTES - CARCER_HDR + 1u, s_one));
-    TEST_ASSERT_EQUAL_size_t(0u, depth_of(carcer_region_of_place()));
+    TEST_ASSERT_NULL(GUARD->temporary_buf_alloc(MMGR_CARCER_LARGE_REGION_BYTES, s_one));
+    TEST_ASSERT_NULL(GUARD->temporary_buf_alloc(MMGR_CARCER_LARGE_REGION_BYTES - CARCER_HDR + 1u, s_one));
+    TEST_ASSERT_EQUAL_size_t(0u, depth_of(LARGE));
     TEST_ASSERT_TRUE(mmgr_series_cellularum_idle(BLOCK));
 }
 
@@ -160,7 +184,7 @@ void test_two_owners_that_give_under_each_other_sink_the_region_to_its_size_and_
 {
     void *one = GUARD->temporary_buf_alloc(PAYLOAD, s_one);
     void *two = GUARD->temporary_buf_alloc(PAYLOAD, s_two);
-    const size_t region = carcer_region_of_place();
+    const size_t region = own_region();
     size_t deepest = 0u;
     size_t round;
 
@@ -195,7 +219,7 @@ static void thread_took_and_gave(void)
     const unsigned int index = embed_atomic_u32_fetch_add(&s_thread_next, 1u);
     size_t round;
 
-    s_thread_region[index] = carcer_region_of_place();
+    s_thread_region[index] = own_region();
     s_thread_deepest[index] = 0u;
     for (round = 0u; round < ROUNDS; round++)
     {
@@ -236,7 +260,7 @@ static void thread_gave(void)
 
 void test_a_give_from_another_thread_trims_the_region_that_holds_the_cell(void)
 {
-    const size_t region = carcer_region_of_place();
+    const size_t region = own_region();
 
     s_handed = GUARD->temporary_buf_alloc(PAYLOAD, s_one);
     TEST_ASSERT_EQUAL_size_t(CELL, depth_of(region));
@@ -248,7 +272,7 @@ void test_a_give_from_another_thread_trims_the_region_that_holds_the_cell(void)
 void test_a_growth_of_a_regions_newest_cell_moves_it_down_and_deepens_the_region(void)
 {
     void *const prisoner = GUARD->temporary_buf_alloc(PAYLOAD, s_one);
-    const size_t region = carcer_region_of_place();
+    const size_t region = own_region();
     void *const grown = GUARD->buf_grow(prisoner, 2u * PAYLOAD, s_one);
 
     TEST_ASSERT_NOT_NULL(grown);
@@ -265,7 +289,7 @@ void test_a_growth_a_region_cannot_hold_changes_nothing(void)
     void *const first = region_filled(&rest);
 
     TEST_ASSERT_NULL(GUARD->buf_grow(rest, MMGR_CARCER_REGION_BYTES, s_one));
-    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(carcer_region_of_place()));
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(own_region()));
     TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, first));
     TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, rest));
 }
@@ -274,8 +298,8 @@ void test_the_gap_lies_below_the_regions_and_a_persistent_take_lands_in_it(void)
 {
     void *const prisoner = GUARD->persistent_buf_alloc(PAYLOAD, s_one);
 
-    TEST_ASSERT_EQUAL_size_t(REGIONED_BYTES - AREA - CELL, GUARD->buf_available());
+    TEST_ASSERT_EQUAL_size_t(REGIONED_BYTES - MMGR_CARCER_REGION_AREA - CELL, GUARD->buf_available());
     TEST_ASSERT_NOT_NULL(prisoner);
-    TEST_ASSERT_TRUE(carcer_off_of(BLOCK, prisoner) < (REGIONED_BYTES - AREA));
-    TEST_ASSERT_EQUAL_size_t(REGIONED_BYTES - AREA, mmgr_series_cellularum_temporary_top(BLOCK));
+    TEST_ASSERT_TRUE(carcer_off_of(BLOCK, prisoner) < (REGIONED_BYTES - MMGR_CARCER_REGION_AREA));
+    TEST_ASSERT_EQUAL_size_t(REGIONED_BYTES - MMGR_CARCER_REGION_AREA, mmgr_series_cellularum_temporary_top(BLOCK));
 }

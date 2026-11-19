@@ -5,19 +5,22 @@ import LocusCarcerum.Stacks
 /-!
 # LocusCarcerum, the temporary tier as regions of a declared size
 
-The temporary tier is `N` regions of `R` bytes each, declared with the cellblock. A region is a stack of cells
-from its end down, as `Temporary` lays the tier. A thread takes in the region its place selects, modulo `N`.
-A give goes to the region that holds the cell, from any thread.
+The temporary tier is regions, declared with the cellblock: one of `R` bytes for each thread's place, modulo their
+count, and one large region of `L` bytes that every take over a region's room goes to. A region is a stack of
+cells from its end down, as `Temporary` lays the tier. A thread takes in the region its place selects, or in the
+large region where the take does not fit its own. A give goes to the region that holds the cell, from any thread.
 
 A take bumps the region's depth where the region holds the cell. Where it does not, the take sweeps the region
 (`Temporary.sweepDown`), bumps where the sweep made room, and else takes the last free run that holds it
 (`Temporary.lastFit`, `Temporary.spilledDown`). Where no path holds the take, the take refuses and adds no cell.
 That is the take of the tier, inside one region, with the refusal in place of the gap.
 
-The theorems: the depth of a region never passes `R`, after any interleaving of takes and gives from any thread.
-A refused take moves no busy cell. No take and no give moves another owner's count. An operation in one region
-leaves every other region as it was. The bytes of the `N` regions together stay within `N * R`, so the tier's
-boundary never moves. `Stacks.shared_sinks` is the contrast: one stack that two threads share sinks past every depth.
+The theorems: the depth of a region never passes its bound, after any interleaving of takes and gives from any
+thread. A refused take moves no busy cell. No take and no give moves another owner's count. An operation in one
+region leaves every other region as it was. The bytes of the regions together stay within the sum of their bounds,
+so the tier's boundary never moves. `Stacks.shared_sinks` is the contrast: one stack that two threads share sinks
+past every depth. A thread's own region is shared by no other thread, so `Stacks.run_depth` holds there, and the
+large region is the one stack that threads share, bounded by `L`.
 -/
 
 namespace LocusCarcerum.Regions
@@ -26,7 +29,13 @@ open LocusCarcerum.Layout
 open LocusCarcerum.Temporary
 open LocusCarcerum.Stacks (giveNewest give freed)
 
-variable (H A R : Nat)
+variable (H A : Nat)
+
+/-! ## One region, bounded by `R` -/
+
+section Region
+
+variable (R : Nat)
 
 /-- Whether a region holds one more cell of `want`: its depth with the cell within `R`. -/
 def fits (want : Nat) (region : List Cell) : Prop := len H region + (H + want) ≤ R
@@ -89,6 +98,8 @@ theorem take_count_le (want owner o : Nat) (region : List Cell) :
       · next low run high hl => rw [spillDown_count H A want owner o region low high run hl]; omega
       · exact Nat.le_of_eq (sweepDown_count H o region).symm
 
+end Region
+
 /-! ## The give -/
 
 theorem giveNewest_len (owner : Nat) (region : List Cell) : len H (giveNewest owner region) = len H region := by
@@ -123,8 +134,13 @@ theorem give_count_other (owner o : Nat) (region : List Cell) (ho : owner ≠ o)
 
 /-! ## The regions together -/
 
-/-- The regions, one for each place modulo their count. -/
+/-- The regions, one for each place modulo their count, and the large one after them. -/
 abbrev Regions := Nat → List Cell
+
+/-- The bound of each region: `R` for a thread's region, `L` for the large one. -/
+abbrev Bound := Nat → Nat
+
+variable (bound : Bound)
 
 /-- The regions with the region `place` replaced. -/
 def put (regions : Regions) (place : Nat) (region : List Cell) : Regions :=
@@ -136,63 +152,69 @@ inductive Op where
   | give (owner : Nat)
   deriving DecidableEq, Repr
 
-/-- One operation in the region `place`: the region a thread's place selects for a take, the region that holds the
-cell for a give. -/
+/-- One operation in the region `place`: the region a take selects by the thread's place or by its size, the
+region that holds the cell for a give. -/
 def step (regions : Regions) (place : Nat) : Op → Regions
-  | .take want owner => put regions place (take H A R want owner (regions place))
+  | .take want owner => put regions place (take H A (bound place) want owner (regions place))
   | .give owner => put regions place (give owner (regions place))
 
 /-- A run of operations, each in one region, in the order the threads make them. -/
 def run (regions : Regions) : List (Nat × Op) → Regions
   | [] => regions
-  | (place, op) :: rest => run (step H A R regions place op) rest
+  | (place, op) :: rest => run (step H A bound regions place op) rest
 
 /-- An operation in one region leaves every other region as it was. -/
 theorem step_other (regions : Regions) (place other : Nat) (op : Op) (h : other ≠ place) :
-    step H A R regions place op other = regions other := by
+    step H A bound regions place op other = regions other := by
   cases op <;> simp [step, put, h]
 
-/-- Every region is within `R`. -/
-def Bounded (regions : Regions) : Prop := ∀ place, len H (regions place) ≤ R
+/-- Every region is within its bound. -/
+def Bounded (regions : Regions) : Prop := ∀ place, len H (regions place) ≤ bound place
 
-theorem step_bounded (regions : Regions) (place : Nat) (op : Op) (h : Bounded H R regions) :
-    Bounded H R (step H A R regions place op) := by
+theorem step_bounded (regions : Regions) (place : Nat) (op : Op) (h : Bounded H bound regions) :
+    Bounded H bound (step H A bound regions place op) := by
   intro other
   by_cases ho : other = place
   · subst ho
     cases op with
     | take want owner =>
       simp only [step, put, ite_true]
-      exact take_len H A R want owner _ (h other)
+      exact take_len H A (bound other) want owner _ (h other)
     | give owner =>
       simp only [step, put, ite_true]
       exact Nat.le_trans (give_len H owner _) (h other)
-  · rw [step_other H A R regions place other op ho]
+  · rw [step_other H A bound regions place other op ho]
     exact h other
 
-/-- Every region stays within `R` after any interleaving of takes and gives, from any thread. -/
-theorem run_bounded (regions : Regions) (ops : List (Nat × Op)) (h : Bounded H R regions) :
-    Bounded H R (run H A R regions ops) := by
+/-- Every region stays within its bound after any interleaving of takes and gives, from any thread. -/
+theorem run_bounded (regions : Regions) (ops : List (Nat × Op)) (h : Bounded H bound regions) :
+    Bounded H bound (run H A bound regions ops) := by
   induction ops generalizing regions with
   | nil => exact h
-  | cons op rest ih => exact ih _ (step_bounded H A R regions op.1 op.2 h)
+  | cons op rest ih => exact ih _ (step_bounded H A bound regions op.1 op.2 h)
 
-/-- From empty regions, no interleaving takes a region past `R`. -/
-theorem run_from_empty (ops : List (Nat × Op)) : Bounded H R (run H A R (fun _ => []) ops) :=
-  run_bounded H A R _ ops (fun _ => by simp [len])
+/-- From empty regions, no interleaving takes a region past its bound. -/
+theorem run_from_empty (ops : List (Nat × Op)) : Bounded H bound (run H A bound (fun _ => []) ops) :=
+  run_bounded H A bound _ ops (fun _ => by simp [len])
 
 /-- The bytes the first `N` regions position together. -/
 def extent (regions : Regions) : Nat → Nat
   | 0 => 0
   | n + 1 => extent regions n + len H (regions n)
 
-/-- The regions together stay within `N * R`: the tier's boundary never moves. -/
-theorem extent_le (regions : Regions) (N : Nat) (h : Bounded H R regions) : extent H regions N ≤ N * R := by
+/-- The bounds of the first `N` regions together: the bytes the regions take off the cellblock. -/
+def area : Nat → Nat
+  | 0 => 0
+  | n + 1 => area n + bound n
+
+/-- The regions together stay within their area: the tier's boundary never moves. -/
+theorem extent_le (regions : Regions) (N : Nat) (h : Bounded H bound regions) :
+    extent H regions N ≤ area bound N := by
   induction N with
-  | zero => simp [extent]
+  | zero => simp [extent, area]
   | succ n ih =>
     have hn := h n
-    simp only [extent, Nat.succ_mul]
+    simp only [extent, area]
     omega
 
 end LocusCarcerum.Regions

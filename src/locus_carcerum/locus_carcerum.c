@@ -94,7 +94,9 @@
 #if MMGR_CARCER_REGIONS > 0u
 #define CARCER_DOWN_BUMP carcer_region_bumped
 #define CARCER_DOWN_SPILL carcer_region_spilled
-#define CARCER_DOWN_WANT_MAX ((size_t)MMGR_CARCER_REGION_BYTES - CARCER_HDR)
+#define CARCER_DOWN_WANT_MAX                                                                                           \
+    (((MMGR_CARCER_LARGE_REGION_BYTES > 0u) ? (size_t)MMGR_CARCER_LARGE_REGION_BYTES : (size_t)MMGR_CARCER_REGION_BYTES) - \
+     CARCER_HDR)
 #define CARCER_TIER_DOWN ((size_t)0u)
 #else
 #define CARCER_DOWN_BUMP carcer_bumped
@@ -361,13 +363,33 @@ EMBED_INLINE size_t carcer_size_at(const SeriesCellularum *series, size_t off)
 
 #if MMGR_CARCER_REGIONS > 0u
 /**
- * @brief The region a thread's takes go to: the place the host gives the thread, modulo the regions.
+ * @brief The region a take goes to: the place the host gives the thread, modulo the regions, or the large region
+ *        where the take does not fit a region's room and the build declares a large region.
  *
- * @return The region, below MMGR_CARCER_REGIONS.
+ * @param[in] want Payload wanted, rounded.
+ * @return         The region, below MMGR_CARCER_REGION_COUNT.
+ * @note A take over a region's room with no large region goes to the thread's region, which refuses it.
  */
-EMBED_INLINE size_t carcer_region_of_place(void)
+EMBED_INLINE size_t carcer_region_of_place(size_t want)
 {
-    return (size_t)embed_thread_place() % (size_t)MMGR_CARCER_REGIONS;
+    const size_t own = (size_t)embed_thread_place() % (size_t)MMGR_CARCER_REGIONS;
+    const size_t large = carcer_all((want + CARCER_HDR) > (size_t)MMGR_CARCER_REGION_BYTES) &
+                         carcer_all(MMGR_CARCER_LARGE_REGIONS != 0u);
+
+    return carcer_pick(large, (size_t)MMGR_CARCER_REGIONS, own);
+}
+
+/**
+ * @brief The bytes of a region: MMGR_CARCER_REGION_BYTES for a thread's region, MMGR_CARCER_LARGE_REGION_BYTES for
+ *        the large one.
+ *
+ * @param[in] region The region.
+ * @return           Its bytes.
+ */
+EMBED_INLINE size_t carcer_region_bytes(size_t region)
+{
+    return carcer_pick(carcer_all(region < (size_t)MMGR_CARCER_REGIONS), (size_t)MMGR_CARCER_REGION_BYTES,
+                       (size_t)MMGR_CARCER_LARGE_REGION_BYTES);
 }
 
 /**
@@ -376,12 +398,17 @@ EMBED_INLINE size_t carcer_region_of_place(void)
  * @param[in] series Cellblock the offset is in [BORROWS].
  * @param[in] off    The offset.
  * @param[in] down   Every bit set where the offset is in the temporary tier, none where it is in the persistent one.
- * @return           The region, below MMGR_CARCER_REGIONS. A persistent offset answers region 0, which a caller then
- *                   reads and does not use, so no read leaves the regions.
+ * @return           The region, below MMGR_CARCER_REGION_COUNT. A persistent offset answers region 0, which a caller
+ *                   then reads and does not use, so no read leaves the regions.
+ * @note The large region lies at the top of the cellblock, and the threads' regions below it in order.
  */
 EMBED_INLINE size_t carcer_region_of_off(const SeriesCellularum *series, size_t off, size_t down)
 {
-    return ((series->size - 1u - off) / (size_t)MMGR_CARCER_REGION_BYTES) & down;
+    const size_t below = series->size - 1u - off;
+    const size_t large = carcer_all(below < (size_t)MMGR_CARCER_LARGE_REGION_BYTES);
+    const size_t own = (below - ((size_t)MMGR_CARCER_LARGE_REGION_BYTES & ~large)) / (size_t)MMGR_CARCER_REGION_BYTES;
+
+    return carcer_pick(large, (size_t)MMGR_CARCER_REGIONS, own) & down;
 }
 
 /**
@@ -389,11 +416,14 @@ EMBED_INLINE size_t carcer_region_of_off(const SeriesCellularum *series, size_t 
  *
  * @param[in] series Cellblock the region is in [BORROWS].
  * @param[in] region The region.
- * @return           The offset.
+ * @return           The offset: the cellblock's size for the large region, below it for the threads' regions.
  */
 EMBED_INLINE size_t carcer_region_end(const SeriesCellularum *series, size_t region)
 {
-    return series->size - (region * (size_t)MMGR_CARCER_REGION_BYTES);
+    const size_t own = carcer_all(region < (size_t)MMGR_CARCER_REGIONS);
+
+    return series->size -
+           (((size_t)MMGR_CARCER_LARGE_REGION_BYTES + (region * (size_t)MMGR_CARCER_REGION_BYTES)) & own);
 }
 
 /**
@@ -467,12 +497,13 @@ EMBED_INLINE size_t carcer_down_room(const SeriesCellularum *series, size_t off,
     const size_t region = carcer_region_of_off(series, off, down);
 
     (void)bounds;
-    return carcer_all((carcer_region_depth(series, region) + extra) <= (size_t)MMGR_CARCER_REGION_BYTES);
+    return carcer_all((carcer_region_depth(series, region) + extra) <= carcer_region_bytes(region));
 }
 #else
 /** @brief The region of every take where the temporary tier is one stack: there is none, and the row reads 0. */
-EMBED_INLINE size_t carcer_region_of_place(void)
+EMBED_INLINE size_t carcer_region_of_place(size_t want)
 {
+    (void)want;
     return 0u;
 }
 
@@ -1250,7 +1281,7 @@ static uintptr_t carcer_region_bumped(SeriesCellularum *series, const void *cont
     // Explicit cast reads the depth before the bump, size_t's width, as the bytes it holds
     const size_t was = (size_t)embed_atomic_usize_fetch_add(depth, need);
     const size_t now = was + need;
-    const size_t taken = allowed & carcer_all(now <= (size_t)MMGR_CARCER_REGION_BYTES);
+    const size_t taken = allowed & carcer_all(now <= carcer_region_bytes(take->region));
     const size_t off = (carcer_region_end(series, take->region) - now) & taken;
 
     (void)embed_atomic_usize_fetch_sub(depth, need & ~taken);
@@ -1379,7 +1410,7 @@ static size_t carcer_down_trimmed(SeriesCellularum *series, size_t permit)
 {
     size_t region;
 
-    for (region = 0u; region < (size_t)MMGR_CARCER_REGIONS; region++)
+    for (region = 0u; region < MMGR_CARCER_REGION_COUNT; region++)
     {
         const size_t end = carcer_region_end(series, region);
         const size_t depth = carcer_region_depth(series, region);
@@ -1516,7 +1547,7 @@ static uintptr_t carcer_region_spilled(SeriesCellularum *series, const CarcerTak
     const CarcerSweep sweep =
         carcer_swept_between(series, want, series->size, carcer_all(1), carcer_all(1), end - depth, end);
     const size_t top = sweep.boundary;
-    const size_t room = carcer_all(((end - top) + need) <= (size_t)MMGR_CARCER_REGION_BYTES) & ~sweep.found;
+    const size_t room = carcer_all(((end - top) + need) <= carcer_region_bytes(region)) & ~sweep.found;
     const size_t top_after = top - (need & room);
     const CarcerPlaced placed = carcer_split(series, sweep, want, carcer_all(1));
     const size_t off = carcer_pick(sweep.found, placed.at, top_after);
@@ -1553,8 +1584,9 @@ static uintptr_t carcer_spilled_none(SeriesCellularum *series, // NOSONAR
  *       the cellblock's size permits nothing the same way, before the round. The size is at max
  *       MMGR_CARCER_BYTES_MAX, and the round and the header added to it never wrap. The exclusive path is a row of
  *       a two-row table, the row whether the bump answered a cell.
- * @note Where the temporary tier is regions, a temporary take over a region's room permits nothing, and the take
- *       goes to the region the thread's place selects. The bump and the spill are the tier's rows of their tables.
+ * @note Where the temporary tier is regions, a temporary take goes to the region the thread's place selects, or to
+ *       the large region where it does not fit a region's room. A take over the largest region's room permits
+ *       nothing. The bump and the spill are the tier's rows of their tables.
  */
 EMBED_INLINE void *carcer_taken(SeriesCellularum *series, size_t size, const CellOwner *owner, size_t down,
                                 size_t permit)
@@ -1566,7 +1598,7 @@ EMBED_INLINE void *carcer_taken(SeriesCellularum *series, size_t size, const Cel
     const size_t listed = permit & carcer_all(mmgr_owner_listed(owner)) & carcer_all(size <= series->size) &
                           (carcer_all(want <= CARCER_DOWN_WANT_MAX) | ~down);
     const CellOwner *const safe = carcer_pick_at(listed, carcer_owner_record(owner), &carcer_owner_none);
-    const CarcerTakeCtx take = {want, safe, down, listed, carcer_region_of_place()};
+    const CarcerTakeCtx take = {want, safe, down, listed, carcer_region_of_place(want)};
 
     carcer_owed_serviced(series);
     // Explicit cast carries the owner's place as the badge's id

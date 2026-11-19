@@ -104,7 +104,8 @@ EMBED_BEGIN_DECLS
  *       holds it, and else refuses. theory/locus_carcerum/LocusCarcerum/Regions.lean proves the bound, and
  *       Stacks.lean proves the sinking of one shared stack that the regions stop.
  * @note The regions lie at the top of the cellblock, MMGR_CARCER_REGION_AREA bytes in all, and the gap lies below
- *       them. The host defines embed_thread_place beside embed_clock_ns, as embed_turnstile.h says.
+ *       them. A take over a region's room goes to the large region, MMGR_CARCER_LARGE_REGION_BYTES, where the
+ *       build declares one. The host defines embed_thread_place beside embed_clock_ns, as embed_turnstile.h says.
  */
 #ifndef MMGR_CARCER_REGIONS
 #define MMGR_CARCER_REGIONS 0u
@@ -119,8 +120,27 @@ EMBED_BEGIN_DECLS
 #define MMGR_CARCER_REGION_BYTES 0u
 #endif
 
+/**
+ * @brief Bytes of the one large region, at the top of the cellblock, that every temporary take over a region's room
+ *        goes to, from any thread. 0 refuses such a take.
+ *
+ * @note The large region is one more region, the last, shared by every thread. A take goes there where its payload
+ *       and its two words do not fit MMGR_CARCER_REGION_BYTES. Its depth never passes this size. Threads share it,
+ *       so it sinks as one shared stack does, to this size at most, and the sweep then reclaims it.
+ */
+#ifndef MMGR_CARCER_LARGE_REGION_BYTES
+#define MMGR_CARCER_LARGE_REGION_BYTES 0u
+#endif
+
+/** @brief 1 where the cellblock has the large region, 0 where it has none. */
+#define MMGR_CARCER_LARGE_REGIONS ((size_t)(MMGR_CARCER_LARGE_REGION_BYTES > 0u))
+
+/** @brief The regions in all: one for each place, and the large one where the build declares it. */
+#define MMGR_CARCER_REGION_COUNT ((size_t)MMGR_CARCER_REGIONS + MMGR_CARCER_LARGE_REGIONS)
+
 /** @brief Bytes the regions take off the top of every cellblock, 0 where the temporary tier is one stack. */
-#define MMGR_CARCER_REGION_AREA ((size_t)MMGR_CARCER_REGIONS * (size_t)MMGR_CARCER_REGION_BYTES)
+#define MMGR_CARCER_REGION_AREA                                                                                        \
+    (((size_t)MMGR_CARCER_REGIONS * (size_t)MMGR_CARCER_REGION_BYTES) + (size_t)MMGR_CARCER_LARGE_REGION_BYTES)
 
 #include "embed_atomic.h"
 #include "embed_lane.h"
@@ -166,6 +186,14 @@ EMBED_STATIC_ASSERT(((size_t)MMGR_CARCER_REGION_BYTES % MMGR_CARCER_ALIGN) == 0u
                     "MMGR_CARCER_REGION_BYTES must be a multiple of MMGR_CARCER_ALIGN");
 EMBED_STATIC_ASSERT((size_t)MMGR_CARCER_REGION_BYTES >= (4u * MMGR_CARCER_ALIGN),
                     "MMGR_CARCER_REGION_BYTES is too small for one cell");
+EMBED_STATIC_ASSERT(((size_t)MMGR_CARCER_LARGE_REGION_BYTES % MMGR_CARCER_ALIGN) == 0u,
+                    "MMGR_CARCER_LARGE_REGION_BYTES must be a multiple of MMGR_CARCER_ALIGN");
+EMBED_STATIC_ASSERT((MMGR_CARCER_LARGE_REGION_BYTES == 0u) ||
+                        ((size_t)MMGR_CARCER_LARGE_REGION_BYTES > (size_t)MMGR_CARCER_REGION_BYTES),
+                    "MMGR_CARCER_LARGE_REGION_BYTES must be above MMGR_CARCER_REGION_BYTES, or 0");
+#else
+EMBED_STATIC_ASSERT(MMGR_CARCER_LARGE_REGION_BYTES == 0u,
+                    "MMGR_CARCER_LARGE_REGION_BYTES needs MMGR_CARCER_REGIONS above 0");
 #endif
 
 /**
@@ -454,7 +482,7 @@ typedef struct
 #endif
     EmbedTurnstiles turnstiles; /**< The lanes a pass badges in at. */
 #if MMGR_CARCER_REGIONS > 0u
-    CarcerRegion regions[MMGR_CARCER_REGIONS]; /**< The depth of each region's stack. */
+    CarcerRegion regions[MMGR_CARCER_REGION_COUNT]; /**< The depth of each region's stack, the large one last. */
 #endif
 } SeriesCellularum;
 
@@ -604,7 +632,7 @@ EMBED_INLINE size_t mmgr_series_cellularum_temporary_top(const SeriesCellularum 
  * @brief The bytes one region's stack holds from its end down.
  *
  * @param[in] series Cellblock to read [BORROWS].
- * @param[in] region The region, below MMGR_CARCER_REGIONS.
+ * @param[in] region The region, below MMGR_CARCER_REGION_COUNT; the large region is the last.
  * @return           The depth, in bytes, 0 where the temporary tier is one stack.
  */
 EMBED_INLINE size_t mmgr_series_cellularum_region_depth(const SeriesCellularum *series, size_t region)
@@ -630,7 +658,7 @@ EMBED_INLINE embed_bool mmgr_series_cellularum_regions_idle(const SeriesCellular
     size_t held = 0u;
     size_t region;
 
-    for (region = 0u; region < (size_t)MMGR_CARCER_REGIONS; region++)
+    for (region = 0u; region < MMGR_CARCER_REGION_COUNT; region++)
     {
         held |= mmgr_series_cellularum_region_depth(series, region);
     }

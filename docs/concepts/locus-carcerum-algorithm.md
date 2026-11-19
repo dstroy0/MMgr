@@ -164,9 +164,11 @@ and that no free operation is in progress. Then no free cell is at the edge of $
 
 ### 3.8 Regions
 
-Where the build declares $N > 0$ regions of $R$ bytes, the temporary tier is the regions, and $T = S - N R$ never moves.
-Region $i$ lies from $S - (i + 1) R$ to $S - i R$, with a depth $D_i$, the bytes its stack holds from its end down. A
-thread's place $k$, which the host gives, selects region $i = k \bmod N$ for its takes.
+Where the build declares $N > 0$ regions of $R$ bytes and a large region of $L$ bytes, the temporary tier is the
+regions, and $T = S - N R - L$ never moves. The large region lies from $S - L$ to $S$. Region $i$ lies from
+$S - L - (i + 1) R$ to $S - L - i R$. Each has a depth $D_i$, the bytes its stack holds from its end down. A
+thread's place $k$, which the host gives, selects region $i = k \bmod N$ for a take within $R$. A take over $R$
+goes to the large region, from any thread, and is refused where $L = 0$.
 
 Bump in region $i$, need $n$: $D_i := D_i + n$ by one fetch-add. If $D_i \le R$ after it, the cell lies at
 $S - i R - D_i$. If not, $D_i := D_i - n$ by one fetch-sub, before the pass ends, and the take goes to the spill.
@@ -179,9 +181,10 @@ where it holds $n$, else $\bot$ with no busy cell moved.
 Free of a cell in region $i$: as §3.4, with the region's top $S - i R - D_i$ in place of $T$. The trim of §3.5
 sweeps each region and sets each $D_i$ from the free run at its top.
 
-`Regions.lean` proves that $D_i \le R$ holds after any sequence of takes and gives from any thread. It proves
-that a refused take moves no busy cell, and that the regions together stay within $N R$. `Stacks.lean` proves
-that one stack two threads share sinks past every depth, and the regions stop that.
+`Regions.lean` proves that each $D_i$ stays within its region's bound after any sequence of takes and gives from
+any thread. It proves that a refused take moves no busy cell, and that the regions together stay within
+$N R + L$. `Stacks.lean` proves that one stack two threads share sinks past every depth. A thread's own region
+has one thread, so it does not sink; the large region is the one stack threads share, and $L$ bounds it.
 
 ## 4. Lemmas
 
