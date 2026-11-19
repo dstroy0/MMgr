@@ -2592,6 +2592,8 @@ static void carcer_sort_none(SeriesCellularum *series, const CarcerMovable *mova
  * @note A reading under the threshold settles everything. One over it waits for MMGR_MOVABLE_QUIET_READINGS quiet
  *       readings in a row, then sorts. A sort that backed off doubles the wait up to MMGR_MOVABLE_BACKOFF_MAX_MS.
  *       One that finished records what it left, which a reading no higher than it waits on.
+ * @note A settled reading with no pass since the last one has nothing to read next. It doubles the wait up to
+ *       MMGR_MOVABLE_IDLE_MAX_MS. A settled reading after a pass waits MMGR_MOVABLE_READ_MS again.
  */
 EMBED_INLINE void carcer_mover_read(SeriesCellularum *series, const CarcerMovable *movable, uint32_t *wait,
                                     size_t *left, size_t *quiet, size_t *passes)
@@ -2600,14 +2602,19 @@ EMBED_INLINE void carcer_mover_read(SeriesCellularum *series, const CarcerMovabl
                                       size_t *) = {carcer_sort_none, carcer_sort_run};
     const size_t percent = mmgr_series_cellularum_fragmentation(series);
     const size_t settled = carcer_all(percent < MMGR_MOVABLE_SETTLE_PERCENT);
+    const size_t steady = carcer_quiet(series, movable, passes);
     const size_t risen = ~settled & carcer_all(percent > *left);
-    const size_t counted = risen & carcer_quiet(series, movable, passes);
+    const size_t counted = risen & steady;
     const size_t readings = (*quiet + 1u) & counted;
     const size_t sorts = risen & carcer_all(readings >= MMGR_MOVABLE_QUIET_READINGS);
+    const size_t doubled = carcer_pick(carcer_all(((size_t)*wait * 2u) < MMGR_MOVABLE_IDLE_MAX_MS), (size_t)*wait * 2u,
+                                       MMGR_MOVABLE_IDLE_MAX_MS);
+    const size_t rested = carcer_pick(steady, doubled, MMGR_MOVABLE_READ_MS);
 
     *left &= ~settled;
     *quiet = readings & ~settled & ~sorts;
-    *wait = (uint32_t)carcer_pick(settled, MMGR_MOVABLE_READ_MS, *wait);
+    // Explicit cast narrows the pick to the wait's width, which every arm fits
+    *wait = (uint32_t)carcer_pick(settled, rested, *wait);
     sorts_run[sorts & 1u](series, movable, wait, left, passes);
 }
 

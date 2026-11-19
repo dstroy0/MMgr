@@ -94,6 +94,13 @@ EMBED_BEGIN_DECLS
 #define MMGR_MOVABLE_BACKOFF_MAX_MS 25600u
 #endif
 
+/** @brief The longest the mover waits between readings of a settled cellblock that no pass touched since the last
+ * reading. Each such reading doubles the wait up to this. A pass or a rise brings the next reading back to
+ * MMGR_MOVABLE_READ_MS. */
+#ifndef MMGR_MOVABLE_IDLE_MAX_MS
+#define MMGR_MOVABLE_IDLE_MAX_MS 1000u
+#endif
+
 /**
  * @brief The regions of the temporary tier: one stack of cells for each place the host gives a thread, modulo this
  *        count. 0 makes the temporary tier one stack that every thread shares.
@@ -496,7 +503,13 @@ typedef struct
 
 /** @brief The regions' first depths, every one 0, or nothing where the temporary tier is one stack. */
 #if MMGR_CARCER_REGIONS > 0u
-#define MMGR_CARCER_STATE_REGIONS , {{EMBED_ATOMIC_INIT(0u)}}
+#define MMGR_CARCER_STATE_REGIONS                                                                                      \
+    ,                                                                                                                  \
+    {                                                                                                                  \
+        {                                                                                                              \
+            EMBED_ATOMIC_INIT(0u)                                                                                      \
+        }                                                                                                              \
+    }
 #else
 #define MMGR_CARCER_STATE_REGIONS
 #endif
@@ -878,8 +891,8 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, persistent_buf_alloc, persistent_buf_releas
  */
 #define MMGR_CARCER_BODY(prisonsite_, type_, name_, wipe_to_zero_on_release_, hospes_)                                 \
     MMGR_PARS_CLAIMED_ONCE(name_);                                                                                     \
-    EMBED_CAT(MMGR_CARCER_STORAGE_, hospes_)(prisonsite_, name_)                                                       \
-    MMGR_ALLOC_SIZE(1) static void *prisonsite_##_##name_##_persistent_buf_alloc(size_t size, const CellOwner *owner)  \
+    EMBED_CAT(MMGR_CARCER_STORAGE_, hospes_)(prisonsite_, name_) MMGR_ALLOC_SIZE(1) static void *                      \
+    prisonsite_##_##name_##_persistent_buf_alloc(size_t size, const CellOwner *owner)                                  \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \

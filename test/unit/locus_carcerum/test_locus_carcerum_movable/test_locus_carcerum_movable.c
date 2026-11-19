@@ -791,6 +791,24 @@ void test_the_mover_leaves_a_series_cellularum_under_the_threshold_alone(void)
     assert_marked(cell, 256u, 0x35u);
 }
 
+// One pass on the settled cellblock: a cell taken and given back.
+static void pass_made(void)
+{
+    plain.moving.persistent_buf_release(plain.moving.persistent_buf_alloc(16u, s_mover), s_mover);
+}
+
+// A settled cellblock with no pass since the last reading has nothing to read next. The waits double up to
+// MMGR_MOVABLE_IDLE_MAX_MS. A pass brings the next wait back to MMGR_MOVABLE_READ_MS.
+void test_a_settled_series_cellularum_with_no_pass_lets_the_mover_wait_longer_until_a_pass(void)
+{
+    s_ticks_left = 10u;
+    s_turn = pass_made;
+    s_turn_on_tick = 10u;
+    mmgr_movable_run(&plain_moving_ctx);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(MMGR_MOVABLE_IDLE_MAX_MS, s_max_wait, "the waits double up to the idle max");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(MMGR_MOVABLE_READ_MS, s_last_wait, "the pass brings the next reading back");
+}
+
 void test_the_mover_waits_for_its_quiet_readings_before_it_sorts(void)
 {
     (void)fragmented();
@@ -812,7 +830,8 @@ void test_the_mover_sorts_over_the_threshold_at_a_quiet_time_and_stops(void)
     TEST_ASSERT_EQUAL_UINT_MESSAGE(s_moving_told, s_moving_ended, "each move told at both ends");
     TEST_ASSERT_TRUE_MESSAGE(plain.moving.buf_available() > gap, "the tier's end came back");
     assert_marked(cell, 128u, 0x33u);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(MMGR_MOVABLE_READ_MS, s_max_wait, "nothing backed off");
+    // The waits after the sort are the idle waits of a settled cellblock, none a backoff from the sort
+    TEST_ASSERT_TRUE_MESSAGE(s_max_wait <= MMGR_MOVABLE_IDLE_MAX_MS, "nothing backed off");
 }
 
 void test_a_sort_that_can_move_nothing_is_not_run_again_until_the_reading_rises(void)
