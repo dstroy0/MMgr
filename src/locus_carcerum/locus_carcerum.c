@@ -1570,6 +1570,33 @@ static uintptr_t carcer_spilled_none(SeriesCellularum *series, // NOSONAR
     return 0u;
 }
 
+#if MMGR_CARCER_REGIONS > 0u
+/**
+ * @brief The large region's turn at a temporary take the thread's region refused: the bump and the spill again,
+ *        in the large region.
+ *
+ * @param[in,out] series Cellblock to take from [BORROWS].
+ * @param[in]     take   The take, its region the large one [BORROWS].
+ * @return               The payload's address as an integer, 0 where the large region refused it as well.
+ * @note The large region's bound is its own, as Regions.lean proves, so the fall through keeps every region
+ *       within its size. A take the thread's region refuses lands here before it is refused for good.
+ */
+static uintptr_t carcer_large_tried(SeriesCellularum *series, const CarcerTakeCtx *take)
+{
+    static uintptr_t (*const spills[2])(SeriesCellularum *, const CarcerTakeCtx *) = {carcer_spilled_none,
+                                                                                       carcer_region_spilled};
+    // Explicit cast carries the owner's place as the badge's id
+    const uintptr_t bumped =
+        carcer_passed(series, (embed_atomic_word_value)take->owner->place, carcer_region_bumped, take);
+    const size_t spilled = take->permit & carcer_all(bumped == 0u);
+
+    return bumped | spills[spilled & 1u](series, take);
+}
+#define CARCER_LARGE_TRIED carcer_large_tried
+#else
+#define CARCER_LARGE_TRIED carcer_spilled_none
+#endif
+
 /**
  * @brief The take both tiers and both security levels share. The owner tested, the bump through the turnstiles,
  *        and the exclusive path where the gap could not meet it.
@@ -1585,8 +1612,10 @@ static uintptr_t carcer_spilled_none(SeriesCellularum *series, // NOSONAR
  *       MMGR_CARCER_BYTES_MAX, and the round and the header added to it never wrap. The exclusive path is a row of
  *       a two-row table, the row whether the bump answered a cell.
  * @note Where the temporary tier is regions, a temporary take goes to the region the thread's place selects, or to
- *       the large region where it does not fit a region's room. A take over the largest region's room permits
- *       nothing. The bump and the spill are the tier's rows of their tables.
+ *       the large region where it does not fit a region's room. A take the thread's region refuses, bumped and
+ *       swept, goes to the large region as well, and is refused where the large region refuses it or the build
+ *       declares none. A take over the largest region's room permits nothing. The bump and the spill are the
+ *       tier's rows of their tables, and the large region's turn is a row of its own.
  */
 EMBED_INLINE void *carcer_taken(SeriesCellularum *series, size_t size, const CellOwner *owner, size_t down,
                                 size_t permit)
@@ -1594,6 +1623,8 @@ EMBED_INLINE void *carcer_taken(SeriesCellularum *series, size_t size, const Cel
     static const CarcerWork bumps[2] = {carcer_bumped, CARCER_DOWN_BUMP};
     static uintptr_t (*const spills[2][2])(SeriesCellularum *, const CarcerTakeCtx *) = {
         {carcer_spilled_none, carcer_spilled}, {carcer_spilled_none, CARCER_DOWN_SPILL}};
+    static uintptr_t (*const larges[2])(SeriesCellularum *, const CarcerTakeCtx *) = {carcer_spilled_none,
+                                                                                       CARCER_LARGE_TRIED};
     const size_t want = carcer_want(size);
     const size_t listed = permit & carcer_all(mmgr_owner_listed(owner)) & carcer_all(size <= series->size) &
                           (carcer_all(want <= CARCER_DOWN_WANT_MAX) | ~down);
@@ -1604,9 +1635,16 @@ EMBED_INLINE void *carcer_taken(SeriesCellularum *series, size_t size, const Cel
     // Explicit cast carries the owner's place as the badge's id
     const uintptr_t bumped = carcer_passed(series, (embed_atomic_word_value)safe->place, bumps[down & 1u], &take);
     const size_t spilled = listed & carcer_all(bumped == 0u);
+    const uintptr_t first = bumped | spills[down & 1u][spilled & 1u](series, &take);
+    // The large region's turn. The thread's own region refused this temporary take, the build declares a large
+    // region, and the take did not go there first
+    const size_t again = listed & down & carcer_all(first == 0u) &
+                         carcer_all(take.region != (size_t)MMGR_CARCER_REGIONS) &
+                         carcer_all(MMGR_CARCER_LARGE_REGIONS != 0u);
+    const CarcerTakeCtx large = {want, safe, down, listed, (size_t)MMGR_CARCER_REGIONS};
 
     // Explicit cast reads the integer back as the address it holds
-    return (void *)(bumped | spills[down & 1u][spilled & 1u](series, &take));
+    return (void *)(first | larges[again & 1u](series, &large));
 }
 
 void *mmgr_persistent_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner)

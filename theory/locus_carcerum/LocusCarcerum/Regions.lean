@@ -8,7 +8,8 @@ import LocusCarcerum.Stacks
 The temporary tier is regions, declared with the cellblock: one of `R` bytes for each thread's place, modulo their
 count, and one large region of `L` bytes that every take over a region's room goes to. A region is a stack of
 cells from its end down, as `Temporary` lays the tier. A thread takes in the region its place selects, or in the
-large region where the take does not fit its own. A give goes to the region that holds the cell, from any thread.
+large region where the take does not fit its own or its own refuses it. A give goes to the region that holds the
+cell, from any thread.
 
 A take bumps the region's depth where the region holds the cell. Where it does not, the take sweeps the region
 (`Temporary.sweepDown`), bumps where the sweep made room, and else takes the last free run that holds it
@@ -142,6 +143,9 @@ abbrev Bound := Nat → Nat
 
 variable (bound : Bound)
 
+/-! `large` is the large region: the one after the threads' regions, that every thread falls through to. -/
+variable (large : Nat)
+
 /-- The regions with the region `place` replaced. -/
 def put (regions : Regions) (place : Nat) (region : List Cell) : Regions :=
   fun other => if other = place then region else regions other
@@ -152,50 +156,78 @@ inductive Op where
   | give (owner : Nat)
   deriving DecidableEq, Repr
 
-/-- One operation in the region `place`: the region a take selects by the thread's place or by its size, the
-region that holds the cell for a give. -/
+/-- Whether a region answers a take of `want` by some path of `take`: the bump, the bump after the sweep, or the
+last free run that holds it. -/
+def holds (R want : Nat) (region : List Cell) : Prop :=
+  fits H R want region ∨ fits H R want (sweepDown H region) ∨ (lastFit want (sweepDown H region)).isSome
+
+instance (R want : Nat) (region : List Cell) : Decidable (holds H R want region) := by
+  unfold holds; infer_instance
+
+/-- One operation in the region `place`: a take in the region the thread's place or its size selects where that
+region answers it, else in the large region; a give in the region that holds the cell. -/
 def step (regions : Regions) (place : Nat) : Op → Regions
-  | .take want owner => put regions place (take H A (bound place) want owner (regions place))
+  | .take want owner =>
+    if holds H (bound place) want (regions place) then
+      put regions place (take H A (bound place) want owner (regions place))
+    else put regions large (take H A (bound large) want owner (regions large))
   | .give owner => put regions place (give owner (regions place))
 
 /-- A run of operations, each in one region, in the order the threads make them. -/
 def run (regions : Regions) : List (Nat × Op) → Regions
   | [] => regions
-  | (place, op) :: rest => run (step H A bound regions place op) rest
+  | (place, op) :: rest => run (step H A bound large regions place op) rest
 
-/-- An operation in one region leaves every other region as it was. -/
-theorem step_other (regions : Regions) (place other : Nat) (op : Op) (h : other ≠ place) :
-    step H A bound regions place op other = regions other := by
-  cases op <;> simp [step, put, h]
+/-- An operation in one region leaves every region as it was but that one and the large one. -/
+theorem step_other (regions : Regions) (place other : Nat) (op : Op) (h : other ≠ place) (hl : other ≠ large) :
+    step H A bound large regions place op other = regions other := by
+  cases op with
+  | take want owner =>
+    simp only [step]
+    split <;> simp [put, h, hl]
+  | give owner => simp [step, put, h]
 
 /-- Every region is within its bound. -/
 def Bounded (regions : Regions) : Prop := ∀ place, len H (regions place) ≤ bound place
 
 theorem step_bounded (regions : Regions) (place : Nat) (op : Op) (h : Bounded H bound regions) :
-    Bounded H bound (step H A bound regions place op) := by
+    Bounded H bound (step H A bound large regions place op) := by
   intro other
-  by_cases ho : other = place
-  · subst ho
-    cases op with
-    | take want owner =>
-      simp only [step, put, ite_true]
-      exact take_len H A (bound other) want owner _ (h other)
-    | give owner =>
+  cases op with
+  | take want owner =>
+    simp only [step]
+    split
+    · by_cases ho : other = place
+      · subst ho
+        simp only [put, ite_true]
+        exact take_len H A (bound other) want owner _ (h other)
+      · simp only [put, ho, ite_false]
+        exact h other
+    · by_cases ho : other = large
+      · subst ho
+        simp only [put, ite_true]
+        exact take_len H A (bound other) want owner _ (h other)
+      · simp only [put, ho, ite_false]
+        exact h other
+  | give owner =>
+    by_cases ho : other = place
+    · subst ho
       simp only [step, put, ite_true]
       exact Nat.le_trans (give_len H owner _) (h other)
-  · rw [step_other H A bound regions place other op ho]
-    exact h other
+    · simp only [step, put, ho, ite_false]
+      exact h other
 
-/-- Every region stays within its bound after any interleaving of takes and gives, from any thread. -/
+/-- Every region stays within its bound after any interleaving of takes and gives, from any thread, through the
+fall to the large region. -/
 theorem run_bounded (regions : Regions) (ops : List (Nat × Op)) (h : Bounded H bound regions) :
-    Bounded H bound (run H A bound regions ops) := by
+    Bounded H bound (run H A bound large regions ops) := by
   induction ops generalizing regions with
   | nil => exact h
-  | cons op rest ih => exact ih _ (step_bounded H A bound regions op.1 op.2 h)
+  | cons op rest ih => exact ih _ (step_bounded H A bound large regions op.1 op.2 h)
 
 /-- From empty regions, no interleaving takes a region past its bound. -/
-theorem run_from_empty (ops : List (Nat × Op)) : Bounded H bound (run H A bound (fun _ => []) ops) :=
-  run_bounded H A bound _ ops (fun _ => by simp [len])
+theorem run_from_empty (ops : List (Nat × Op)) : Bounded H bound (run H A bound large (fun _ => []) ops) :=
+  run_bounded H A bound large _ ops (fun _ => by simp [len])
 
 /-- The bytes the first `N` regions position together. -/
 def extent (regions : Regions) : Nat → Nat

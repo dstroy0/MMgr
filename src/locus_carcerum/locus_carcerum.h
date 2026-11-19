@@ -101,8 +101,9 @@ EMBED_BEGIN_DECLS
  * @note A take goes to the region that the thread's place selects, embed_thread_place() modulo this count. A give
  *       goes to the region that holds the cell, from any thread. A region's depth never passes
  *       MMGR_CARCER_REGION_BYTES. A take the region cannot hold sweeps the region, takes the last free run that
- *       holds it, and else refuses. theory/locus_carcerum/LocusCarcerum/Regions.lean proves the bound, and
- *       Stacks.lean proves the sinking of one shared stack that the regions stop.
+ *       holds it, and else goes to the large region, where the build declares one, which refuses it the same way.
+ *       theory/locus_carcerum/LocusCarcerum/Regions.lean proves the bound, and Stacks.lean proves the sinking of
+ *       one shared stack that the regions stop.
  * @note The regions lie at the top of the cellblock, MMGR_CARCER_REGION_AREA bytes in all, and the gap lies below
  *       them. A take over a region's room goes to the large region, MMGR_CARCER_LARGE_REGION_BYTES, where the
  *       build declares one. The host defines embed_thread_place beside embed_clock_ns, as embed_turnstile.h says.

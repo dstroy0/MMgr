@@ -9,8 +9,8 @@
  * @file test_locus_carcerum_regions.c
  * @brief The temporary tier as regions: a take in the region the thread's place selects, a take over a region's room
  *        in the large region, a give that trims the region that holds the cell from any thread, the sweep inside a
- *        region, the refusal a full region answers, the growth of a region's newest cell, and the gap below the
- *        regions.
+ *        region, the large region's turn at a take a full region refuses, the refusal when the large region is
+ *        full as well, the growth of a region's newest cell, and the gap below the regions.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-18
  *
@@ -157,19 +157,39 @@ void test_a_take_the_region_cannot_hold_sweeps_the_region_and_takes_a_freed_run(
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, mmgr_owner_in_use(s_two));
 }
 
-void test_a_take_no_path_of_the_region_holds_is_refused_and_changes_no_cell(void)
+void test_a_take_no_path_of_the_thread_region_holds_lands_in_the_large_region(void)
 {
     void *rest;
     void *const first = region_filled(&rest);
+    void *const spilled = GUARD->temporary_buf_alloc(PAYLOAD, s_two);
+
+    TEST_ASSERT_NOT_NULL(spilled);
+    TEST_ASSERT_EQUAL_size_t(LARGE, region_of(spilled));
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(own_region()));
+    TEST_ASSERT_EQUAL_size_t(CELL, depth_of(LARGE));
+    TEST_ASSERT_EQUAL_PTR(s_two, mmgr_owner_of_buf(BLOCK, spilled));
+    TEST_ASSERT_EQUAL_size_t(PAYLOAD, mmgr_owner_in_use(s_two));
+    TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, first));
+    TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, rest));
+}
+
+void test_a_take_neither_the_thread_region_nor_the_large_region_holds_is_refused_and_changes_no_cell(void)
+{
+    void *rest;
+    void *const first = region_filled(&rest);
+    void *const whole = GUARD->temporary_buf_alloc(MMGR_CARCER_LARGE_REGION_BYTES - CARCER_HDR, s_one);
     const size_t in_use = mmgr_owner_in_use(s_one);
 
+    TEST_ASSERT_NOT_NULL(whole);
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_LARGE_REGION_BYTES, depth_of(LARGE));
     TEST_ASSERT_NULL(GUARD->temporary_buf_alloc(PAYLOAD, s_two));
     TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_REGION_BYTES, depth_of(own_region()));
-    TEST_ASSERT_EQUAL_size_t(0u, depth_of(LARGE));
+    TEST_ASSERT_EQUAL_size_t(MMGR_CARCER_LARGE_REGION_BYTES, depth_of(LARGE));
     TEST_ASSERT_EQUAL_size_t(in_use, mmgr_owner_in_use(s_one));
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_in_use(s_two));
     TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, first));
     TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, rest));
+    TEST_ASSERT_EQUAL_PTR(s_one, mmgr_owner_of_buf(BLOCK, whole));
 }
 
 void test_a_temporary_take_over_the_large_regions_room_is_refused_ahead_of_the_pass(void)

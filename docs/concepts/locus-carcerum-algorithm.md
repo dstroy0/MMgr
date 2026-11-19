@@ -168,7 +168,8 @@ Where the build declares $N > 0$ regions of $R$ bytes and a large region of $L$ 
 regions, and $T = S - N R - L$ never moves. The large region lies from $S - L$ to $S$. Region $i$ lies from
 $S - L - (i + 1) R$ to $S - L - i R$. Each has a depth $D_i$, the bytes its stack holds from its end down. A
 thread's place $k$, which the host gives, selects region $i = k \bmod N$ for a take within $R$. A take over $R$
-goes to the large region, from any thread, and is refused where $L = 0$.
+goes to the large region, from any thread, and is refused where $L = 0$. A take within $R$ that region $i$ refuses,
+bumped and spilled, goes to the large region the same way. The large region refuses it the same way.
 
 Bump in region $i$, need $n$: $D_i := D_i + n$ by one fetch-add. If $D_i \le R$ after it, the cell lies at
 $S - i R - D_i$. If not, $D_i := D_i - n$ by one fetch-sub, before the pass ends, and the take goes to the spill.
