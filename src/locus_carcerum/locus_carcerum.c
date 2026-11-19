@@ -1847,7 +1847,10 @@ static void carcer_trimmed(SeriesCellularum *series, size_t persistent)
 EMBED_INLINE size_t carcer_given(SeriesCellularum *site, void *prisoner, const CellOwner *owner, size_t zeroing,
                                  size_t permit)
 {
-    const size_t given = permit & carcer_all(site != NULL) & carcer_all(prisoner != NULL) & carcer_all(owner != NULL);
+    // a cellblock not yet placed has no base to read a word at: its give reads the record over bytes of none
+    SeriesCellularum *const placed = carcer_pick_at(carcer_all(site != NULL), site, &carcer_block_none);
+    const size_t given = permit & carcer_all(site != NULL) & carcer_all(placed->base != NULL) &
+                         carcer_all(prisoner != NULL) & carcer_all(owner != NULL);
     SeriesCellularum *const series = carcer_pick_at(given, site, &carcer_block_none);
     void *const safe = carcer_pick_at(given, prisoner, series->base + CARCER_WORD);
     const CellOwner *const named = carcer_pick_at(given, carcer_owner_record(owner), &carcer_owner_none);
@@ -1920,7 +1923,10 @@ static void *carcer_grown(SeriesCellularum *site, void *prisoner, size_t size, c
 {
     static void (*const counts[2])(SeriesCellularum *, const CellOwner *, size_t, size_t) = {carcer_count_none,
                                                                                              carcer_counted};
-    const size_t given = carcer_all(site != NULL) & carcer_all(prisoner != NULL) & carcer_all(owner != NULL);
+    // a cellblock not yet placed has no base to read a word at: its grow reads the record over bytes of none
+    SeriesCellularum *const placed = carcer_pick_at(carcer_all(site != NULL), site, &carcer_block_none);
+    const size_t given = carcer_all(site != NULL) & carcer_all(placed->base != NULL) & carcer_all(prisoner != NULL) &
+                         carcer_all(owner != NULL);
     SeriesCellularum *const series = carcer_pick_at(given, site, &carcer_block_none);
     const void *const safe = carcer_pick_at(given, prisoner, series->base + CARCER_WORD);
     const CellOwner *const named = carcer_pick_at(given, carcer_owner_record(owner), &carcer_owner_none);
@@ -1976,8 +1982,12 @@ void *mmgr_max_security_buf_grow(SeriesCellularum *series, void *prisoner, size_
     return carcer_grown(series, prisoner, size, owner, carcer_all(1));
 }
 
-const CellOwner *mmgr_owner_of_buf(const SeriesCellularum *series, const void *prisoner)
+const CellOwner *mmgr_owner_of_buf(const SeriesCellularum *site, const void *prisoner)
 {
+    // a cellblock not yet placed has no base to read a word at, and owns no cell: the read goes over bytes of none.
+    // Explicit casts take the const record through the pick as the address it is, and back
+    const SeriesCellularum *const series = (const SeriesCellularum *)carcer_pick_at(
+        carcer_all(site->base != NULL), (void *)(uintptr_t)site, &carcer_block_none);
     const size_t owns = carcer_all(prisoner != NULL) & carcer_all(mmgr_who_owns_buf(series, prisoner));
     const void *const safe = carcer_pick_at(owns, (void *)(uintptr_t)prisoner, series->base + CARCER_WORD);
     const size_t off = carcer_off_of(series, safe);

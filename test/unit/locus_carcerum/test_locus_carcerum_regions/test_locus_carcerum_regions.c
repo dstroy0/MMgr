@@ -254,6 +254,13 @@ void test_a_cellblock_over_a_hospes_pool_refuses_every_take_until_placed_and_the
     given_site_given_ctx.size = 0u;
     TEST_ASSERT_NULL(given_site.given.persistent_buf_alloc(PAYLOAD, s_one));
     TEST_ASSERT_NULL(given_site.given.temporary_buf_alloc(PAYLOAD, s_one));
+    // a give, a grow and an owner read on the unplaced cellblock read no byte and change nothing
+    given_site.given.persistent_buf_release(NULL, s_one);
+    given_site.given.persistent_buf_release(s_given, s_one);
+    TEST_ASSERT_NULL(given_site.given.buf_grow(NULL, PAYLOAD, s_one));
+    TEST_ASSERT_NULL(mmgr_owner_of_buf(&given_site_given_ctx, NULL));
+    TEST_ASSERT_NULL(mmgr_owner_of_buf(&given_site_given_ctx, s_given));
+    TEST_ASSERT_FALSE(mmgr_who_owns_buf(&given_site_given_ctx, s_given));
     TEST_ASSERT_FALSE(mmgr_series_cellularum_placed(&given_site_given_ctx, NULL, REGIONED_BYTES));
     TEST_ASSERT_FALSE(mmgr_series_cellularum_placed(&given_site_given_ctx, s_given, MMGR_CARCER_REGION_AREA));
     TEST_ASSERT_NULL(given_site.given.persistent_buf_alloc(PAYLOAD, s_one));
