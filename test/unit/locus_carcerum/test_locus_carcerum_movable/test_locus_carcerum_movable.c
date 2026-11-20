@@ -16,7 +16,7 @@
  *       count back on the next round. A write that landed in the copy a move left behind reads back
  *       as the count before it. The number of such reads is what the threaded case holds at zero.
  * @note The mover's cases run mmgr_movable_run on the test's own thread, with a thread_wait that plays a
- *       script and answers EMBED_FALSE at its end. Each wake lands where the case says it does.
+ *       script and answers EMBED_FALSE at its end. Each reading lands where the case says it does.
  * @note The misnamed hook is the case's way into a pass. A movable release that names the wrong owner reaches
  *       it with the release's lane claimed. The hook is there as long as the case says.
  */
@@ -64,14 +64,14 @@ static embed_atomic_usize s_moves = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_lost = EMBED_ATOMIC_INIT(0u);
 static embed_atomic_usize s_refused = EMBED_ATOMIC_INIT(0u);
 
-// What the scripted thread_wait plays: the wakes it answers EMBED_TRUE to, and what it runs on one of them. It
-// counts the times the mover waited, and the wakes the cellblock asked for.
+// What the scripted thread_wait plays: the ticks it answers EMBED_TRUE to, what it runs on one of them, and every
+// wait it heard
 static unsigned int s_ticks_left;
 static unsigned int s_tick;
 static unsigned int s_turn_on_tick;
 static void (*s_turn)(void);
-static unsigned int s_waits;
-static unsigned int s_woken;
+static uint32_t s_last_wait;
+static uint32_t s_max_wait;
 static unsigned int s_moving_told;
 static unsigned int s_moving_ended;
 static embed_bool s_started_answer;
@@ -84,9 +84,10 @@ static embed_atomic_usize s_turnstile_taken = EMBED_ATOMIC_INIT(0u);
 static void *s_take_when_misnamed;
 static unsigned int s_misnamed;
 
-static embed_bool script_wait(void)
+static embed_bool script_wait(uint32_t milliseconds)
 {
-    s_waits += 1u;
+    s_last_wait = milliseconds;
+    s_max_wait = (milliseconds > s_max_wait) ? milliseconds : s_max_wait;
     if (s_ticks_left == 0u)
     {
         return EMBED_FALSE;
@@ -98,12 +99,6 @@ static embed_bool script_wait(void)
         s_turn();
     }
     return EMBED_TRUE;
-}
-
-// A wake of the mover that the cellblock asked for
-static void script_wake(void)
-{
-    s_woken += 1u;
 }
 
 static void script_moving(embed_bool is_moving)
@@ -165,7 +160,6 @@ static void option_assigned(void)
                                                                        .rows = MOVING_ROWS,
                                                                        .thread_id = script_id,
                                                                        .thread_wait = script_wait,
-                                                                       .thread_wake = script_wake,
                                                                        .thread_moving = script_moving}));
 }
 
@@ -189,8 +183,8 @@ void setUp(void)
     s_tick = 0u;
     s_turn_on_tick = 0u;
     s_turn = NULL;
-    s_waits = 0u;
-    s_woken = 0u;
+    s_last_wait = 0u;
+    s_max_wait = 0u;
     s_moving_told = 0u;
     s_moving_ended = 0u;
     s_started_answer = EMBED_TRUE;
@@ -287,7 +281,7 @@ void test_the_program_gives_the_mover_its_thread_at_init(void)
     TEST_ASSERT_TRUE_MESSAGE(s_started_context == (void *)&single_narrow_ctx, "the thread is told its cellblock");
     s_ticks_left = 0u;
     s_started_run(s_started_context);
-    TEST_ASSERT_EQUAL_UINT_MESSAGE(1u, s_waits, "and what it runs is the mover, which waits for a wake");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(MMGR_MOVABLE_READ_MS, s_last_wait, "and what it runs is the mover");
 }
 
 void test_a_thread_that_does_not_start_leaves_the_cells_working_and_nothing_moving(void)
@@ -791,18 +785,37 @@ void test_the_mover_leaves_a_series_cellularum_under_the_threshold_alone(void)
 
     plain.moving.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) < MMGR_MOVABLE_SETTLE_PERCENT);
-    s_ticks_left = 2u;
+    s_ticks_left = 2u * MMGR_MOVABLE_QUIET_READINGS;
     mmgr_movable_run(&plain_moving_ctx);
     TEST_ASSERT_EQUAL_UINT_MESSAGE(0u, s_moving_told, "nothing is moved under the threshold");
     assert_marked(cell, 256u, 0x35u);
 }
 
-void test_a_wake_over_the_threshold_sorts_at_once(void)
+// One pass on the settled cellblock: a cell taken and given back.
+static void pass_made(void)
+{
+    plain.moving.persistent_buf_release(plain.moving.persistent_buf_alloc(16u, s_mover), s_mover);
+}
+
+// A settled cellblock with no pass since the last reading has nothing to read next. The waits double up to
+// MMGR_MOVABLE_IDLE_MAX_MS. A pass brings the next wait back to MMGR_MOVABLE_READ_MS.
+void test_a_settled_series_cellularum_with_no_pass_lets_the_mover_wait_longer_until_a_pass(void)
+{
+    s_ticks_left = 10u;
+    s_turn = pass_made;
+    s_turn_on_tick = 10u;
+    mmgr_movable_run(&plain_moving_ctx);
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(MMGR_MOVABLE_IDLE_MAX_MS, s_max_wait, "the waits double up to the idle max");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(MMGR_MOVABLE_READ_MS, s_last_wait, "the pass brings the next reading back");
+}
+
+void test_the_mover_waits_for_its_quiet_readings_before_it_sorts(void)
 {
     (void)fragmented();
-    s_ticks_left = 1u;
+    // One reading short of quiet, with the lock's reading still to come
+    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS - 1u;
     mmgr_movable_run(&plain_moving_ctx);
-    TEST_ASSERT_TRUE_MESSAGE(s_moving_told >= 1u, "the one wake sorts");
+    TEST_ASSERT_EQUAL_UINT(0u, s_moving_told);
 }
 
 void test_the_mover_sorts_over_the_threshold_at_a_quiet_time_and_stops(void)
@@ -810,13 +823,15 @@ void test_the_mover_sorts_over_the_threshold_at_a_quiet_time_and_stops(void)
     const CarcerMovableEntry *const cell = fragmented();
     const size_t gap = plain.moving.buf_available();
 
-    // The wake that sorts, and one more to see the sort does not run again
-    s_ticks_left = 2u;
+    // The readings, the one lock's wait, and one more to see the sort does not run again
+    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS + 2u;
     mmgr_movable_run(&plain_moving_ctx);
     TEST_ASSERT_TRUE_MESSAGE(s_moving_told >= 1u, "cells moved");
     TEST_ASSERT_EQUAL_UINT_MESSAGE(s_moving_told, s_moving_ended, "each move told at both ends");
     TEST_ASSERT_TRUE_MESSAGE(plain.moving.buf_available() > gap, "the tier's end came back");
     assert_marked(cell, 128u, 0x33u);
+    // The waits after the sort are the idle waits of a settled cellblock, none a backoff from the sort
+    TEST_ASSERT_TRUE_MESSAGE(s_max_wait <= MMGR_MOVABLE_IDLE_MAX_MS, "nothing backed off");
 }
 
 void test_a_sort_that_can_move_nothing_is_not_run_again_until_the_reading_rises(void)
@@ -828,7 +843,7 @@ void test_a_sort_that_can_move_nothing_is_not_run_again_until_the_reading_rises(
 
     plain.moving.persistent_buf_release(hole, s_mover);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
-    s_ticks_left = 2u;
+    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS + 1u;
     mmgr_movable_run(&plain_moving_ctx);
     const unsigned int first_sort = s_moving_told;
 
@@ -837,24 +852,26 @@ void test_a_sort_that_can_move_nothing_is_not_run_again_until_the_reading_rises(
     TEST_ASSERT_NOT_NULL(pin);
 }
 
-// A give that leaves the fragmentation under the threshold asks no wake. One that leaves it at or over the threshold
-// asks one.
-void test_a_give_over_the_threshold_wakes_the_mover_and_one_under_does_not(void)
+// A pass between two of the mover's readings: a take, given back
+static void pressure_raised(void)
 {
-    void *const low = plain.moving.persistent_buf_alloc(16u, s_mover);
-    const CarcerMovableEntry *const cell = marked_sized(256u, 0x37u);
+    plain.moving.persistent_buf_release(plain.moving.persistent_buf_alloc(16u, s_mover), s_mover);
+}
 
-    plain.moving.persistent_buf_release(low, s_mover);
-    TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) < MMGR_MOVABLE_SETTLE_PERCENT);
-    TEST_ASSERT_EQUAL_UINT_MESSAGE(0u, s_woken, "a give under the threshold wakes nothing");
-    void *const hole = plain.moving.persistent_buf_alloc(1024u, s_mover);
-    const CarcerMovableEntry *const high = marked_sized(64u, 0x38u);
-
-    plain.moving.persistent_buf_release(hole, s_mover);
-    TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
-    TEST_ASSERT_EQUAL_UINT_MESSAGE(1u, s_woken, "the give over the threshold wakes the mover once");
-    assert_marked(cell, 256u, 0x37u);
-    assert_marked(high, 64u, 0x38u);
+void test_a_pass_between_readings_is_not_a_quiet_reading(void)
+{
+    (void)fragmented();
+    // The pass lands ahead of the reading that would otherwise be the last quiet one, and the count starts over
+    s_turn = pressure_raised;
+    s_turn_on_tick = MMGR_MOVABLE_QUIET_READINGS;
+    s_ticks_left = (2u * MMGR_MOVABLE_QUIET_READINGS) - 1u;
+    mmgr_movable_run(&plain_moving_ctx);
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(0u, s_moving_told, "nothing moved");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(MMGR_MOVABLE_READ_MS, s_last_wait, "and the wait is");
+    // a run counts its quiet readings from its start: the readings reached with no pass between them, the sort runs
+    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS;
+    mmgr_movable_run(&plain_moving_ctx);
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(1u, s_moving_told, "the quiet readings reached, the sort runs");
 }
 
 // The two threads of the backoff's case. The first passes through the cellblock until the sort backs off.
@@ -869,12 +886,12 @@ static void backoff_each(void)
         }
         return;
     }
-    s_ticks_left = 2u;
+    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS + 1u;
     mmgr_movable_run(&plain_moving_ctx);
     embed_atomic_usize_store(&s_moves, 1u);
 }
 
-void test_a_sort_that_meets_passes_between_its_moves_backs_off(void)
+void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_wait(void)
 {
     // Two holes under two movable cells: the first move leaves a second to make, and a pass lands between them
     void *const low = plain.moving.persistent_buf_alloc(512u, s_mover);
@@ -885,9 +902,11 @@ void test_a_sort_that_meets_passes_between_its_moves_backs_off(void)
     plain.moving.persistent_buf_release(low, s_mover);
     plain.moving.persistent_buf_release(middle, s_mover);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&plain_moving_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
-    // The passes that land between the sort's moves are what it backs off from
+    // The other thread's passes retain the readings from quiet until they stop, and the sort starts once they do.
+    // The passes that land before the thread reads the sort's end are what it backs off from
     TEST_ASSERT_TRUE(mmgr_host_threads_run(backoff_each, 2u));
     TEST_ASSERT_EQUAL_UINT_MESSAGE(s_moving_told, s_moving_ended, "each sort told at both ends");
+    TEST_ASSERT_TRUE_MESSAGE((s_moving_told == 0u) || (s_max_wait >= MMGR_MOVABLE_READ_MS), "the wait is or doubled");
     assert_marked(one, 128u, 0x31u);
     assert_marked(two, 128u, 0x32u);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_word_load(&plain_moving_ctx.closed),
@@ -909,7 +928,7 @@ static void occupied_each(void)
     {
         mmgr_host_threads_yield();
     }
-    s_ticks_left = 1u;
+    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS;
     mmgr_movable_run(&single_narrow_ctx);
 }
 
@@ -975,7 +994,7 @@ void test_a_program_that_gives_a_yield_and_no_move_report_has_its_sort_yield_wit
     single.narrow.persistent_buf_release(low, s_mover);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&single_narrow_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
     s_yields = 0u;
-    s_ticks_left = 2u;
+    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS + 2u;
     mmgr_movable_run(&single_narrow_ctx);
     TEST_ASSERT_TRUE_MESSAGE(mmgr_owner_of_buf(&single_narrow_ctx, low) == s_mover, "the sort moved the cell down");
     TEST_ASSERT_TRUE_MESSAGE(single.narrow.buf_available() > gap, "and the tier's end came back");

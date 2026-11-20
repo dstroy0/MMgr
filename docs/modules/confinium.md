@@ -100,18 +100,15 @@ atomic against a move and not against another writer: two contexts writing the s
 Every take passes the turnstiles too, and the option counts the passes: that count makes pressure a reading
 of the whole cellblock. A give passes none: the cell's words are its holder's alone.
 
-The mover runs on the thread the program gave, and sleeps until a give wakes it. A give that leaves
-`mmgr_series_cellularum_fragmentation` at or over `MMGR_MOVABLE_SETTLE_PERCENT` wakes it through the program's
-thread_wake. That measure is the bytes of the persistent tier that no cell's payload holds, as a percentage of the
-bytes the tier occupies. The temporary tier wakes nothing: its cells last one call, and its top comes back as they
-end. The woken mover moves cells one at a time, the highest first, each into the first free run below it. The
-cellblock is open and the processor yielded between moves.
-
-A sort goes on while the cellblock is quiet. Quiet is twice the lanes the turnstiles have open at or under the
-option's width plus one, with no pass since the sort's last move. A pass between moves says the moves meet pressure,
-and the sort backs off until the next give over the threshold wakes the mover. A sort that ends with nothing left to
-move leaves its measure with the mover. The mover does not sort again until the measure rises past that or falls
-under the threshold first. No timer runs the mover.
+The mover runs on the thread the program gave. Each reading compares `mmgr_series_cellularum_fragmentation`, the bytes the
+persistent tier occupies that no cell's payload holds as a percentage of the bytes it occupies, against
+`MMGR_MOVABLE_SETTLE_PERCENT`. The temporary tier reads nothing, since its cells last one call and its top comes back
+as they end. Over it, `MMGR_MOVABLE_QUIET_READINGS` in a row must find the cellblock quiet: no pass since the
+last reading, and twice the lanes the turnstiles have open at or under the option's width plus one. The mover
+then moves cells one at a time, the highest first, each into the first free run below it, with the cellblock open
+and the processor yielded between moves, reading the same after each. A pass between moves says the moves meet
+pressure, and it backs off and doubles its wait. A sort that ends with nothing left to move is remembered, and is
+not run again until the reading rises past what it left or falls under the threshold first.
 
 `mmgr_movable_buf_move` is the mover's step, for a caller with no thread to give.
 
