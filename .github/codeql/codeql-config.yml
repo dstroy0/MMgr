@@ -5,9 +5,13 @@ name: "MMgr CodeQL config"
 # Unity sits under test/vendor and is not our code. Its findings are noise that recurs on
 # every run and buries the ones that are ours. The build tree is machine output.
 #
+# deps/ holds the checkouts that deps/CMakeLists.txt fetches. Each is another repository, and its own
+# analysis reports its findings.
+#
 # Anchored two ways deliberately. A leading "**/" matches path segments BEFORE the directory, of which
 # a repo-root directory has none. So the bare pattern is the single one that actually catches it.
 paths-ignore:
+  - "deps/**"
   - "test/vendor/**"
   - "**/test/vendor/**"
   - "build/**"

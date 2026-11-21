@@ -111,7 +111,7 @@ static void plant(const char *needle, size_t at)
             const void *r_ = (EXPR);                                                                                   \
             BENCH_RETAIN(r_);                                                                                          \
         });                                                                                                            \
-        printf("find,%s,%s,%u,%u,%.0f,%.3f\n", LABEL, g_needle, (unsigned)g_nlen, EMBED_WORD_BITS, cy_,                 \
+        printf("find,%s,%s,%u,%u,%.0f,%.3f\n", LABEL, g_needle, (unsigned)g_nlen, EMBED_WORD_BITS, cy_,                \
                cy_ / (double)HAY_BYTES);                                                                               \
         fflush(stdout);                                                                                                \
     } while (0)

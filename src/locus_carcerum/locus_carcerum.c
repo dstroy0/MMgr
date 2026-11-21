@@ -521,8 +521,12 @@ EMBED_INLINE size_t carcer_down_top(const SeriesCellularum *series, size_t off, 
     return carcer_bounds_top(bounds);
 }
 
-/** @brief A growth of the one temporary stack: the top less the bytes added, which the caller stores. */
-EMBED_INLINE size_t carcer_down_grown(SeriesCellularum *series, size_t off, embed_atomic_usize_value bounds,
+/**
+ * @brief A growth of the one temporary stack: the top less the bytes added, which the caller stores.
+ *
+ * @note This arm writes nothing, and so its cellblock is const. The regions' arm writes the region's depth.
+ */
+EMBED_INLINE size_t carcer_down_grown(const SeriesCellularum *series, size_t off, embed_atomic_usize_value bounds,
                                       size_t extra, size_t down)
 {
     (void)series;
@@ -1910,7 +1914,7 @@ EMBED_INLINE size_t carcer_given(SeriesCellularum *site, void *prisoner, const C
                                  size_t permit)
 {
     // a cellblock not yet placed has no base to read a word at: its give reads the record over bytes of none
-    SeriesCellularum *const placed = carcer_pick_at(carcer_all(site != NULL), site, &carcer_block_none);
+    const SeriesCellularum *const placed = carcer_pick_at(carcer_all(site != NULL), site, &carcer_block_none);
     const size_t given = permit & carcer_all(site != NULL) & carcer_all(placed->base != NULL) &
                          carcer_all(prisoner != NULL) & carcer_all(owner != NULL);
     SeriesCellularum *const series = carcer_pick_at(given, site, &carcer_block_none);
@@ -1993,7 +1997,7 @@ static void *carcer_grown(SeriesCellularum *site, void *prisoner, size_t size, c
     static void (*const counts[2])(SeriesCellularum *, const CellOwner *, size_t, size_t) = {carcer_count_none,
                                                                                              carcer_counted};
     // a cellblock not yet placed has no base to read a word at: its grow reads the record over bytes of none
-    SeriesCellularum *const placed = carcer_pick_at(carcer_all(site != NULL), site, &carcer_block_none);
+    const SeriesCellularum *const placed = carcer_pick_at(carcer_all(site != NULL), site, &carcer_block_none);
     const size_t given = carcer_all(site != NULL) & carcer_all(placed->base != NULL) & carcer_all(prisoner != NULL) &
                          carcer_all(owner != NULL);
     SeriesCellularum *const series = carcer_pick_at(given, site, &carcer_block_none);
@@ -2218,15 +2222,16 @@ const CarcerMovableEntry *mmgr_movable_buf_alloc(SeriesCellularum *series, size_
                                                                                             carcer_given_back};
     CarcerMovable *const movable = carcer_movable_of(series);
     const size_t has = carcer_all(movable != NULL);
+    // a cellblock with no option claims through the option of none, and so no claim reads through NULL
+    CarcerMovable *const option = carcer_pick_at(has, movable, &carcer_movable_none);
     void *const prisoner = carcer_taken(series, size, owner, 0u, has);
     const size_t taken = carcer_all(prisoner != NULL);
     // Explicit casts take the payload's address to the offset the entry holds
     const size_t payload = (size_t)((uint8_t *)prisoner - series->base) & taken;
-    CarcerMovableEntry *const first = claims[taken & 1u](movable, payload, carcer_all(1));
+    CarcerMovableEntry *const first = claims[taken & 1u](option, payload, carcer_all(1));
     const size_t missed = taken & carcer_all(first == NULL);
     const CarcerMovableEntry *const entry =
-        carcer_pick_at(missed, claims[missed & 1u](movable, payload, carcer_all(1)), first);
-    const CarcerMovable *const option = carcer_pick_at(has, movable, &carcer_movable_none);
+        carcer_pick_at(missed, claims[missed & 1u](option, payload, carcer_all(1)), first);
     const size_t wipes = carcer_all(option->wipes != 0u);
 
     gives[(taken & carcer_all(entry == NULL)) & 1u](series, prisoner, owner, wipes);

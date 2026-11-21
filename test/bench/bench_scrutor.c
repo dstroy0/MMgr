@@ -32,7 +32,7 @@ static void bench_nop(void)
             const uint64_t v_ = (uint64_t)(EXPR);                                                                      \
             BENCH_RETAIN(v_);                                                                                          \
         });                                                                                                            \
-        printf("scrut,%s,%u,%.4f,%.4f\n", LABEL, EMBED_WORD_BITS, cy_, cy_ / (double)MMGR_SWAR_BYTES);                  \
+        printf("scrut,%s,%u,%.4f,%.4f\n", LABEL, EMBED_WORD_BITS, cy_, cy_ / (double)MMGR_SWAR_BYTES);                 \
         fflush(stdout);                                                                                                \
     } while (0)
 

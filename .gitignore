@@ -7,6 +7,9 @@ build-*/
 deps/*
 !deps/CMakeLists.txt
 
+# The formatter npm ci installs from package-lock.json.
+node_modules/
+
 # Coverage. gcov/lcov emit one pair per object plus the merged report SonarCloud reads.
 *.gcno
 *.gcda

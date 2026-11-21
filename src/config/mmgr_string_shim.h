@@ -181,8 +181,8 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @warning The read of both operands reaches MMGR_STR_MAX, and both must have a terminator within it.
  */
 #define strstr(haystack, needle)                                                                                       \
-    ((char *)(size_t)EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX,                   \
-                               .other = (needle), .other_cap = MMGR_STR_MAX, .ci = EMBED_FALSE))
+    ((char *)(size_t)EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX,                  \
+                                .other = (needle), .other_cap = MMGR_STR_MAX, .ci = EMBED_FALSE))
 
 /**
  * @brief Replaces strcasestr with a case-folded search bounded at MMGR_STR_MAX.
@@ -191,8 +191,8 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @warning The read of both operands reaches MMGR_STR_MAX, and both must have a terminator within it.
  */
 #define strcasestr(haystack, needle)                                                                                   \
-    ((char *)(size_t)EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX,                   \
-                               .other = (needle), .other_cap = MMGR_STR_MAX, .ci = EMBED_TRUE))
+    ((char *)(size_t)EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = (haystack), .cap = MMGR_STR_MAX,                  \
+                                .other = (needle), .other_cap = MMGR_STR_MAX, .ci = EMBED_TRUE))
 
 /**
  * @brief Replaces strcmp with an equality test bounded at MMGR_STR_MAX.
@@ -220,7 +220,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @warning A terminator does not end the comparison; all limit bytes must be readable in both operands.
  */
 #define strncmp(left, right, limit)                                                                                    \
-    (EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = EMBED_FALSE) <      \
+    (EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = EMBED_FALSE) <    \
      (limit))
 
 /**
@@ -231,7 +231,7 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @warning A terminator does not end the comparison; all limit bytes must be readable in both operands.
  */
 #define strncasecmp(left, right, limit)                                                                                \
-    (EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = EMBED_TRUE) <       \
+    (EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = (left), .other = (right), .cap = (limit), .ci = EMBED_TRUE) <     \
      (limit))
 
 /**
@@ -250,8 +250,8 @@ EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t b
  * @warning The read of text reaches MMGR_STR_MAX, and so it must have a terminator within it.
  */
 #define strchr(text, value)                                                                                            \
-    ((char *)(size_t)EMBED_CALL(cellul.chr, CatenaFinitaCfg, .src = (text), .cap = MMGR_STR_MAX,                        \
-                               .byte = (uint8_t)(value)))
+    ((char *)(size_t)EMBED_CALL(cellul.chr, CatenaFinitaCfg, .src = (text), .cap = MMGR_STR_MAX,                       \
+                                .byte = (uint8_t)(value)))
 
 EMBED_END_DECLS
 
