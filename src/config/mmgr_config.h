@@ -11,6 +11,22 @@
 /** @addtogroup mod_config
  *  @{ */
 
+/**
+ * @brief The settings of a build that gives no command line flag.
+ *
+ * A build sets a tunable on its command line, or in the header mmgr_settings.h on its include path. This
+ * tree holds no such header. Where the compiler finds one, this file reads it before the first tunable.
+ *
+ * @note The Arduino IDE gives a library no command line flag. The header is thus the only way to set a
+ *       tunable there.
+ * @note The file mmgr.h reads the same header, for the module headers that reach mmgr.h before this file.
+ */
+#if defined(__has_include)
+#if __has_include("mmgr_settings.h")
+#include "mmgr_settings.h"
+#endif
+#endif
+
 #include "embed_compiler_directives.h"
 #include "embed_dispatch_layout.h"
 #include "embed_types.h"

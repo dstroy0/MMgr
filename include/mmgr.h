@@ -21,6 +21,16 @@
 #ifndef MMGR_H
 #define MMGR_H
 
+/**
+ * @brief The settings of a build that gives no command line flag. This is the hook of
+ *        config/mmgr_config.h, for the module headers that reach this file first.
+ */
+#if defined(__has_include)
+#if __has_include("mmgr_settings.h")
+#include "mmgr_settings.h"
+#endif
+#endif
+
 #include "embed_compiler_directives.h"
 #include "embed_dispatch_layout.h"
 #include "embed_types.h"

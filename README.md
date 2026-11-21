@@ -185,6 +185,10 @@ cmake --build build
 ctest --test-dir build
 ```
 
+A build with no command line flags sets the tunables in a header, `mmgr_settings.h`, on its include
+path. The Arduino IDE builds a library that way. `mmgr.h` and `config/mmgr_config.h` read the header
+before the first tunable, and this repository holds no such header.
+
 The harness gives each build tree the flags that it needs:
 
 ```sh

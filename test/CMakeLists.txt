@@ -44,6 +44,16 @@ add_subdirectory(interop)
 add_subdirectory(stress)
 add_subdirectory(fuzz)
 
+# The settings check: two translation units with no definition of a tunable, and the header of
+# support/settings on their include path. Each reaches MMgr through one of the two headers that read
+# mmgr_settings.h. The build stops where either header does not read it.
+add_library(mmgr_settings_header OBJECT
+    "${CMAKE_CURRENT_SOURCE_DIR}/support/settings/settings_by_mmgr.c"
+    "${CMAKE_CURRENT_SOURCE_DIR}/support/settings/settings_by_config.c")
+target_include_directories(mmgr_settings_header PRIVATE
+    "${PROJECT_SOURCE_DIR}/include" "${PROJECT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/support/settings")
+target_link_libraries(mmgr_settings_header PRIVATE embedded_types::embedded_types)
+
 # Every technical document checked against ASD-STE100 with test/ste_ratchet.tsv, in every suite run as in the hook
 add_test(NAME ste COMMAND "${Python3_EXECUTABLE}" "${MMGR_HARNESS}" ste WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 set_tests_properties(ste PROPERTIES LABELS "docs")
