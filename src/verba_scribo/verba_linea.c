@@ -506,6 +506,88 @@ void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, u
     (void)mmgr_line_put_n(line, text, length);
 }
 
+void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant, unsigned int columns, embed_bool plus)
+{
+    char text[LINEA_DIGITS];
+    const unsigned int kept =
+        (significant == 0u) ? 1u : ((significant < MMGR_G_MAX_SIG) ? significant : MMGR_G_MAX_SIG);
+    const embed_bool negative = EMBED_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = value);
+    const double magnitude = (negative != EMBED_FALSE) ? -value : value;
+    VerbaLinea written = mmgr_line_over(text, sizeof text);
+
+    if ((negative != EMBED_FALSE) || (plus != EMBED_FALSE))
+    {
+        mmgr_line_ch(&written, (negative != EMBED_FALSE) ? '-' : '+');
+    }
+    if ((EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = value) != EMBED_FALSE) ||
+        (EMBED_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = value) != EMBED_FALSE))
+    {
+        // An infinity or a NaN goes out as mmgr_verba_fixed writes it, with no sign of its own here
+        written.at = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = text, .cap = sizeof text, .at = 0u,
+                                .real = value, .decimals = 0u);
+    }
+    else if (magnitude <= 0.0)
+    {
+        // A finite magnitude of no sign is 0 where it is at max 0, and the general form writes it as one zero
+        mmgr_line_ch(&written, '0');
+    }
+    else
+    {
+        int64_t power = 0;
+        const uint64_t digits = linea_significant(magnitude, kept, &power);
+        char figures[LINEA_DIGITS];
+        const size_t figured = EMBED_CALL(verba_numerus.u32w, VerbaNumerusCfg, .out = figures, .cap = sizeof figures,
+                                          .val = digits, .min = linea_least(kept));
+        size_t used = figured;
+
+        // The general form drops the zeros at the end of the digits, and a point with no digit after it
+        while ((used > 1u) && (figures[used - 1u] == '0'))
+        {
+            used -= 1u;
+        }
+        // Explicit cast widens a count of at max MMGR_G_MAX_SIG to the signed width of the power
+        if ((power < -4) || (power >= (int64_t)kept))
+        {
+            (void)mmgr_line_put_n(&written, figures, 1u);
+            if (used > 1u)
+            {
+                mmgr_line_ch(&written, '.');
+                (void)mmgr_line_put_n(&written, figures + 1u, used - 1u);
+            }
+            mmgr_line_ch(&written, 'e');
+            mmgr_line_ch(&written, (power < 0) ? '-' : '+');
+            // Explicit cast takes the magnitude of a power of at max 324, which an unsigned word holds
+            mmgr_line_decimal(&written, (uint64_t)((power < 0) ? -power : power), 2u);
+        }
+        else if (power >= 0)
+        {
+            // Explicit cast takes a power below the count of digits, which a size_t holds
+            const size_t whole = (size_t)power + 1u;
+
+            (void)mmgr_line_put_n(&written, figures, whole);
+            if (used > whole)
+            {
+                mmgr_line_ch(&written, '.');
+                (void)mmgr_line_put_n(&written, figures + whole, used - whole);
+            }
+        }
+        else
+        {
+            mmgr_line_put(&written, "0.");
+            for (int64_t zero = power + 1; zero < 0; zero += 1)
+            {
+                mmgr_line_ch(&written, '0');
+            }
+            (void)mmgr_line_put_n(&written, figures, used);
+        }
+    }
+    const size_t length = mmgr_line_finish(&written);
+    const size_t wide = linea_least(columns);
+
+    linea_spaced(line, (length < wide) ? (wide - length) : 0u);
+    (void)mmgr_line_put_n(line, text, length);
+}
+
 size_t mmgr_line_finish(VerbaLinea *line)
 {
     return EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = line->out, .cap = line->capacity, .at = line->at);

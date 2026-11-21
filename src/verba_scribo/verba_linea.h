@@ -213,6 +213,22 @@ void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsi
 void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus);
 
 /**
+ * @brief Writes a double to significant digits in the shorter form that printf's %g chooses, right aligned in columns
+ *        with spaces before it.
+ *
+ * @param[in,out] line        The line [BORROWS].
+ * @param[in]     value       The value.
+ * @param[in]     significant Digits kept, 1 where it is 0, clamped at MMGR_G_MAX_SIG.
+ * @param[in]     columns     Bytes the value, its sign and its spaces fill, clamped at 255.
+ * @param[in]     plus        EMBED_TRUE writes a plus sign before a value whose sign bit is clear.
+ * @note The digits round as mmgr_line_exponent rounds them. A power below -4, or of significant or more, writes the
+ *       exponent form, and any other power writes the plain form. Each form drops the zeros at the end of its digits,
+ *       and a point with no digit after it.
+ * @note A zero writes 0. An infinity or a NaN goes out as mmgr_verba_fixed writes it.
+ */
+void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant, unsigned int columns, embed_bool plus);
+
+/**
  * @brief Stores the terminator, the one store a line no write reached yet still needs.
  *
  * @param[in,out] line The line [BORROWS].

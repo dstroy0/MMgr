@@ -294,6 +294,38 @@ void test_exponent_aligns_right_and_writes_a_plus_sign_where_asked(void)
     TEST_ASSERT_EQUAL_STRING("  1.500e+00|+1.5e+00", s_out);
 }
 
+void test_general_picks_the_form_and_drops_its_zeros(void)
+{
+    VerbaLinea line = line_of(128u);
+
+    mmgr_line_general(&line, 0.5, 4u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_general(&line, 1234.5, 4u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_general(&line, 12345.0, 4u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_general(&line, 0.0001, 4u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_general(&line, 0.00001234, 4u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_general(&line, 100.0, 4u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_general(&line, -0.0, 4u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("0.5 1234 1.234e+04 0.0001 1.234e-05 100 -0", s_out);
+}
+
+void test_general_aligns_right_and_takes_one_digit_for_none(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_general(&line, 2.5, 0u, 6u, EMBED_FALSE);
+    mmgr_line_ch(&line, '|');
+    mmgr_line_general(&line, 3.5, 1u, 0u, EMBED_TRUE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("     2|+4", s_out);
+}
+
 void test_ch_writes_one_character(void)
 {
     VerbaLinea line = line_of(4u);
