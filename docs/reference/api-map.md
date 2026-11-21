@@ -57,6 +57,10 @@ function reached two ways. See @ref concept_ns_idiom.
 value as plain arguments, and the header includes `mmgr.h` alone, and therefore a C++ translation unit reaches
 them without the designated initializers the module's tables are written with.
 
+`memoria_operor/memoria_linea.h` and `cellularum_laboro/cellularum_linea.h` have no table either. Their
+`mmgr_bytes_*` and `mmgr_text_*` entries are the calls of `memor` and `cellul` with plain arguments, for the same
+reason.
+
 `proximus_operor` has one table, `proxim`, and retains its three **strategies** apart in the entry
 names instead: `load` and `put` are unaligned, `al_load` and `al_put` are aligned, and the may-alias
 part is `mmgr_migro_word`, the type they all move. Merging them is a miscompile the compiler cannot

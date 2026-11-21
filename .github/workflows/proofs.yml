@@ -67,6 +67,18 @@ jobs:
             exit 1
           fi
 
+      - name: Build the proofs of the plain-argument calls
+        working-directory: theory/linea
+        run: lake build
+
+      - name: No proof of the plain-argument calls is open
+        working-directory: theory/linea
+        run: |
+          if grep -rn --include='*.lean' -w sorry Linea Linea.lean; then
+            echo "::error title=sorry::a proof is open"
+            exit 1
+          fi
+
   prove:
     name: CBMC and machine code
     runs-on: ubuntu-24.04

@@ -3,3 +3,4 @@
 
 add_subdirectory(test_cellularum_laboro)
 add_subdirectory(test_cellularum_laboro_sieve)
+add_subdirectory(test_cellularum_linea)

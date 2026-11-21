@@ -5,7 +5,7 @@
 # negotiated commercial licensing contract or an educator's license issued to you personally.
 
 mmgr_add_module(cellularum_laboro
-  SOURCES cellularum_laboro.c
+  SOURCES cellularum_laboro.c cellularum_linea.c
   DEPS
     transformo
     verbum_scrutor

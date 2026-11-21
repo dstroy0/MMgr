@@ -1,0 +1,5 @@
+name = "Linea"
+defaultTargets = ["Linea"]
+
+[[lean_lib]]
+name = "Linea"
