@@ -18,6 +18,8 @@
  */
 #include "verba_scribo/verba_linea.h"
 #include "cellularum_laboro/cellularum_laboro.h"
+#include "clz/clz.h"
+#include "transformo/transformo.h"
 #include "verba_scribo/verba_scribo.h"
 
 /**
@@ -277,17 +279,18 @@ void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least)
 }
 
 /**
- * @brief Reports whether verba_fixed rounds value up from an exact tie to an odd last digit.
+ * @brief Reports whether value times ten to the power scale is an exact tie, an odd integer q over two.
  *
- * @param[in] value    The value.
- * @param[in] decimals Digits after the point, at max MMGR_FIXED_MAX_DECIMALS.
- * @return             EMBED_TRUE where the even digit is the one below.
- * @note A finite double is an odd mantissa m times 2 to the power e. It is a tie at decimals digits where e is
- *       -(decimals + 1), and then the value times ten to the decimals is m times five to the decimals, over two.
- *       verba_fixed rounds a tie up in magnitude, to (m * 5^decimals + 1) / 2. Five to any power is 1 modulo 4, and so
- *       that digit is odd where m is 1 modulo 4.
+ * @param[in]  value  The value.
+ * @param[in]  scale  The power of ten that the round applies before it takes the integer.
+ * @param[out] halves q, modulo 2 to the power 64, where the value is a tie [BORROWS].
+ * @return            EMBED_TRUE where the value is a tie.
+ * @note A finite double is an odd mantissa m times 2 to the power e. Times ten to the scale, it is m times five to
+ *       the scale, times 2 to the power e + scale. That is q over two where e + scale is -1 and q is an integer. For
+ *       a scale below 0, q is an integer where five to the minus scale divides m.
+ * @note The product wraps at 2 to the power 64, which 4 divides, and so q modulo 4 is right for any scale.
  */
-EMBED_INLINE embed_bool linea_tie_odd(double value, unsigned int decimals)
+EMBED_INLINE embed_bool linea_tie(double value, int64_t scale, uint64_t *halves)
 {
     const union {
         double real;
@@ -316,8 +319,68 @@ EMBED_INLINE embed_bool linea_tie_odd(double value, unsigned int decimals)
         mantissa >>= 1u;
         exponent += 1;
     }
-    // Explicit cast widens a count of at max MMGR_FIXED_MAX_DECIMALS
-    return (exponent == -((int64_t)decimals + 1)) && ((mantissa & 3u) == 1u);
+    if ((exponent + scale) != -1)
+    {
+        return EMBED_FALSE;
+    }
+    // A mantissa below 2^53 holds no power of five past 5^22, and so a larger power never divides it
+    for (int64_t fives = scale; fives < 0; fives += 1)
+    {
+        if ((mantissa % 5u) != 0u)
+        {
+            return EMBED_FALSE;
+        }
+        mantissa /= 5u;
+    }
+    for (int64_t fives = 0; fives < scale; fives += 1)
+    {
+        mantissa *= 5u;
+    }
+    *halves = mantissa;
+    return EMBED_TRUE;
+}
+
+/**
+ * @brief Reports whether a round up in magnitude of value times ten to the power scale, from an exact tie, gives an
+ *        odd last digit.
+ *
+ * @param[in] value The value.
+ * @param[in] scale The power of ten that the round applies before it takes the integer.
+ * @return          EMBED_TRUE where the even digit is the one below.
+ * @note The round up gives (q + 1) / 2, which is odd where q is 1 modulo 4.
+ */
+EMBED_INLINE embed_bool linea_tie_odd(double value, int64_t scale)
+{
+    uint64_t halves = 0u;
+
+    return (linea_tie(value, scale, &halves) && ((halves & 3u) == 1u)) ? EMBED_TRUE : EMBED_FALSE;
+}
+
+/**
+ * @brief The integer nearest value times ten to the power cursor, an exact tie to the even one.
+ *
+ * @param[in] value    The value, finite and above zero.
+ * @param[in] mantissa Its mantissa, with the implicit bit [BORROWS].
+ * @param[in] binary   Its binary exponent.
+ * @param[in] cursor   The power of ten.
+ * @return             The rounded integer.
+ * @note muto.scale_to_u64 scales with a bound on its bits, and so its round of a tie is not a guide. A tie takes its
+ *       digits from q itself, where they lie within one of what muto.scale_to_u64 gives.
+ */
+EMBED_INLINE uint64_t linea_scaled(double value, embed_u64 *mantissa, embed_iword binary, embed_iword cursor)
+{
+    const uint64_t scaled = EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = mantissa, .e2 = binary, .ex = cursor);
+    uint64_t halves = 0u;
+
+    if (!linea_tie(value, (int64_t)cursor, &halves))
+    {
+        return scaled;
+    }
+    const uint64_t below = (halves - 1u) / 2u;
+    const uint64_t even = ((below & 1u) == 0u) ? below : (below + 1u);
+    const uint64_t apart = (even > scaled) ? (even - scaled) : (scaled - even);
+
+    return (apart <= 1u) ? even : scaled;
 }
 
 void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus)
@@ -336,7 +399,7 @@ void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsi
                                       .at = plus_written ? 1u : 0u, .real = value, .decimals = linea_least(places));
 
     // An odd digit is 1 at least, and so the step down to the even one borrows from no digit before it
-    if (linea_tie_odd(value, places))
+    if (linea_tie_odd(value, (int64_t)places))
     {
         // Explicit cast narrows a digit of '1' to '9' less one, which a char holds
         digits[written - 1u] = (char)(digits[written - 1u] - 1);
@@ -345,6 +408,102 @@ void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsi
 
     linea_spaced(line, (written < wide) ? (wide - written) : 0u);
     linea_number(line, digits, written);
+}
+
+/**
+ * @brief The significant digits of a finite, nonzero magnitude, and the power of ten of the first.
+ *
+ * @param[in]  value       The value, finite and not zero.
+ * @param[in]  significant Digits to keep, 1 to MMGR_G_MAX_SIG.
+ * @param[out] power       The power of ten of the first digit [BORROWS].
+ * @return                 The digits as an integer of significant digits, rounded as printf rounds them.
+ * @note The scale and the search for the power are those of mmgr_verba_g. A round up to ten to the significant
+ *       raises the power by one and scales again. An exact tie rounds to the even digit, through linea_scaled.
+ */
+EMBED_INLINE uint64_t linea_significant(double value, unsigned int significant, int64_t *power)
+{
+    const union {
+        double real;
+        uint64_t bits;
+    } pun = {value};
+    const uint64_t biased = (pun.bits >> 52u) & 0x7FFu;
+    embed_u64 mantissa = pun.bits & ((1ULL << 52u) - 1u);
+    embed_iword binary = -1074;
+
+    if (biased != 0u)
+    {
+        mantissa |= 1ULL << 52u;
+        // Explicit cast takes the eleven bits of the biased exponent, which fit any signed width
+        binary = (embed_iword)biased - 1075;
+    }
+    uint64_t limit = 1u;
+
+    for (unsigned int place = 0u; place < significant; place += 1u)
+    {
+        limit *= 10u;
+    }
+    // The power estimate is the binary one times 78913, shifted right 18, a power that is never too high
+    embed_iword decimal =
+        (embed_iword)(((embed_i64)(63 - EMBED_CALL(clz.lead, ClzCfg, .val = mantissa) + binary) * 78913) >> 18);
+    // Explicit cast takes a count of at max MMGR_G_MAX_SIG into the signed word of the scale
+    embed_iword cursor = (embed_iword)significant - 1 - decimal;
+    uint64_t digits = linea_scaled(value, &mantissa, binary, cursor);
+
+    while (digits >= limit)
+    {
+        decimal += 1;
+        cursor -= 1;
+        digits = linea_scaled(value, &mantissa, binary, cursor);
+    }
+    *power = (int64_t)decimal;
+    return digits;
+}
+
+void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus)
+{
+    char text[LINEA_DIGITS];
+    const unsigned int significant = ((decimals + 1u) < MMGR_G_MAX_SIG) ? (decimals + 1u) : MMGR_G_MAX_SIG;
+    const embed_bool negative = EMBED_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = value);
+    const double magnitude = (negative != EMBED_FALSE) ? -value : value;
+    VerbaLinea written = mmgr_line_over(text, sizeof text);
+
+    if ((negative != EMBED_FALSE) || (plus != EMBED_FALSE))
+    {
+        mmgr_line_ch(&written, (negative != EMBED_FALSE) ? '-' : '+');
+    }
+    if ((EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = value) != EMBED_FALSE) ||
+        (EMBED_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = value) != EMBED_FALSE))
+    {
+        // An infinity or a NaN goes out as mmgr_verba_fixed writes it, with no sign of its own here
+        written.at = 0u;
+        written.at = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = text, .cap = sizeof text, .at = 0u,
+                                .real = value, .decimals = 0u);
+    }
+    else
+    {
+        int64_t power = 0;
+        // A finite magnitude of no sign is 0 where it is at max 0
+        const uint64_t digits = (magnitude <= 0.0) ? 0u : linea_significant(magnitude, significant, &power);
+        char figures[LINEA_DIGITS];
+        const size_t figured = EMBED_CALL(verba_numerus.u32w, VerbaNumerusCfg, .out = figures, .cap = sizeof figures,
+                                          .val = digits, .min = linea_least(significant));
+
+        (void)mmgr_line_put_n(&written, figures, 1u);
+        if (significant > 1u)
+        {
+            mmgr_line_ch(&written, '.');
+            (void)mmgr_line_put_n(&written, figures + 1u, figured - 1u);
+        }
+        mmgr_line_ch(&written, 'e');
+        mmgr_line_ch(&written, (power < 0) ? '-' : '+');
+        // Explicit cast takes the magnitude of a power of at max 324, which an unsigned word holds
+        mmgr_line_decimal(&written, (uint64_t)((power < 0) ? -power : power), 2u);
+    }
+    const size_t length = mmgr_line_finish(&written);
+    const size_t wide = linea_least(columns);
+
+    linea_spaced(line, (length < wide) ? (wide - length) : 0u);
+    (void)mmgr_line_put_n(line, text, length);
 }
 
 size_t mmgr_line_finish(VerbaLinea *line)

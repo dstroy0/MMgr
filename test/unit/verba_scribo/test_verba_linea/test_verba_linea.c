@@ -238,6 +238,62 @@ void test_fixed_aligns_right_in_its_columns(void)
     TEST_ASSERT_EQUAL_STRING("    1.25|   -1.25|12345.5", s_out);
 }
 
+void test_exponent_writes_one_digit_a_point_and_a_power(void)
+{
+    VerbaLinea line = line_of(128u);
+
+    mmgr_line_exponent(&line, 1234.5678, 3u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_exponent(&line, -0.000123456, 2u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_exponent(&line, 7.0, 0u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_exponent(&line, 1e300, 1u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_exponent(&line, 0.0, 3u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("1.235e+03 -1.23e-04 7e+00 1.0e+300 0.000e+00", s_out);
+}
+
+void test_exponent_carries_a_round_into_the_power(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_exponent(&line, 9.9996, 3u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_exponent(&line, 95.0, 0u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("1.000e+01 1e+02", s_out);
+}
+
+void test_exponent_rounds_an_exact_tie_to_the_even_digit(void)
+{
+    VerbaLinea line = line_of(128u);
+
+    mmgr_line_exponent(&line, 15.0, 0u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_exponent(&line, 25.0, 0u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_exponent(&line, 105.0, 1u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_exponent(&line, 0.125, 1u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_exponent(&line, -48828125.0, 6u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("2e+01 2e+01 1.0e+02 1.2e-01 -4.882812e+07", s_out);
+}
+
+void test_exponent_aligns_right_and_writes_a_plus_sign_where_asked(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_exponent(&line, 1.5, 3u, 11u, EMBED_FALSE);
+    mmgr_line_ch(&line, '|');
+    mmgr_line_exponent(&line, 1.5, 1u, 0u, EMBED_TRUE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("  1.500e+00|+1.5e+00", s_out);
+}
+
 void test_ch_writes_one_character(void)
 {
     VerbaLinea line = line_of(4u);

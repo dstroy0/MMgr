@@ -198,6 +198,21 @@ void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least);
 void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus);
 
 /**
+ * @brief Writes a double as one digit, a point, decimals digits, e, a sign and a power of two digits or more, right
+ *        aligned in columns with spaces before it.
+ *
+ * @param[in,out] line     The line [BORROWS].
+ * @param[in]     value    The value.
+ * @param[in]     decimals Digits after the point, clamped at MMGR_G_MAX_SIG less one. A count of 0 writes no point.
+ * @param[in]     columns  Bytes the value, its sign and its spaces fill, clamped at 255.
+ * @param[in]     plus     EMBED_TRUE writes a plus sign before a value whose sign bit is clear.
+ * @note The digits round from the exact value of the double. An exact tie goes to the even digit, as the C library
+ *       rounds it. A zero writes zeros and a power of +00.
+ * @note An infinity or a NaN goes out as mmgr_verba_fixed writes it.
+ */
+void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus);
+
+/**
  * @brief Stores the terminator, the one store a line no write reached yet still needs.
  *
  * @param[in,out] line The line [BORROWS].
