@@ -515,6 +515,14 @@ typedef struct
 #endif
 
 /**
+ * @brief The turnstiles' first values: each lane word, the top open lane and the queue length at 0.
+ *
+ * @note Each level of EmbedTurnstiles has its own brace: the struct, the array of lanes, one lane and its word.
+ *       A bare {0} inside an initializer is a -Wmissing-braces finding, and -Wall turns that warning on in C.
+ */
+#define MMGR_CARCER_STATE_TURNSTILES {{{EMBED_ATOMIC_INIT(0u)}}, EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u)}
+
+/**
  * @brief A cellblock's state as it is over bytes_ bytes at base_ with no cell taken. Both tiers are
  *        empty, every mark is at zero, and the zero fill of the storage covers the turnstiles.
  *
@@ -533,7 +541,7 @@ typedef struct
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u) MMGR_CARCER_STATE_HW,                                                                       \
-     {0} MMGR_CARCER_STATE_REGIONS}
+     MMGR_CARCER_STATE_TURNSTILES MMGR_CARCER_STATE_REGIONS}
 
 /**
  * @brief The record of a cellblock over a hospes pool before the program places it: no base, no size, both
@@ -550,7 +558,7 @@ typedef struct
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u) MMGR_CARCER_STATE_HW,                                                                       \
-     {0} MMGR_CARCER_STATE_REGIONS}
+     MMGR_CARCER_STATE_TURNSTILES MMGR_CARCER_STATE_REGIONS}
 
 /**
  * @brief The identity a movable cell's taker holds: a const pointer to the cell's entry in the
@@ -686,6 +694,7 @@ EMBED_INLINE size_t mmgr_series_cellularum_region_depth(const SeriesCellularum *
  */
 EMBED_INLINE embed_bool mmgr_series_cellularum_regions_idle(const SeriesCellularum *series)
 {
+#if MMGR_CARCER_REGIONS > 0u
     size_t held = 0u;
     size_t region;
 
@@ -695,6 +704,11 @@ EMBED_INLINE embed_bool mmgr_series_cellularum_regions_idle(const SeriesCellular
     }
     // Explicit cast narrows the int result of the test to the embed_bool container
     return (embed_bool)(held == 0u);
+#else
+    // A cellblock with no region has no loop to run: MMGR_CARCER_REGION_COUNT is 0.
+    (void)series;
+    return EMBED_TRUE;
+#endif
 }
 
 /**
