@@ -75,3 +75,18 @@ jobs:
         uses: github/codeql-action/analyze@v4
         with:
           category: "/language:${{ matrix.language }}"
+          upload: never
+          output: sarif
+
+      # The build compiles the headers of the checkouts under deps/, and paths-ignore does not apply to a
+      # compiled language. This step drops each result whose location is under deps/: each checkout is
+      # another repository, and its own analysis reports its findings.
+      - name: Drop the results of deps/
+        shell: bash
+        run: python3 .github/codeql/drop_deps_results.py sarif/*.sarif
+
+      - name: Upload the results
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: sarif
+          category: "/language:${{ matrix.language }}"
