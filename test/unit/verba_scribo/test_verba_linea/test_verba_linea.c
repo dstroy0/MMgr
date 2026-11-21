@@ -178,17 +178,36 @@ void test_fixed_writes_the_decimals_asked_for(void)
     TEST_ASSERT_EQUAL_STRING("3.14 -0.5 7 0.333333333333333", s_out);
 }
 
-void test_fixed_rounds_a_half_up_in_magnitude(void)
+void test_fixed_rounds_an_exact_tie_to_the_even_digit(void)
 {
-    VerbaLinea line = line_of(64u);
+    VerbaLinea line = line_of(128u);
 
     mmgr_line_fixed(&line, 0.125, 2u, 0u, EMBED_FALSE);
     mmgr_line_ch(&line, ' ');
     mmgr_line_fixed(&line, -0.125, 2u, 0u, EMBED_FALSE);
     mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, 0.375, 2u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, 2.5, 0u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, 3.5, 0u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, -0.5, 0u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
     mmgr_line_fixed(&line, 9.995, 2u, 0u, EMBED_FALSE);
     mmgr_line_finish(&line);
-    TEST_ASSERT_EQUAL_STRING_MESSAGE("0.13 -0.13 9.99", s_out, "9.995 is below the half as a double");
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("0.12 -0.12 0.38 2 4 -0 9.99", s_out, "9.995 is below the half as a double");
+}
+
+void test_fixed_rounds_past_a_tie_away_from_it(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_fixed(&line, 0.1251, 2u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, 2.5000001, 0u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("0.13 3", s_out);
 }
 
 void test_fixed_writes_a_plus_sign_where_asked(void)

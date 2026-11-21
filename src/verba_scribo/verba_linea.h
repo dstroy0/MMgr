@@ -190,8 +190,8 @@ void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least);
  * @param[in]     decimals Digits after the point, clamped at MMGR_FIXED_MAX_DECIMALS. A count of 0 writes no point.
  * @param[in]     columns  Bytes the value, its sign and its spaces fill, clamped at 255.
  * @param[in]     plus     EMBED_TRUE writes a plus sign before a value whose sign bit is clear.
- * @note The digits are those of mmgr_verba_fixed. The fraction rounds from the exact value of the double, and a
- *       half goes up in magnitude. A negative zero writes its minus sign.
+ * @note The fraction rounds from the exact value of the double, as mmgr_verba_fixed rounds it. An exact tie goes to
+ *       the even digit, as the C library rounds it. A negative zero writes its minus sign.
  * @warning A magnitude too large for 64 bits of integer part goes out as mmgr_verba_g writes it, at ten
  *          significant digits.
  */

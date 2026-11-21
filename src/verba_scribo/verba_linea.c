@@ -276,9 +276,54 @@ void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least)
                             .min = linea_least(digits_least)));
 }
 
+/**
+ * @brief Reports whether verba_fixed rounds value up from an exact tie to an odd last digit.
+ *
+ * @param[in] value    The value.
+ * @param[in] decimals Digits after the point, at max MMGR_FIXED_MAX_DECIMALS.
+ * @return             EMBED_TRUE where the even digit is the one below.
+ * @note A finite double is an odd mantissa m times 2 to the power e. It is a tie at decimals digits where e is
+ *       -(decimals + 1), and then the value times ten to the decimals is m times five to the decimals, over two.
+ *       verba_fixed rounds a tie up in magnitude, to (m * 5^decimals + 1) / 2. Five to any power is 1 modulo 4, and so
+ *       that digit is odd where m is 1 modulo 4.
+ */
+EMBED_INLINE embed_bool linea_tie_odd(double value, unsigned int decimals)
+{
+    const union {
+        double real;
+        uint64_t bits;
+    } pun = {value};
+    const uint64_t biased = (pun.bits >> 52u) & 0x7FFu;
+    uint64_t mantissa = pun.bits & ((1ULL << 52u) - 1u);
+    int64_t exponent = -1074;
+
+    if (biased == 0x7FFu)
+    {
+        return EMBED_FALSE;
+    }
+    if (biased != 0u)
+    {
+        mantissa |= 1ULL << 52u;
+        // Explicit cast takes the eleven bits of the biased exponent, which fit any signed width
+        exponent = (int64_t)biased - 1075;
+    }
+    if (mantissa == 0u)
+    {
+        return EMBED_FALSE;
+    }
+    while ((mantissa & 1u) == 0u)
+    {
+        mantissa >>= 1u;
+        exponent += 1;
+    }
+    // Explicit cast widens a count of at max MMGR_FIXED_MAX_DECIMALS
+    return (exponent == -((int64_t)decimals + 1)) && ((mantissa & 3u) == 1u);
+}
+
 void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus)
 {
     char digits[LINEA_DIGITS];
+    const unsigned int places = (decimals < MMGR_FIXED_MAX_DECIMALS) ? decimals : MMGR_FIXED_MAX_DECIMALS;
     const embed_bool plus_written =
         (plus != EMBED_FALSE) && !EMBED_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = value);
 
@@ -288,7 +333,14 @@ void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsi
     }
     // LINEA_DIGITS holds a sign, the twenty digits of 64 bits, a point and MMGR_FIXED_MAX_DECIMALS, and so it fits
     const size_t written = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = digits, .cap = sizeof digits,
-                                      .at = plus_written ? 1u : 0u, .real = value, .decimals = linea_least(decimals));
+                                      .at = plus_written ? 1u : 0u, .real = value, .decimals = linea_least(places));
+
+    // An odd digit is 1 at least, and so the step down to the even one borrows from no digit before it
+    if (linea_tie_odd(value, places))
+    {
+        // Explicit cast narrows a digit of '1' to '9' less one, which a char holds
+        digits[written - 1u] = (char)(digits[written - 1u] - 1);
+    }
     const size_t wide = linea_least(columns);
 
     linea_spaced(line, (written < wide) ? (wide - written) : 0u);
