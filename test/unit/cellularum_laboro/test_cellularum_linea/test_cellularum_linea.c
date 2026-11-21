@@ -34,6 +34,19 @@ void test_equal_answers_true_only_where_both_end_together(void)
     TEST_ASSERT_FALSE_MESSAGE(mmgr_text_equal("record", "record", 3u), "no end inside the bound is no match");
 }
 
+void test_order_orders_as_strcmp_does(void)
+{
+    TEST_ASSERT_EQUAL_INT(0, mmgr_text_order("orior", "orior", 64u));
+    TEST_ASSERT_LESS_THAN_INT(0, mmgr_text_order("abc", "abd", 64u));
+    TEST_ASSERT_GREATER_THAN_INT(0, mmgr_text_order("abd", "abc", 64u));
+    TEST_ASSERT_LESS_THAN_INT_MESSAGE(0, mmgr_text_order("ab", "abc", 64u), "a text that ends first comes first");
+    TEST_ASSERT_GREATER_THAN_INT(0, mmgr_text_order("abc", "ab", 64u));
+    TEST_ASSERT_EQUAL_INT(0, mmgr_text_order("", "", 64u));
+    TEST_ASSERT_LESS_THAN_INT(0, mmgr_text_order("", "a", 64u));
+    TEST_ASSERT_GREATER_THAN_INT_MESSAGE(0, mmgr_text_order("\xC3", "a", 64u), "a byte reads as unsigned");
+    TEST_ASSERT_EQUAL_INT_MESSAGE(0, mmgr_text_order("abcdef", "abcxyz", 3u), "no difference inside the bound");
+}
+
 void test_starts_answers_true_where_the_prefix_ends_first(void)
 {
     TEST_ASSERT_TRUE(mmgr_text_starts("record_sum", "record", 64u));

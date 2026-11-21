@@ -10,6 +10,7 @@ extern void setUp(void);
 extern void tearDown(void);
 extern void test_length_counts_the_bytes_before_the_terminator(void);
 extern void test_equal_answers_true_only_where_both_end_together(void);
+extern void test_order_orders_as_strcmp_does(void);
 extern void test_starts_answers_true_where_the_prefix_ends_first(void);
 extern void test_char_answers_the_first_byte_before_the_terminator(void);
 extern void test_find_answers_the_first_place_of_the_needle(void);
@@ -77,16 +78,17 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/cellularum_laboro/test_cellularum_linea/test_cellularum_linea.c");
+  UnityBegin("test/unit/cellularum_laboro/test_cellularum_linea\\test_cellularum_linea.c");
   run_test(test_length_counts_the_bytes_before_the_terminator, "test_length_counts_the_bytes_before_the_terminator", 21);
   run_test(test_equal_answers_true_only_where_both_end_together, "test_equal_answers_true_only_where_both_end_together", 29);
-  run_test(test_starts_answers_true_where_the_prefix_ends_first, "test_starts_answers_true_where_the_prefix_ends_first", 37);
-  run_test(test_char_answers_the_first_byte_before_the_terminator, "test_char_answers_the_first_byte_before_the_terminator", 45);
-  run_test(test_find_answers_the_first_place_of_the_needle, "test_find_answers_the_first_place_of_the_needle", 53);
-  run_test(test_copy_writes_the_text_and_a_terminator_inside_the_bound, "test_copy_writes_the_text_and_a_terminator_inside_the_bound", 62);
-  run_test(test_copy_of_no_room_writes_nothing, "test_copy_of_no_room_writes_nothing", 71);
-  run_test(test_unsigned_reads_the_digits_and_stops_past_them, "test_unsigned_reads_the_digits_and_stops_past_them", 77);
-  run_test(test_unsigned_with_no_digit_answers_zero_at_the_start, "test_unsigned_with_no_digit_answers_zero_at_the_start", 85);
+  run_test(test_order_orders_as_strcmp_does, "test_order_orders_as_strcmp_does", 37);
+  run_test(test_starts_answers_true_where_the_prefix_ends_first, "test_starts_answers_true_where_the_prefix_ends_first", 50);
+  run_test(test_char_answers_the_first_byte_before_the_terminator, "test_char_answers_the_first_byte_before_the_terminator", 58);
+  run_test(test_find_answers_the_first_place_of_the_needle, "test_find_answers_the_first_place_of_the_needle", 66);
+  run_test(test_copy_writes_the_text_and_a_terminator_inside_the_bound, "test_copy_writes_the_text_and_a_terminator_inside_the_bound", 75);
+  run_test(test_copy_of_no_room_writes_nothing, "test_copy_of_no_room_writes_nothing", 84);
+  run_test(test_unsigned_reads_the_digits_and_stops_past_them, "test_unsigned_reads_the_digits_and_stops_past_them", 90);
+  run_test(test_unsigned_with_no_digit_answers_zero_at_the_start, "test_unsigned_with_no_digit_answers_zero_at_the_start", 98);
 
   return UNITY_END();
 }

@@ -51,6 +51,19 @@ size_t mmgr_text_length(const char *text, size_t cap);
 embed_bool mmgr_text_equal(const char *left, const char *right, size_t cap);
 
 /**
+ * @brief The order of two texts, byte by byte, as strcmp orders them.
+ *
+ * @param[in] left  First text [BORROWS].
+ * @param[in] right Second text [BORROWS].
+ * @param[in] cap   Bytes readable from each.
+ * @return          Below 0 where left comes first, 0 where the two are the same, above 0 where right comes first.
+ * @note The first byte that differs decides, read as unsigned, and a text that ends first comes first. Each text is
+ *       measured inside cap, and the compare reads no further than the shorter text and its terminator.
+ * @warning Both texts must be readable for cap bytes, or up to their terminators, as mmgr_cellul_diff reads them.
+ */
+int mmgr_text_order(const char *left, const char *right, size_t cap);
+
+/**
  * @brief Whether a text begins with a prefix.
  *
  * @param[in] text   The text [BORROWS].

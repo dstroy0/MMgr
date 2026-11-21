@@ -26,6 +26,24 @@ embed_bool mmgr_text_equal(const char *left, const char *right, size_t cap)
     return EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = left, .other = right, .cap = cap, .ci = EMBED_FALSE);
 }
 
+int mmgr_text_order(const char *left, const char *right, size_t cap)
+{
+    const size_t left_length = EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = left, .cap = cap);
+    const size_t right_length = EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = right, .cap = cap);
+    const size_t shorter = (left_length < right_length) ? left_length : right_length;
+    // the shorter text and its terminator, or cap where neither ends inside it
+    const size_t reach = (shorter < cap) ? (shorter + 1u) : cap;
+    const size_t differs =
+        EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = left, .other = right, .cap = reach, .ci = EMBED_FALSE);
+
+    if (differs >= reach)
+    {
+        return 0;
+    }
+    // Explicit casts read each byte as unsigned, as strcmp orders them, and widen it to int
+    return (int)(unsigned char)left[differs] - (int)(unsigned char)right[differs];
+}
+
 embed_bool mmgr_text_starts(const char *text, const char *prefix, size_t cap)
 {
     return EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = text, .other = prefix, .cap = cap, .ci = EMBED_FALSE);
