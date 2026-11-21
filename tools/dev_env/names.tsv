@@ -20,9 +20,9 @@ MODULE	plaintext	clarus_custodiae	clarus	ClarusCustodiae
 MODULE	protoframe	numeros_scribo	numer	NumerosScribo
 MODULE	protomem	memoria_operor	memor	MemoriaOperor
 MODULE	protostr	cellularum_laboro	cellul	CellularumLaboro
-MODULE	psram_pool	confinium_externum	exter	ConfiniumExternum
+MODULE	psram_pool	memoria_externa	exter	MemoriaExterna
 MODULE	rawmemcpy	proximus_operor	proxim	ProximusOperor
-MODULE	ring	confinium_exclusivum_infinitas	infin	ConfiniumExclusivumInfinitas
+MODULE	ring	memoria_anularis	anularis	MemoriaAnularis
 MODULE	secure	occultum_custodiae	occult	OccultumCustodiae
 MODULE	span	spatium	spat	Spatium
 MODULE	swar	verbum_scrutor	scrut	VerbumScrutor

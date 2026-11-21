@@ -56,12 +56,15 @@ static void prove_claimed(void)
     const embed_atomic_usize_value below = bit - 1u;
     const embed_atomic_usize_value held = below | (above & ~(below | bit));
 
-    embed_atomic_usize_store(&s_claimed, held);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_claimed, .value = held);
     const CarcerMovableEntry *const entry = carcer_entry_claimed(&s_option, PROVE_PAYLOAD, carcer_all(1));
 
     PROVE_ASSERT(entry == &s_entries[place], "a claim names the entry at the place of the lowest free bit");
-    PROVE_ASSERT(embed_atomic_usize_load(&s_claimed) == (held | bit), "a claim sets the bit of the entry it names");
-    PROVE_ASSERT(embed_atomic_usize_load(&s_entries[place].word) == PROVE_PAYLOAD, "the entry named holds the payload");
+    PROVE_ASSERT(EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_claimed) == (held | bit),
+                 "a claim sets the bit of the entry it names");
+    PROVE_ASSERT(EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_entries[place].word) ==
+                     PROVE_PAYLOAD,
+                 "the entry named holds the payload");
 }
 
 /** @brief Lowest.lean's lowest_lt, lowest_zero, lowest_on and lowest_least on carcer_lowest, for every word. */

@@ -72,7 +72,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_owner_list\\test_locus_carcerum_owner_list.c");
+  UnityBegin("test/unit/locus_carcerum/test_locus_carcerum_owner_list/test_locus_carcerum_owner_list.c");
   run_test(test_the_table_counts_the_owners_declared, "test_the_table_counts_the_owners_declared", 25);
   run_test(test_each_owner_is_its_record_in_the_table_at_its_place, "test_each_owner_is_its_record_in_the_table_at_its_place", 30);
   run_test(test_a_declared_owner_takes_and_the_cell_answers_it, "test_a_declared_owner_takes_and_the_cell_answers_it", 42);

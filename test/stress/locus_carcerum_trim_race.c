@@ -44,7 +44,7 @@ static void *s_cells[2];
 /** @brief Spins until the word reads at least @p want. */
 static void reached(embed_atomic_u32 *word, uint32_t want)
 {
-    while (embed_atomic_u32_load(word) < want)
+    while (EMBED_CALL(embed_atomic_u32_table.load, EmbedAtomicU32LoadCfg, .word = word) < want)
     {
         mmgr_host_threads_yield();
     }
@@ -59,11 +59,11 @@ static void raced(unsigned int index)
         {
             s_cells[0] = mmgr_temporary_buf_alloc(RACE_BLOCK, RACE_PAYLOAD, s_racer);
             s_cells[1] = mmgr_temporary_buf_alloc(RACE_BLOCK, RACE_PAYLOAD, s_racer);
-            embed_atomic_u32_store(&s_ready, round + 1u);
+            EMBED_CALL(embed_atomic_u32_table.store, EmbedAtomicU32StoreCfg, .word = &s_ready, .value = round + 1u);
         }
         reached(&s_ready, round + 1u);
         mmgr_persistent_buf_release(RACE_BLOCK, s_cells[index], s_racer);
-        (void)embed_atomic_u32_fetch_add(&s_done, 1u);
+        (void)EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_done, .value = 1u);
         reached(&s_done, 2u * (round + 1u));
         if (index == 0u)
         {
@@ -72,7 +72,8 @@ static void raced(unsigned int index)
             const size_t top = mmgr_series_cellularum_temporary_top(RACE_BLOCK);
             if (top != RACE_BYTES)
             {
-                (void)embed_atomic_u32_fetch_add(&s_lost, 1u);
+                (void)EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_lost,
+                                 .value = 1u);
                 mmgr_series_cellularum_emptied(RACE_BLOCK);
             }
         }
@@ -81,7 +82,7 @@ static void raced(unsigned int index)
 
 static void each(void)
 {
-    raced(embed_atomic_u32_fetch_add(&s_next, 1u));
+    raced(EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_next, .value = 1u));
 }
 
 int main(int argc, char **argv)
@@ -92,7 +93,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "the threads did not both start\n");
         return 2;
     }
-    const uint32_t lost = embed_atomic_u32_load(&s_lost);
+    const uint32_t lost = EMBED_CALL(embed_atomic_u32_table.load, EmbedAtomicU32LoadCfg, .word = &s_lost);
     printf("rounds=%u lost=%u %s\n", s_rounds, (unsigned int)lost, (lost == 0u) ? "clean" : "BROKEN");
     return (lost == 0u) ? 0 : 1;
 }

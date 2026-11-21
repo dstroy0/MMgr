@@ -22,7 +22,7 @@ Both forms exist: `mmgr_memor_cpy` is the same function. See @ref concept_ns_idi
 
 **`cpy` does not handle overlap, and there is no single `move`.** There are two, and which one is
 safe depends on which way the regions lie: `move_up` when `dst` is above `src`, `move_down` when it
-is below. `move_down` is `cpy`, copying forward is already the safe direction that way, and so the
+is below. `move_down` is `cpy`: a forward copy is already the safe direction that way, and so the
 table points both at the same function.
 
 **There is no `zero` entry.** Use `set` with `.val = 0`.
@@ -67,24 +67,25 @@ const embed_iword v = EMBED_CALL(cellul.to_long, TransfiguroCfg, .src = digits, 
 **`find` returns a pointer and not an offset.** NULL when the needle is not there.
 
 **The parse entries report where they stopped and not whether they succeeded.** `to_long` and the rest
-write the first byte they did not consume to `.end`. Equal to `.src` means nothing was parsed.
+write the first byte they did not consume to `.end`. An `.end` equal to `.src` means the entry parsed nothing.
 
 **`to_long` and `to_ulong` return `embed_iword` and `embed_word`,** so they parse to the target's own
 word width. On a 16-bit build `to_ulong` saturates at 65535 and not at 4294967295.
 
-**The cap is a cap instead of a length.** `len` with `.cap = 64` returns at max 64 regardless of whether a
-terminator was found. If you need to know which happened, compare against the cap.
+**The cap is a cap instead of a length.** `len` with `.cap = 64` returns at max 64, whether or not it finds a
+terminator. If you need to know which happened, compare against the cap.
 
-**`find` anchors on the rarest byte of the needle**, using @ref mod_anchor_guide. For that reason it is
-fast on real text and why the profile matters.
+**`find` anchors on the rarest byte of the needle**, through @ref mod_anchor_guide. For that reason it
+is fast on real text, and for that reason the profile matters.
 
-**Except for a needle of one or two bytes**, which is settled by a mask chain instead: one broadcast
-per needle byte, every start position in a word decided at once, nothing to verify afterwards. There
-is no rare byte to find in two bytes and no rest to prove, and so the anchor's cost table would be read
-before a haystack byte is. The chain also costs the same whatever the haystack holds, where an
-anchor costs more when its byte is common, measured against a needle whose first byte turns up every
-fifteen bytes, MMgr does not move and ROM `strstr` loses 10%. Case folding always takes the anchor
-path; the chain compares raw bytes. See `MMGR_FIND_CHAIN_MAX` in @ref ref_configuration.
+**Except for a needle of one or two bytes**, which a mask chain settles instead. The chain does one
+broadcast per needle byte and decides every start position in a word at once, with nothing to verify
+afterwards. There is no rare byte to find in two bytes and no rest to prove. An anchor would read its
+cost table before it reads a haystack byte.
+
+The chain also costs the same whatever the haystack holds, where an anchor costs more when its byte is common. Against a needle whose first byte turns up
+every fifteen bytes, MMgr does not move and ROM `strstr` loses 10%. A find that ignores case always
+takes the anchor path; the chain compares raw bytes. See `MMGR_FIND_CHAIN_MAX` in @ref ref_configuration.
 
 ## Reference
 
@@ -120,15 +121,15 @@ the first.
 
 ## Why
 
-Searching for `"Content-Length:"` by scanning for `'C'` finds a candidate on nearly every line of
-English text, and each one costs a full comparison. Scanning for `'-'`, or whichever byte is rarest
+A search for `"Content-Length:"` that scans for `'C'` finds a candidate on nearly every line of
+English text, and each one costs a full comparison. A scan for `'-'`, or whichever byte is rarest
 in the expected input, finds far fewer candidates and rejects them sooner.
 
 The table records how common each byte is, and so the search can pick.
 
 ## Profiles
 
-One CMake option taking a value and not a set of defines: `-DMMGR_ANCORAE_FORMA=english`. It selects
+One CMake option that takes a value, and not a set of defines: `-DMMGR_ANCORAE_FORMA=english`. It selects
 the single translation unit that carries the table
 (`src/impensa_ancorae_acus/CMakeLists.txt:7-15`), and so the four not chosen are not in the image:
 
@@ -140,8 +141,8 @@ the single translation unit that carries the table
 | `inet`    | network protocol text |
 | `route`   | routing tables        |
 
-**Picking the wrong one costs speed and never correctness.** The search still finds what is there; it
-just tests more candidates on the way. So this is a tuning knob, not a configuration you have to get
-right before the code works.
+**The wrong one costs speed and never correctness.** The search still finds what is there; it
+just tests more candidates on the way. So this knob tunes speed, and it is not a configuration you
+have to get right before the code works.
 
 Header-only. @ref mod_anchor "Generated reference"

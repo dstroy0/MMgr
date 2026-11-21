@@ -1,26 +1,26 @@
 # Compilers, attributes and fallbacks {#ref_compiler_support}
 
-Every compiler conditional in the library lives in one file. Adding a toolchain is one file to
+Every compiler conditional in the library lives in one file. A new toolchain is one file to
 read.
 
 ## The policy
 
 `deps/embedded_types/include/embed_compiler_directives.h` holds **every** `#if` that asks about a
 compiler. No other file in the library tests for GNU, Clang or a version. That is a rule, not a
-tendency, and it has two consequences worth stating:
+tendency, and it has two consequences:
 
-- Porting to a new toolchain means reading one header and not grepping twenty modules.
+- A port to a new toolchain reads one header and does not grep twenty modules.
 - A module cannot quietly acquire a compiler dependency, because there is nowhere in it to put one.
 
 That header belongs to `embedded_types`, a separate library MMgr consumes. The macros below carry its
-`EMBED_` prefix because they are its, and the header states the reason for using them directly:
+`EMBED_` prefix because they are its. The header states why a consumer uses them directly:
 "Do not copy them into your own tree. Copies drift when this header changes."
 
-Two further rules govern what is allowed in that file.
+Two further rules govern what that file allows.
 
 **A directive is a request the compiler may refuse.** Everything there has a fallback that still
-compiles. Where the absence of the directive would silently break the layout, the fallback is
-policed by a static assert at the point of use and not trusted.
+compiles. Sometimes the absence of the directive would silently break the layout. There, a static
+assert at the point of use polices the fallback, and nothing trusts it.
 
 **A directive is not an operation.** Nothing in that file computes anything. The library asks for no
 `__builtin_` at all. See @ref concept_swar for the measurements behind that.
@@ -40,9 +40,9 @@ policed by a static assert at the point of use and not trusted.
 | `EMBED_BEGIN_DECLS` / `EMBED_END_DECLS` | `extern "C" {` / `}` under C++                 | empty under C                 |
 | `EMBED_STATIC_ASSERT`                   | `static_assert` or `_Static_assert`            | `#error` below C11            |
 
-MMgr adds three of its own, in `include/mmgr.h`, for what the compiler offers and this library needs:
-`MMGR_ERROR_ATTR` puts our own text on a reference that must not link, `MMGR_ALLOC_SIZE` states which
-argument gives the extent of what an allocation returns, and `MMGR_EXTRAM_ATTR` is the placement the
+MMgr adds three of its own, in `include/mmgr.h`, for what the compiler offers and this library needs.
+`MMGR_ERROR_ATTR` puts our own text on a reference that must not link. `MMGR_ALLOC_SIZE` states which
+argument gives the extent of what an allocation returns. `MMGR_EXTRAM_ATTR` is the placement the
 port fills in.
 
 `EMBED_HAS_ATTRIBUTE` is the gate. It uses `__has_attribute` where that exists and falls back to
@@ -51,14 +51,14 @@ port fills in.
 ## The one that cannot be allowed to fail quietly
 
 An enum width is the exception to "every fallback still compiles and that is enough". An enum that
-silently widens to `int` moves every field after it in every struct containing one, and this library
-computes offsets from those structs.
+silently widens to `int` moves every field after it in every struct that contains one, and this
+library computes offsets from those structs.
 
 So `EMBED_ENUM_BYTE` declares every such enum with one byte on every compiler. Clang on the MSVC ABI
-and C++ take the fixed underlying type `: unsigned char`, every other compiler with the packed
-attribute takes `__attribute__((packed))`, and MSVC's C, which has neither, gets the enumerators as
-constants and the name as an `unsigned char`. A struct holding one is arranged the same whichever
-compiler reads it.
+and C++ take the fixed base type `: unsigned char`. Every other compiler with the packed attribute
+takes `__attribute__((packed))`. MSVC's C, which has neither, gets the enumerators as constants and
+the name as an `unsigned char`. A struct that holds one has the same layout whichever compiler reads
+it.
 
 There is a probe, in `embed_types.h`:
 
@@ -69,24 +69,24 @@ EMBED_STATIC_ASSERT(sizeof(EmbedEnumProbe) == 1,
     "EMBED_ENUM_BYTE gave an enum more than one byte here, so no enum retains its declared width ...");
 ```
 
-If a compiler accepted the attribute and ignored it, the build stops at the source of the problem with
-a message that names the cause, instead of producing a binary whose struct offsets are wrong.
+A compiler can accept the attribute and ignore it. The build then stops at the source of the problem
+with a message that names the cause. It does not produce a binary whose struct offsets are wrong.
 
 @note On TI toolchains, pass `--small_enum`. The assert message says so.
 
 ## EMBED_TABLE_LAYOUT
 
-The dispatch tables are addressed by offset. A positional initializer mis-wires silently when a
-member moves. `EMBED_TABLE_LAYOUT(Table_, ...)` expands to a chain of static assertions pinning each
-named member to its own position, in order, and pinning `sizeof(Table_)` to exactly that many pointers.
+Code reaches the dispatch tables by offset. A positional initializer mis-wires silently when a
+member moves. `EMBED_TABLE_LAYOUT(Table_, ...)` expands to a chain of static assertions. They pin each
+named member to its own position, in order, and pin `sizeof(Table_)` to exactly that many pointers.
 
 It is variadic up to 24 members via `EMBED_NARG` and `EMBED_TABLE_SLOTS_1`…`EMBED_TABLE_SLOTS_24`.
 That 24 is also the ceiling on a dispatch table: `verbum_scrutor` splits into three tables partly
 because of it.
 
 Every table is pure function pointers, and so `sizeof(Table_)` against
-`EMBED_NARG * EMBED_FUNCTION_POINTER_BYTES` is the whole assertion. A table carrying trailing state
-would need its own variant testing `offsetof` instead.
+`EMBED_NARG * EMBED_FUNCTION_POINTER_BYTES` is the whole assertion. A table that carries trailing state
+would need its own variant, which tests `offsetof` instead.
 
 This is why `SORT_MEMBER_DOCS` is `NO` in `docs/Doxyfile`: the documented order is the asserted
 order. See @ref concept_ns_idiom.
@@ -100,8 +100,8 @@ It is never there for a caller to ask for "whatever this machine does". Wire for
 
 ## Weak hardware hooks
 
-The DMA module's hardware entries are `EMBED_WEAK`. A board support file overrides them by
-defining the same symbol. Without an override they are present and refuse every request, and so
+The DMA module's hardware entries are `EMBED_WEAK`. A board support file overrides them with a
+definition of the same symbol. Without an override they are present and refuse every request, and so
 `memoriam_praetereo` builds and its tests link on a host with no DMA controller.
 
 ## Adding a toolchain
@@ -110,4 +110,4 @@ defining the same symbol. Without an override they are present and refuse every 
 2. Add the branch for your compiler to `EMBED_HAS_ATTRIBUTE` and to any macro whose form differs.
 3. Build all five environments and run the suite. The static asserts in `embed_types.h` and the enum
    probe are the ones that will catch a wrong answer.
-4. If the enum probe fails, find the toolchain's flag for packed enums before working around it.
+4. If the enum probe fails, find the toolchain's flag for packed enums before you work around it.

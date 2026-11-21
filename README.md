@@ -6,7 +6,7 @@ has external RAM and you set `MMGR_ENABLE_EXTRAM`. The declaration of a pool set
 pool is in. No later step reads an address to find the memory.
 
 Use `ParsMemoriaeHospes` for a pool whose bytes the system gives at run time. A cellblock over it takes
-`MMGR_MINIMUM_SECURITY_HOSPES` in its declaration. The program places the cellblock once with
+`MMGR_MINIMUM_SECURITY_HOSPES` or `MMGR_MAXIMUM_SECURITY_HOSPES` in its declaration. The program places the cellblock once with
 `mmgr_series_cellularum_placed` before the first take, and the cellblock refuses every take before that. A
 program places a cellblock there so that `mmgr_series_cellularum_idle_each` can give idle pages back to the
 system. An array in the program's image does not allow that.
@@ -27,9 +27,23 @@ goes down from the size. The gap between the two tiers is the space that the two
 The two boundaries are the two halves of one atomic word. A take moves its own half with one fetch-add,
 and the old value of that fetch-add holds the other half (`src/locus_carcerum/locus_carcerum.h:20-22`).
 
+By default the temporary tier is one stack that every thread shares. Set `MMGR_CARCER_REGIONS` above 0,
+and the temporary tier becomes that many regions of `MMGR_CARCER_REGION_BYTES` each, at the top of the
+cellblock. A take goes to the region that `embed_thread_place()` selects, modulo the count. A give goes
+to the region that holds the cell, from any thread. A take over a region's room goes to the large region
+of `MMGR_CARCER_LARGE_REGION_BYTES`, which every thread shares, and a size of 0 refuses that take.
+`Regions.lean` proves that no region's depth passes its size (`src/locus_carcerum/locus_carcerum.h:104-141`).
+
 A cell from the persistent tier is the property of the caller [RETURNS OWNERSHIP]. The caller gives the
 cell back through `persistent_buf_release` of the same cellblock [TAKES OWNERSHIP]. A request that the
-cellblock cannot satisfy returns NULL (`src/locus_carcerum/locus_carcerum.h:1066-1067`). A span is a view
+cellblock cannot satisfy returns NULL (`src/locus_carcerum/locus_carcerum.h:1273-1274`).
+
+A program can also give a cellblock movable cells, once, through its guard's `movable_init`.
+`movable_buf_alloc` then answers a const pointer to the cell's entry in a translation table, and
+`movable_buf_read`, `movable_buf_write`, `movable_buf_compare` and `movable_buf_measure` reach the cell
+through that entry. A mover on a thread that the program gives sorts the movable cells when the
+fragmentation passes `MMGR_MOVABLE_SETTLE_PERCENT`. [The region guide](docs/modules/confinium.md) gives
+the rules. A span is a view
 with limits over storage that the caller owns [BORROWS]. A ring moves bytes from one producer to one
 consumer.
 
@@ -85,30 +99,34 @@ library and embedded_types' theory, which `lakefile.toml` requires from `deps/em
 That theory holds the turnstile proofs for the passes and the drain. `Pass.lean`, `Order.lean` and
 `Sleep.lean` import its Manifold proofs and build on them.
 
-| file             | what it proves                                                                                  |
-| ---------------- | ----------------------------------------------------------------------------------------------- |
-| `Packed.lean`    | Lemmas 1 to 5 and the theorem, with the two boundaries read in one step                         |
-| `Split.lean`     | the steps with two words, and the order of steps that breaks the invariant                      |
-| `Word.lean`      | the arithmetic of the word, the request guard, and the limit on the bumps in progress           |
-| `Layout.lean`    | the sweep retains the bytes, the busy cells and the count of each owner                         |
-| `Take.lean`      | a take over a free run, and the count that the mover retains                                    |
-| `Move.lean`      | the move ends with the sweep: the tier ends busy, every count stays, a lone cell ends the tier  |
-| `Spill.lean`     | the spill, the bump at the end, and the two growths                                             |
-| `Give.lean`      | a cell goes off the count of its owner one time                                                 |
-| `Temporary.lean` | the temporary tier is the persistent tier mirrored: its sweep, its last fit and its positioning |
-| `Stacks.lean`    | one temporary stack that two threads share sinks past every depth, and a stack for each thread does not |
+| file             | what it proves                                                                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Packed.lean`    | Lemmas 1 to 5 and the theorem, with the two boundaries read in one step                                                                            |
+| `Split.lean`     | the steps with two words, and the order of steps that breaks the invariant                                                                         |
+| `Word.lean`      | the arithmetic of the word, the request guard, and the limit on the bumps in progress                                                              |
+| `Layout.lean`    | the sweep retains the bytes, the busy cells and the count of each owner                                                                            |
+| `Take.lean`      | a take over a free run, and the count that the mover retains                                                                                       |
+| `Move.lean`      | the move ends with the sweep: the tier ends busy, every count stays, a lone cell ends the tier                                                     |
+| `Spill.lean`     | the spill, the bump at the end, and the two growths                                                                                                |
+| `Give.lean`      | a cell goes off the count of its owner one time                                                                                                    |
+| `Temporary.lean` | the temporary tier is the persistent tier mirrored: its sweep, its last fit and its positioning                                                    |
+| `Stacks.lean`    | one temporary stack that two threads share sinks past every depth, and a stack for each thread does not                                            |
 | `Regions.lean`   | a region of the temporary tier stays within its size over any interleaving, through the fall to the large region, and a refused take moves no cell |
-| `Idle.lean`      | the spans the idle walk passes hold no byte of a cell, and an unplaced cellblock refuses every take |
-| `Boundary.lean`  | a free cell stays at the edge only while its trim bit is set                                    |
-| `Fragment.lean`  | the fragmentation value is 100 or less                                                          |
-| `Futex.lean`     | the address wait that GenMC runs has the behavior of the futex contract and no other            |
-| `Bounds.lean`    | the span test, the pointer test and the high-water marks                                        |
-| `Entry.lean`     | two contexts do not name one movable entry                                                      |
-| `Pass.lean`      | a pass does not work on the cellblock while a writer works alone                                |
-| `Sleep.lean`     | a pass that sleeps on the closed word wakes when the writer opens                               |
-| `Trim.lean`      | a cellblock with no trim bit set and no give in progress owes no trim                           |
-| `Order.lean`     | the C11 orders that the closed word, the drain and the free use                                 |
-| `OwnerWord.lean` | the owner word's fields, and the undo of one owner's takes after a sequence point               |
+| `Idle.lean`      | the spans the idle walk passes hold no byte of a cell, and an unplaced cellblock refuses every take                                                |
+| `Boundary.lean`  | a free cell stays at the edge only while its trim bit is set                                                                                       |
+| `Fragment.lean`  | the fragmentation value is 100 or less                                                                                                             |
+| `Futex.lean`     | the address wait that GenMC runs has the behavior of the futex contract and no other                                                               |
+| `Bounds.lean`    | the span test, the pointer test and the high-water marks                                                                                           |
+| `Entry.lean`     | two contexts do not name one movable entry                                                                                                         |
+| `Pass.lean`      | a pass does not work on the cellblock while a writer works alone                                                                                   |
+| `Sleep.lean`     | a pass that sleeps on the closed word wakes when the writer opens                                                                                  |
+| `Trim.lean`      | a cellblock with no trim bit set and no give in progress owes no trim                                                                              |
+| `Order.lean`     | the C11 orders that the closed word, the drain and the free use                                                                                    |
+| `OwnerWord.lean` | the owner word's fields, and the undo of one owner's takes after a sequence point                                                                  |
+| `Lowest.lean`    | the claim of a movable entry takes the lowest free bit, and names the entry at that bit's place                                                    |
+| `Ticket.lean`    | the owner word, the give and the owner's sequence as the stamp, the claim and the ticket of embedded_types' ring                                   |
+
+`theory/linea` proves the calls with plain arguments against the contracts of the calls they reach.
 
 ```sh
 cd theory/locus_carcerum
@@ -141,7 +159,7 @@ that the clients use is the model in `Futex.lean`.
 | [`test/prove/`](test/prove)                   | the proof harnesses that CBMC and the symbolic executor hold                                            |
 | [`test/harness.py`](test/harness.py)          | build, run, fuzz, verify, prove, the A/B, coverage, and the suite and generator checks                  |
 | [`tools/dev_env/`](tools/dev_env)             | the generators for `src/`'s tables, the size sweep, the source rewriters                                |
-| [`theory/`](theory)                           | the Lean proofs of LocusCarcerum                                                                        |
+| [`theory/`](theory)                           | the Lean proofs of LocusCarcerum and of the calls with plain arguments                                  |
 | [`docs/`](docs)                               | the prose, and the Doxygen configuration that renders it                                                |
 
 ### The modules
@@ -167,6 +185,11 @@ Each module has a Latin name. The entries and the guards that a caller uses have
 | [`ascii_persona_bitorum`](src/ascii_persona_bitorum) / [`impensa_ancorae_acus`](src/impensa_ancorae_acus)   | generated: character classes and byte rarity               |
 | [`memoria_externa`](src/memoria_externa)                                                                    | internal or external placement; `MMGR_ENABLE_EXTRAM`       |
 | [`memoriam_praetereo`](src/memoriam_praetereo)                                                              | DMA channels over weak port hooks; `MMGR_ENABLE_DMA`       |
+
+Three headers give calls with plain arguments and no dispatch table. `verba_scribo/verba_linea.h` is a
+line that carries its own cursor. `memoria_operor/memoria_linea.h` gives the byte calls, and
+`cellularum_laboro/cellularum_linea.h` gives the text calls. Each includes `mmgr.h` alone, and so a C++
+translation unit calls them as they are.
 
 ## How to build it
 
@@ -205,7 +228,7 @@ Two environment variables are necessary on a first build, because no earlier tre
 
 Windows needs `MMGR_BUILD_ROOT`, because Windows limits a full object path to 250 characters. The deepest
 object here is approximately 180 characters below its build directory. Thus a checkout more than
-approximately 60 characters down cannot build in place (`test/harness.py:56-57`).
+approximately 60 characters down cannot build in place (`test/harness.py:61-62`).
 
 ## Stress and fuzz
 

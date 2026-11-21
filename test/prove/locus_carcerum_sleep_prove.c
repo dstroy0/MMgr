@@ -47,7 +47,8 @@ static unsigned int s_pauses;
 /** @brief The open of the writer: the fetch-and that clears the closed bit and the sleeper bit, Step.open_. */
 static void prove_writer_opened(void)
 {
-    (void)embed_atomic_word_fetch_and(&s_series.closed, ~(CARCER_CLOSED | CARCER_CLOSED_SLEEPERS));
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_and, EmbedAtomicWordFetchAndCfg, .word = &s_series.closed,
+                     .value = ~(CARCER_CLOSED | CARCER_CLOSED_SLEEPERS));
     s_pauses = 0u;
 }
 
@@ -60,17 +61,18 @@ static void prove_paused(void)
     }
 }
 
-int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value old_value, embed_word nanoseconds)
+int embed_word_wait(const EmbedWordWaitCfg *args)
 {
-    const embed_atomic_word_value current_word = embed_atomic_word_load(word);
+    const embed_atomic_word_value current_word =
+        EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = args->word);
 
-    PROVE_ASSERT(word == &s_series.closed, "each wait is on the closed word");
-    PROVE_ASSERT((old_value & CARCER_CLOSED) != 0u, "c_sleep_gated: the value read has the closed bit");
-    PROVE_ASSERT((old_value & CARCER_CLOSED_SLEEPERS) != 0u, "c_sleep_gated: the value has the sleeper bit set");
+    PROVE_ASSERT(args->word == &s_series.closed, "each wait is on the closed word");
+    PROVE_ASSERT((args->old_value & CARCER_CLOSED) != 0u, "c_sleep_gated: the value read has the closed bit");
+    PROVE_ASSERT((args->old_value & CARCER_CLOSED_SLEEPERS) != 0u, "c_sleep_gated: the value has the sleeper bit set");
     PROVE_ASSERT((current_word & CARCER_CLOSED_SLEEPERS) != 0u, "flag_is_step: the fetch-or comes ahead of the wait");
     // Explicit cast widens the limit to 64 bits for the bound of wait_bounded
-    PROVE_ASSERT((embed_u64)nanoseconds <= (1ULL << 30u), "wait_bounded: the limit is 2^30 ns at max");
-    if (current_word != old_value)
+    PROVE_ASSERT((embed_u64)args->nanoseconds <= (1ULL << 30u), "wait_bounded: the limit is 2^30 ns at max");
+    if (current_word != args->old_value)
     {
         return 1;
     }
@@ -78,15 +80,21 @@ int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value old_value, 
     return 0;
 }
 
-void embed_word_wake(embed_atomic_word *word)
+void embed_word_wake(const EmbedWordWakeCfg *args)
 {
-    (void)word;
+    (void)args;
 }
 
 embed_word embed_clock_ns(void)
 {
     // Explicit cast takes the input to the width of the clock, which rolls at the word
     return (embed_word)nondet_size();
+}
+
+/** @brief The place of the thread, 0: the cellblock has no regions, and the turnstile table names the hook. */
+embed_u32 embed_thread_place(void)
+{
+    return 0u;
 }
 
 /** @brief The work of a pass: the writer can open while the pass is in, and the answer is 1 where it lands. */
@@ -106,7 +114,8 @@ static uintptr_t prove_work(SeriesCellularum *series, const void *context, size_
 static void prove_passed(void)
 {
     // Explicit cast takes the input to the width of the closed word
-    embed_atomic_word_store(&s_series.closed, (embed_atomic_word_value)nondet_size());
+    EMBED_CALL(embed_atomic_word_table.store, EmbedAtomicWordStoreCfg, .word = &s_series.closed,
+               .value = (embed_atomic_word_value)nondet_size());
     s_pauses = 0u;
     const uintptr_t answer = carcer_passed(&s_series, 1u, prove_work, NULL);
 
@@ -118,10 +127,13 @@ static void prove_passed(void)
 static void prove_shut(void)
 {
     // Explicit cast takes the input to the width of the closed word
-    embed_atomic_word_store(&s_series.closed, (embed_atomic_word_value)nondet_size());
+    EMBED_CALL(embed_atomic_word_table.store, EmbedAtomicWordStoreCfg, .word = &s_series.closed,
+               .value = (embed_atomic_word_value)nondet_size());
     s_pauses = 0u;
     carcer_shut(&s_series);
-    PROVE_ASSERT((embed_atomic_word_load(&s_series.closed) & CARCER_CLOSED) != 0u, "the writer holds the closed bit");
+    PROVE_ASSERT((EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &s_series.closed) &
+                  CARCER_CLOSED) != 0u,
+                 "the writer holds the closed bit");
 }
 
 int main(void)

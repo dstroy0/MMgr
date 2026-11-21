@@ -12,12 +12,12 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-A clean run is 265 tests and takes a few seconds. Every suite is built once per compile-time
-environment, and there are five of them: one `cmake` invocation builds every width. See
+A clean run is 265 tests and takes a few seconds. The build compiles every suite once per
+compile-time environment, and there are five of them: one `cmake` invocation builds every width. See
 @ref ref_environments.
 
-Three suites are skipped unless you ask for them, and the configure says so instead of dropping them
-quietly:
+The build skips three suites unless you ask for them, and the configure step says so and does not
+drop them quietly:
 
 ```
 -- MMgr: 3 suites NOT built, their capability is off:
@@ -54,11 +54,11 @@ int main(void)
     const size_t left = prison.work.buf_available();
 
     size_t at = 0;
-    at = EMBED_CALL(verba.put, VerbaCfg, .out = store, .cap = 256u, .at = at,
-                   .text = "bytes at hand: ");
-    at = EMBED_CALL(verba.uint, VerbaCfg, .out = store, .cap = 256u, .at = at, .val = (uint32_t)left);
+    at = EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = store, .cap = 256u, .at = at,
+                    .text = "bytes at hand: ");
+    at = EMBED_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = store, .cap = 256u, .at = at, .val = left);
 
-    const size_t len = EMBED_CALL(verba.finish, VerbaCfg, .out = store, .cap = 256u, .at = at);
+    const size_t len = EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = store, .cap = 256u, .at = at);
     if (len == 0u) {
         return 2;
     }
@@ -68,18 +68,19 @@ int main(void)
 }
 ```
 
-Three things in that listing are the library's whole personality:
+Three things in that program are the library's whole personality:
 
-- **The 4096 is the only size decision**, and it is made at compile time, in the pool declaration.
+- **The 4096 is the only size decision**, and the pool declaration makes it at compile time.
   `ParsMemoriaeInternae` emits the storage and its alignment; `LocusCarcerum` emits each cellblock's
   state and the static asserts that the pool is a legal size for one. Neither is a call, and nothing
   runs at startup.
 - **`persistent_buf_alloc` borrows.** It allocates nothing from the heap: it passes back part of the
-  cellblock's own storage and moves a boundary, and what it returns dies when that tier unwinds. Its
-  second argument is the `CellOwner` the cell's bytes are counted to, one of the table MMGR_OWNERS positions,
-  and a take naming `NULL` or a pointer that is none of the table's is refused. See @ref concept_ownership.
-- **The error check is at the end**, not after every write, because a writer with no room returns
-  `cap` and every later writer does the same, and `finish` reports it. See @ref ref_error_handling.
+  cellblock's own storage and moves a boundary. What it returns dies when that tier unwinds. Its
+  second argument is the `CellOwner` that the cellblock counts the cell's bytes to, one of the table
+  MMGR_OWNERS positions. The cellblock refuses a take that names `NULL` or a pointer that is none of
+  the table's. See @ref concept_ownership.
+- **The error check is at the end**, not after every write. A writer with no room returns `cap`,
+  every later writer does the same, and `finish` reports it. See @ref ref_error_handling.
 
 ## Linking it
 
@@ -96,6 +97,6 @@ Arduino, and why there are no `install()` rules.
 
 ## Where to go from here
 
-- @ref guide_first_region: persist against interim, and giving a cell back
+- @ref guide_first_region: persist against interim, and how to give a cell back
 - @ref concept_architecture: how a region becomes pools, spans and rings
 - @ref nav_modules: the module you actually need

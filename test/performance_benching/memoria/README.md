@@ -4,13 +4,13 @@ Cycle-counter A/B of the region entries against the target's own libc, on silico
 ESP32-S3 (Xtensa LX7, 240 MHz) and ESP32-C6 (RISC-V, 160 MHz).
 
 `memor.cmp` against `memcmp`, `memor.chr` against `memchr`, `memor.cpy` against `memcpy` and
-`memor.set` against `memset`, over the same lengths and the same aligned fixture the cellularum bench
-uses, and so the two read against one libc.
+`memor.set` against `memset`. They run over the same lengths and the same aligned fixture as the
+cellularum bench, and so the two read against one libc.
 
 ## Build and run
 
 See `../cellularum/README.md` - the toolchain setup, the job cap and the LTO requirement are the same
-for every bench here, and are not repeated. Substitute this directory:
+for every bench here, and this page does not repeat them. Substitute this directory:
 
 ```powershell
 idf.py -C test/performance_benching/memoria -B build_esp32s3 -D SDKCONFIG=sdkconfig.esp32s3 set-target esp32s3
@@ -34,24 +34,23 @@ set 0.75; C6 cmp 0.97, chr 0.44, cpy 0.97, set 0.97. Every entry is at or under 
 
 ## What the walks do
 
-`cmp` and `chr` walk a word at a time. Both were rewritten off the same defect the string scans had:
-they rebuilt an extent mask on every word, where the count is settled before the loop and lanes past
-it can only fall in the last one, and `cmp` resolved _which_ lane differed on every word when the
-common case only needs to know whether two words differ at all. Whole words now run on an inequality
-test with no mask and the lane is resolved once, after the loop finds the word that differs.
+`cmp` and `chr` walk a word at a time. The walk knows the count before the loop. Lanes past it
+can fall only in the last word, so neither walk builds an extent mask on whole words. `cmp` needs to
+know only whether two words differ at all. Whole words run on an inequality test with no mask, and
+`cmp` resolves the lane once, after the loop finds the word that differs.
 
-`chr` broadcasts the sought byte once ahead of the walk instead of reaching `lane.eq`, which rebuilds
+`chr` broadcasts the sought byte once ahead of the walk and does not reach `lane.eq`, which rebuilds
 the broadcast from a byte on every call.
 
 `cpy` and `set` move four words an iteration. At one word the two pointer bumps, the counter and the
-branch cost as much as the move itself, and the measurement said so: 1.016 cycles/byte against ROM
-`memcpy`'s 0.646. Unrolled, they hold its rate exactly.
+branch cost as much as the move itself: 1.016 cycles/byte against ROM `memcpy`'s 0.646. With four
+words, they hold its rate exactly.
 
-That last one is worth being plain about: **`cpy` is parity and not a win.** ROM `memcpy` is
-hand-written assembly, and matching it from portable C word moves is the ceiling short of writing
-assembly or handing the move to DMA. It also cost flash - see the newlib section of
-@ref qa_optimization, where moving and comparing bytes is now larger than newlib's.
+That last one needs a plain statement: **`cpy` is parity and not a win.** ROM `memcpy` is
+hand-written assembly. Portable C word moves that match it are the ceiling, short of assembly or a
+hand-off of the move to DMA. It also costs flash - see the newlib section of @ref qa_optimization,
+where the code that moves and compares bytes is larger than newlib's.
 
-Unrolling `chr` the way `cellul_len` is unrolled was tried and lost, 6696 cycles to 6959 at 2048
-bytes. It already carries an xor and a `has_zero` per word, which is enough work to cover the load;
-there was no stall left for a second word to hide behind.
+A `chr` with four words an iteration, the way `cellul_len` runs, loses: 6959 cycles against 6696 at
+2048 bytes. It already carries an xor and a `has_zero` per word, which is enough work to cover the
+load. No stall stays for a second word to hide behind.

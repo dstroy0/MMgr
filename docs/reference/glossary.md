@@ -6,17 +6,17 @@ Every module, stem and verb in the library, and what it means in plain English.
 
 libc and `<string.h>` are everywhere, and these are not libc functions. They reach the same
 conclusion for the same input, across every domain: that is all they share. How they reach it is
-entirely different: the backend is machine-width parallel word processing throughout, bitmath is
-extensive, and SIMD within a register is used wherever it applies.
+entirely different. The backend works on machine-width words in parallel throughout, bitmath is
+extensive, and the backend uses SIMD within a register wherever it applies.
 
 A name that collided with libc's would advertise a drop-in replacement of the implementation as well
 as of the result. The names also retain the library clear of a consumer's own vocabulary and of the
 half-dozen other things in an embedded codebase already called `buffer`, `pool`, `arena` or `span`.
 
-That reason is alone. It is not decoration, and it is not obscurity for its own sake: a module
-called `spatium` can be grepped for with confidence, and a symbol called `mmgr_spat_from` cannot be
-confused with anybody else's span. The cost is this page, which is a fair trade for never having to
-rename anything again.
+That reason is alone. It is not decoration, and it is not obscurity for its own sake. You can
+grep for a module called `spatium` with confidence, and nobody can confuse a symbol called
+`mmgr_spat_from` with another span. The cost is this page, which is a fair trade: no name ever has to
+change again.
 
 `tools/dev_env/names.tsv` is the source of truth for the tables below.
 
@@ -52,7 +52,7 @@ The stem is the name of the module's dispatch table, and a call site reads it.
 The verbs are where the Latin does the max work, because the English words were the ones max
 likely to mislead.
 
-The public entries are English. A handle is assembled from its parts, `[lifetime]_[security]_[what
+The public entries are English. A handle comes from its parts, `[lifetime]_[security]_[what
 it is]_[action]`, with each part spent only where it disambiguates.
 
 | part       | values                    | what it settles                                                       |
@@ -71,8 +71,8 @@ all four.
 | `buf_grow`      | a cell made larger where it is | `realloc` moves a cell and reuses holes. This moves no other cell, and answers no where the cell is not its tier's newest |
 
 `temporary_buf_alloc` takes a cell from the temporary tier. `persistent_buf_release` takes **the cell
-itself**, of either tier, and gives it back, in any order, because the cell's own header carries its extent and its
-offset says which tier it lies in, and the release does not have to be told which one it is or when it was taken.
+itself**, of either tier, and gives it back, in any order. The cell's own header carries its extent, and its
+offset says which tier it lies in. So nobody has to tell the release which tier it is or when the take occurred.
 
 ## Types
 
@@ -92,7 +92,7 @@ The `embed_` types come from `embedded_types`, a separate library MMgr consumes.
 
 ## Other terms this documentation uses
 
-The prison is a teaching metaphor, and the vocabulary follows it end to end. Where memory management
+The prison is a metaphor that teaches, and the vocabulary follows it end to end. Where memory management
 already has the exact word, `persistent`, `temporary`, `alignment`, `header`, that word ships, and
 the metaphor stays behind the name.
 
@@ -114,9 +114,9 @@ the metaphor stays behind the name.
 | **latch**       | a flag that stays set once set. A run is checked once at the end                |
 
 The two axes are independent, and that independence is the part to retain. **Which custodia** is the
-environment. It is fixed at the cellblock's declaration and governs how a release behaves.
-**Persistent or temporary** is the sentence, how long the prisoner holds the cell, and it is chosen
-per allocation. A long sentence in general population is an ordinary thing, and so is a short stay in
+environment. The cellblock's declaration fixes it, and it governs how a release behaves.
+**Persistent or temporary** is the sentence, how long the prisoner holds the cell, and each
+allocation chooses it. A long sentence in general population is an ordinary thing, and so is a short stay in
 solitary.
 
 ## The naming law
@@ -124,13 +124,13 @@ solitary.
 Every public function is `mmgr_<infix>_<tail>`, where `<infix>` is the module's stem. `spat.from` is
 `mmgr_spat_from`, `memor.cpy` is `mmgr_memor_cpy`.
 
-`verbum_scrutor` is the exception: its three tables are named for what they operate on, `lane`,
+`verbum_scrutor` is the exception: its three tables take their names from what they operate on, `lane`,
 `mask`, `word`, while the functions all carry the module's own infix, and `lane.has_zero` is
 `mmgr_scrut_has_zero`.
 
-Three infixes do not name their module, and that is by design: they name
-distinct _concepts_ inside `proximus_operor`, and collapsing them onto one stem would merge things
-that are not the same thing:
+Three infixes do not name their module, and that is by design. They name
+distinct _concepts_ inside `proximus_operor`. One stem for all three would merge things that are not
+the same thing:
 
 | infix    | is                       |
 | -------- | ------------------------ |
@@ -138,5 +138,5 @@ that are not the same thing:
 | `aequus` | an aligned access        |
 | `migro`  | an access that may alias |
 
-Merging the aligned and unaligned load is a miscompile the compiler cannot report. See
+A merge of the aligned and unaligned load is a miscompile the compiler cannot report. See
 @ref mod_proxim_guide.

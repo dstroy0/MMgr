@@ -270,10 +270,34 @@ void test_a_cellblock_over_a_hospes_pool_refuses_every_take_until_placed_and_the
 
     TEST_ASSERT_NOT_NULL(persistent);
     TEST_ASSERT_NOT_NULL(temporary);
-    TEST_ASSERT_TRUE(((const uint8_t *)persistent >= s_given) && ((const uint8_t *)persistent < s_given + REGIONED_BYTES));
-    TEST_ASSERT_TRUE(((const uint8_t *)temporary >= s_given) && ((const uint8_t *)temporary < s_given + REGIONED_BYTES));
+    TEST_ASSERT_TRUE(((const uint8_t *)persistent >= s_given) &&
+                     ((const uint8_t *)persistent < s_given + REGIONED_BYTES));
+    TEST_ASSERT_TRUE(((const uint8_t *)temporary >= s_given) &&
+                     ((const uint8_t *)temporary < s_given + REGIONED_BYTES));
     given_site.given.persistent_buf_release(persistent, s_one);
     given_site.given.persistent_buf_release(temporary, s_two);
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_idle(&given_site_given_ctx));
+}
+
+void test_the_idle_reading_is_false_while_a_region_or_the_persistent_tier_holds_a_cell_and_true_when_unplaced(void)
+{
+    void *const temporary = GUARD->temporary_buf_alloc(PAYLOAD, s_one);
+
+    // a cell in a region: the persistent end is 0 and the top has not moved, and the region's depth answers
+    TEST_ASSERT_NOT_NULL(temporary);
+    TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(BLOCK));
+    TEST_ASSERT_FALSE(mmgr_series_cellularum_idle(BLOCK));
+    GUARD->persistent_buf_release(temporary, s_one);
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_idle(BLOCK));
+    void *const persistent = GUARD->persistent_buf_alloc(PAYLOAD, s_one);
+
+    TEST_ASSERT_NOT_NULL(persistent);
+    TEST_ASSERT_FALSE(mmgr_series_cellularum_idle(BLOCK));
+    GUARD->persistent_buf_release(persistent, s_one);
+    // a cellblock over a hospes pool that no program placed has size 0 and no cell out
+    mmgr_series_cellularum_emptied(&given_site_given_ctx);
+    given_site_given_ctx.base = NULL;
+    given_site_given_ctx.size = 0u;
     TEST_ASSERT_TRUE(mmgr_series_cellularum_idle(&given_site_given_ctx));
 }
 
@@ -321,7 +345,8 @@ static size_t s_thread_deepest[2];
 // Each thread's work: rounds of a take and its give in the thread's own region
 static void thread_took_and_gave(void)
 {
-    const unsigned int index = embed_atomic_u32_fetch_add(&s_thread_next, 1u);
+    const unsigned int index =
+        EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_thread_next, .value = 1u);
     size_t round;
 
     s_thread_region[index] = own_region();
@@ -338,7 +363,7 @@ static void thread_took_and_gave(void)
 
 void test_two_threads_that_take_and_give_in_regions_of_their_own_never_deepen_one_past_their_cell(void)
 {
-    embed_atomic_u32_store(&s_thread_next, 0u);
+    EMBED_CALL(embed_atomic_u32_table.store, EmbedAtomicU32StoreCfg, .word = &s_thread_next, .value = 0u);
     TEST_ASSERT_TRUE(mmgr_host_threads_run(thread_took_and_gave, 2u));
     TEST_ASSERT_EQUAL_size_t(0u, depth_of(0u));
     TEST_ASSERT_EQUAL_size_t(0u, depth_of(1u));

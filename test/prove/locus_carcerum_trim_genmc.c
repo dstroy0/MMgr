@@ -71,6 +71,7 @@ int main(void)
     // the gap, read first, runs any trim a give left owed on the open word
     (void)mmgr_buf_available(GENMC_BLOCK);
     assert(mmgr_series_cellularum_temporary_top(GENMC_BLOCK) == GENMC_BYTES);
-    assert((embed_atomic_word_load(&GENMC_BLOCK->closed) & (CARCER_CLOSED | CARCER_TRIM_PENDING)) == 0u);
+    assert((EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &GENMC_BLOCK->closed) &
+            (CARCER_CLOSED | CARCER_TRIM_PENDING)) == 0u);
     return 0;
 }

@@ -77,7 +77,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/cellularum_laboro/test_cellularum_linea\\test_cellularum_linea.c");
+  UnityBegin("test/unit/cellularum_laboro/test_cellularum_linea/test_cellularum_linea.c");
   run_test(test_length_counts_the_bytes_before_the_terminator, "test_length_counts_the_bytes_before_the_terminator", 21);
   run_test(test_equal_answers_true_only_where_both_end_together, "test_equal_answers_true_only_where_both_end_together", 29);
   run_test(test_starts_answers_true_where_the_prefix_ends_first, "test_starts_answers_true_where_the_prefix_ends_first", 37);

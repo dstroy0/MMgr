@@ -75,7 +75,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/memoria_operor/test_memoria_linea\\test_memoria_linea.c");
+  UnityBegin("test/unit/memoria_operor/test_memoria_linea/test_memoria_linea.c");
   run_test(test_copy_writes_the_source_into_a_region_apart, "test_copy_writes_the_source_into_a_region_apart", 32);
   run_test(test_move_is_a_copy_where_the_destination_lies_below_the_source, "test_move_is_a_copy_where_the_destination_lies_below_the_source", 43);
   run_test(test_move_is_a_copy_where_the_destination_lies_above_the_source, "test_move_is_a_copy_where_the_destination_lies_above_the_source", 53);

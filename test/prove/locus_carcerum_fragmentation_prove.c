@@ -32,9 +32,10 @@ int main(void)
 
     PROVE_ASSUME(end <= series->size);
     PROVE_ASSUME(in_use <= end);
-    embed_atomic_usize_store(&series->bounds,
-                             (((embed_atomic_usize_value)series->size << MMGR_CARCER_HALF_BITS) | end));
-    embed_atomic_usize_store(&series->persistent_in_use, in_use);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->bounds,
+               .value = (((embed_atomic_usize_value)series->size << MMGR_CARCER_HALF_BITS) | end));
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->persistent_in_use,
+               .value = in_use);
     PROVE_ASSERT(mmgr_series_cellularum_persistent_end(series) == end, "the harness positions the end it means");
     const size_t reading = mmgr_series_cellularum_fragmentation(series);
     PROVE_ASSERT(reading <= 100u, "fragmentation reads as a percent");

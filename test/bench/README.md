@@ -7,20 +7,20 @@ What the library costs, measured and not asserted.
     ./build/bench/swar16/bench_scrutor_swar16
 
 One binary per bench per environment, because the reading of interest is the comparison **between**
-environments. A SWAR bench built only at the host's lane width cannot show what widening the lane
+environments. A SWAR bench built only at the host's lane width cannot show what a wider lane
 bought.
 
 ## Reading a result
 
 Compare rows within one build. Do not compare a number here against a number from another machine,
-another compiler, or a machine that was doing something else at the time.
+another compiler, or a machine that did other work at the same time.
 
 The `nop` row runs the loop, the index derivation and the barrier and calls no module entry, and so it
 is the harness's own cost. A row that is not clearly above `nop` is noise and not a result.
 
-`cycles_per_byte` is `cycles_per_call / MMGR_SWAR_BYTES`. That is the column the design claim lives
-in: a wider lane answers for more bytes per register operation, and so cycles-per-byte should fall as
-the lane widens. It does, roughly halving per doubling, measured on gcc 13.2 `-O2`, x86-64:
+`cycles_per_byte` is `cycles_per_call / MMGR_SWAR_BYTES`. The design claim lives in that column. A
+wider lane answers for more bytes per register operation, and so cycles-per-byte should fall as the
+lane widens. It does: it falls to about half for each doubled width, on gcc 13.2 `-O2`, x86-64:
 
 | case     | 16-bit | 32-bit | 64-bit | 16 -> 64 |
 | -------- | -----: | -----: | -----: | -------: |
@@ -36,10 +36,10 @@ one row here that looks like a question and not an answer.
 ## Writing one
 
 Read `bench_harness.h` first, in particular the note on why the barrier alone is not enough. The
-short version: derive the argument from `bench_i_`, the loop counter `BENCH_TIME` declares. An
-argument that does not change is hoisted out of the loop even with the memory clobber in place, and
-the loop left behind times a counter while the work happens once. A bench whose reading does not
-move when `SPREAD` changes is almost certainly doing that.
+short version: derive the argument from `bench_i_`, the loop counter `BENCH_TIME` declares. The
+compiler hoists an argument that does not change out of the loop, even with the memory clobber in
+place. The loop that stays then times a counter, and the work occurs once. A bench whose reading
+does not move when `SPREAD` changes almost certainly has this defect.
 
 `results/` holds committed CSVs, and a change in these numbers shows as a diff. They are a record
 of one machine on one day and not a threshold: nothing fails a build over them.

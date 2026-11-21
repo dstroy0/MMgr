@@ -76,7 +76,7 @@ def library_sources(root, included=()):
         module = rel.split("/")[1]
         if rel in included:
             continue
-        if module in ("memoria_externa", "memoriam_praetereo", "confinium_exclusivum_infinitas", "confinium_externum"):
+        if module in ("memoria_externa", "memoriam_praetereo"):
             continue
         if module == "impensa_ancorae_acus" and not rel.endswith("impensa_ancorae_acus_generic.c"):
             continue

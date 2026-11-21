@@ -4,13 +4,13 @@ Word-at-a-time lane primitives. Branch-free, and the performance core of the lib
 
 ## When to reach for it
 
-- You are writing a scan over bytes and want it to run a word at a time.
+- You write a scan over bytes and want it to run a word at a time.
 - You need "does this word contain X" answered without a loop over its bytes.
-- You are implementing something in the `mem*` or `str*` shape and want the same engine the rest of
+- You implement something in the `mem*` or `str*` shape and want the same engine the rest of
   the library uses.
 
 Max callers never touch it directly: they use @ref mod_memor_guide or @ref mod_cellul_guide, which
-are built on it.
+sit on it.
 
 ## What it composes with
 
@@ -52,12 +52,12 @@ The entries split by what they operate on, and each has its own config struct.
 | `lane` | the lanes of a word | `ge`, `le`, `sub7`, `has_zero`, `eq`, `xor_`, `fam_eq`, `any_upper`, `any_digit`, `alpha`, `count`, `first`, `last` |
 | `mask` | a mask of lanes     | `spread`, `drop_first`, `drop_last`, `bytes_below`, `lanes_below`, `before`, `tail`, `run`, `run_edge`              |
 
-`lane.first` and `lane.last` are address order and not bit order. On a big-endian target they are wired
+`lane.first` and `lane.last` are address order and not bit order. On a big-endian target they connect
 to the opposite internal entries from a little-endian one. A caller never has to know which way
-the lanes run. `mask.drop_first` and `mask.drop_last` are wired the same way.
+the lanes run. `mask.drop_first` and `mask.drop_last` connect the same way.
 
-`lane.count` counts set lanes in a mask; `word.count` is unrelated and reports how many words cover
-a byte length.
+`lane.count` counts set lanes in a mask; `word.count` has no relation to it and reports how many
+words cover a byte length.
 
 ## Gotchas
 
@@ -66,14 +66,14 @@ reads `EMBED_WORD_BITS` directly, and so there is no second number to disagree w
 carrier is never faster: it moves the same cache line and answers for fewer lanes.
 
 **A gate may be a superset.** Some entries answer "possibly" and not "definitely" because a false
-yes only costs a re-check while a false no is a bug. Read the brief on each entry before assuming an
+yes only costs a re-check while a false no is a bug. Read the brief on each entry before you expect an
 exact answer.
 
 **There are no builtins here, deliberately.** Measured: the open-coded trailing-zero fold was 3.609
 cycles against 3.680 for `__builtin_ctzll`, and `__builtin_popcountll` is a libgcc call on baseline
 x86-64. See @ref concept_swar.
 
-**The bodies are in a `.c`, and the build has to be optimized for that to be free.** The internals
+**The bodies are in a `.c`, and the build has to optimize for that to be free.** The internals
 are `EMBED_INLINE` within the module, but the entries a caller reaches are ordinary functions in
 another translation unit. At `-O2` with LTO the bench binary contains no call to any of them: they
 inline through the dispatch table and through the archive. Built with no optimization the same calls

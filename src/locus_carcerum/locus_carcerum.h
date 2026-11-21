@@ -381,7 +381,7 @@ embed_bool mmgr_owner_listed(const CellOwner *owner);
 EMBED_INLINE size_t mmgr_owner_in_use(const CellOwner *owner)
 {
     // Explicit cast reads the word as the bytes it counts
-    return (size_t)embed_atomic_usize_load(&owner->in_use);
+    return (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &owner->in_use);
 }
 
 /**
@@ -393,7 +393,7 @@ EMBED_INLINE size_t mmgr_owner_in_use(const CellOwner *owner)
 EMBED_INLINE size_t mmgr_owner_hw(const CellOwner *owner)
 {
     // Explicit cast reads the word as the bytes it counts
-    return (size_t)embed_atomic_usize_load(&owner->hw);
+    return (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &owner->hw);
 }
 
 /**
@@ -650,7 +650,8 @@ typedef struct
 EMBED_INLINE size_t mmgr_series_cellularum_persistent_end(const SeriesCellularum *series)
 {
     // Explicit cast reads the word's low half as the offset it holds
-    return (size_t)(embed_atomic_usize_load(&series->bounds) & MMGR_CARCER_HALF_MASK);
+    return (size_t)(EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds) &
+                    MMGR_CARCER_HALF_MASK);
 }
 
 /**
@@ -664,7 +665,8 @@ EMBED_INLINE size_t mmgr_series_cellularum_persistent_end(const SeriesCellularum
 EMBED_INLINE size_t mmgr_series_cellularum_temporary_top(const SeriesCellularum *series)
 {
     // Explicit cast reads the word's high half as the offset it holds
-    return (size_t)(embed_atomic_usize_load(&series->bounds) >> MMGR_CARCER_HALF_BITS);
+    return (size_t)(EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds) >>
+                    MMGR_CARCER_HALF_BITS);
 }
 
 /**
@@ -678,7 +680,8 @@ EMBED_INLINE size_t mmgr_series_cellularum_region_depth(const SeriesCellularum *
 {
 #if MMGR_CARCER_REGIONS > 0u
     // Explicit cast reads the word as the bytes it counts
-    return (size_t)embed_atomic_usize_load(&series->regions[region].depth);
+    return (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                              .word = &series->regions[region].depth);
 #else
     (void)series;
     (void)region;
@@ -737,7 +740,7 @@ EMBED_INLINE size_t mmgr_series_cellularum_persistent_hw(const SeriesCellularum 
 {
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
     // Explicit cast reads the word as the bytes it counts
-    return (size_t)embed_atomic_usize_load(&series->persistent_hw);
+    return (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->persistent_hw);
 #else
     (void)series;
     return 0u;
@@ -754,7 +757,7 @@ EMBED_INLINE size_t mmgr_series_cellularum_temporary_hw(const SeriesCellularum *
 {
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
     // Explicit cast reads the word as the bytes it counts
-    return (size_t)embed_atomic_usize_load(&series->temporary_hw);
+    return (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->temporary_hw);
 #else
     (void)series;
     return 0u;

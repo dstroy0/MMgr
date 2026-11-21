@@ -11,20 +11,21 @@ Any time you would reach for `snprintf` and prefer not to link a formatter, or c
 ```c
 size_t at = 0;
 
-at = EMBED_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = "id=");
-at = EMBED_CALL(verba.uint,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .val = id);
-at = EMBED_CALL(verba.put,   VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .text = " rate=");
-at = EMBED_CALL(verba.fixed, VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .real = rate,
-               .decimals = 2);
-at = EMBED_CALL(verba.ch,    VerbaCfg, .out = buf, .cap = sizeof buf, .at = at, .ch = '\n');
+at = EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = sizeof buf, .at = at, .text = "id=");
+at = EMBED_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = buf, .cap = sizeof buf, .at = at, .val = id);
+at = EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = buf, .cap = sizeof buf, .at = at, .text = " rate=");
+at = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = buf, .cap = sizeof buf, .at = at, .real = rate,
+                .decimals = 2u);
+at = EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = buf, .cap = sizeof buf, .at = at, .ch = '\n');
 
-const size_t len = EMBED_CALL(verba.finish, VerbaCfg, .out = buf, .cap = sizeof buf, .at = at);
+const size_t len = EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = buf, .cap = sizeof buf, .at = at);
 if (len == 0u) {
-    }
+    /* the line did not fit */
+}
 ```
 
 The writers hold no state. Each one takes the position it should write at and returns the position
-after what it wrote, and so the cursor is the caller's `at` and nothing is carried between calls. A
+after what it wrote. So the cursor is the caller's `at`, and nothing carries over between calls. A
 writer with no room returns `cap`, which every later writer also returns. An overflow propagates
 to `finish` without a flag and `finish` reports it as a length of zero.
 
@@ -33,17 +34,19 @@ argument you passed.
 
 ## The entries, by job
 
-| job            | entries                                         |
-| -------------- | ----------------------------------------------- |
-| raw text       | `put`, `put_n`, `put_clip`, `ch`                |
-| unsigned       | `uint`, `u32`, `u32w`, `u64`, `u64_clip`, `hex` |
-| signed         | `i64`                                           |
-| floating point | `g`, `fixed`, `sign_bit`, `is_inf`, `is_nan`    |
-| escaping       | `xml`, `json`                                   |
-| finishing      | `finish`                                        |
+Each table takes its own argument struct.
 
-`put_n` takes the length with the text. A literal costs no scan: pass
-`sizeof "literal" - 1u`. `put` measures what it is given.
+| job            | table and struct                   | entries                                                |
+| -------------- | ---------------------------------- | ------------------------------------------------------ |
+| raw text       | `verba_textus`, `VerbaTextusCfg`   | `put`, `put_n`, `put_clip`                             |
+| escaping       | `verba_textus`, `VerbaTextusCfg`   | `xml`, `json`                                          |
+| one character  | `verba_littera`, `VerbaLitteraCfg` | `ch`                                                   |
+| numbers        | `verba_numerus`, `VerbaNumerusCfg` | `uint`, `u32`, `u32w`, `u64`, `u64_clip`, `hex`, `i64` |
+| floating point | `verba_fractio`, `VerbaFractioCfg` | `g`, `fixed`, `sign_bit`, `is_inf`, `is_nan`           |
+| finishing      | `verba_finis`, `VerbaFinisCfg`     | `finish`, `ok`                                         |
+
+`put_n` takes the length with the text, in `.text_len`. A literal costs no scan: pass
+`sizeof "literal" - 1u`. `put` measures what it gets.
 
 ## A line that carries its own cursor
 
@@ -64,16 +67,19 @@ mmgr_line_hex(&line, addr, 8u);
 const size_t len = mmgr_line_finish(&line);
 ```
 
-Every write leaves the buffer terminated, one store paid on every call, and a written line whose
-buffer holds no terminator has been corrupted by something other than the line. A line with no flush
-behaves as `snprintf` does: a write that does not fit retains what fits, terminated in the last byte,
-leaves the line full, and `finish` reports zero. `mmgr_line_put`, `mmgr_line_put_n` and
-`mmgr_line_put_max` answer the bytes of the text the line took, and a caller that sees fewer than
-the text holds goes on from `text + taken`, in the same buffer with `at` set to zero once those bytes are read. A line with a flush passes what it
-holds to the flush as it fills and goes on, and a text of any length passes through a buffer of any
-size. A flush answers 1 where it took the bytes and 0 where it refused, which leaves the line full. `mmgr_line_put`
-reads its text a room at a time and never past the terminator, and so it needs no bound on the
-text's length.
+Every write leaves the buffer terminated, at the cost of one store on every call. A written line
+whose buffer holds no terminator shows corruption from something other than the line. A line with no
+flush behaves as `snprintf` does. A write that does not fit retains what fits, terminated in the last
+byte, and leaves the line full, and `finish` reports zero.
+
+`mmgr_line_put`, `mmgr_line_put_n` and `mmgr_line_put_max` answer the bytes of the text the line
+took. A caller that sees fewer than the text holds goes on from `text + taken`. It uses the same
+buffer, with `at` set to zero once something reads those bytes. A line with a flush passes what it
+holds to the flush as it fills and goes on. So a text of any length passes through a buffer of any
+size. A flush answers 1 where it took the bytes and 0 where it refused, which leaves the line full.
+
+`mmgr_line_put` reads its text a room at a time and never past the terminator, and so it needs no
+bound on the text's length.
 
 | job       | entries                                                                 |
 | --------- | ----------------------------------------------------------------------- |
@@ -90,16 +96,16 @@ line does for `verba`. Each entry takes its arguments by value, and each header 
 therefore a C++ translation unit calls them as they are. An entry fills the members that its call reads and leaves
 every other member zero. The text compares fold no case.
 
-| job     | entries                                                                                       |
-| ------- | --------------------------------------------------------------------------------------------- |
+| job     | entries                                                                                         |
+| ------- | ----------------------------------------------------------------------------------------------- |
 | bytes   | `mmgr_bytes_copy`, `mmgr_bytes_move`, `mmgr_bytes_set`, `mmgr_bytes_compare`, `mmgr_bytes_find` |
 | text    | `mmgr_text_length`, `mmgr_text_equal`, `mmgr_text_starts`, `mmgr_text_char`, `mmgr_text_find`   |
-| copying | `mmgr_text_copy`                                                                              |
-| numbers | `mmgr_text_unsigned`                                                                          |
+| copying | `mmgr_text_copy`                                                                                |
+| numbers | `mmgr_text_unsigned`                                                                            |
 
 `theory/linea` proves each entry against the contract of its call. No call reads a member outside its own set. The
-move picks the upward walk where the destination lies at or below the source, and the downward walk otherwise, and
-it is a copy at every overlap and for blocks of any width. The compare answers 0 exactly where every byte agrees,
+move picks the upward walk where the destination lies at or below the source, and the downward walk otherwise.
+It is a copy at every overlap and for blocks of any width. The compare answers 0 exactly where every byte agrees,
 and each search answers the first place that holds what it seeks.
 
 ## Gotchas
@@ -108,12 +114,12 @@ and each search answers the first place that holds what it seeks.
 later writer returns `cap` too, and so the writes after an overflow are safe no-ops and `finish`
 reports zero. See @ref ref_error_handling.
 
-**`xml` and `json` escape, they do not quote.** You supply the surrounding quotes.
+**`xml` and `json` escape, they do not quote.** You supply the quotes around them.
 
 **`put_clip` truncates deliberately.** It is for a field with a max width, and it is not the same
 as running out of room.
 
-**Float formatting is exact bit work, not `printf`.** It goes through @ref mod_fract_guide.
+**A float goes out by exact bit work, not by `printf`.** It goes through @ref mod_fract_guide.
 
 @ref mod_verba "Generated reference"
 
@@ -130,8 +136,8 @@ Describe the layout once as an array and fill values in.
 
 ## Worked example
 
-Two arrays. The spec says what the record looks like and holds no data. The values are supplied
-separately and are consumed in order.
+Two arrays. The spec says what the record looks like and holds no data. The values come on
+their own, and `build` takes them in order.
 
 ```c
 static const mmgr_field row[] = {
@@ -148,10 +154,10 @@ EMBED_CALL(numer.build, NumerosCfg, .out = buf, .cap = sizeof buf,
           .spec = row, .vals = vals, .nvals = 2u);
 ```
 
-A literal is a `MMGR_FK_LIT` field carrying its own text and length, and so it costs no scan. Every
-other spec entry is a bare type taking no argument. There is a one-word macro for some of them,
-`MMGR_STR`, `MMGR_U32`, `MMGR_U64`, `MMGR_I64`, `MMGR_CH`, `MMGR_JSON`, `MMGR_XML`, `MMGR_END`
-(`src/numeros_scribo/numeros_scribo.h:60-85`), and the rest are written as the brace form above.
+A literal is a `MMGR_FK_LIT` field that carries its own text and length, and so it costs no scan.
+Every other spec entry is a bare type that takes no argument. There is a one-word macro for some of
+them, `MMGR_STR`, `MMGR_U32`, `MMGR_U64`, `MMGR_I64`, `MMGR_CH`, `MMGR_JSON`, `MMGR_XML`, `MMGR_END`
+(`src/numeros_scribo/numeros_scribo.h:60-85`), and the rest use the brace form above.
 `MMGR_FK_HEX`, `MMGR_FK_DEC`, `MMGR_FK_OCT`, `MMGR_FK_G` and `MMGR_FK_FIX` have no such macro.
 
 Four entries: `build` writes a record from a spec, `emit` writes values with no spec at all,
@@ -159,19 +165,19 @@ and `append` and `emit_append` add to a record already in the buffer.
 
 ## Why a spec array and not a format string
 
-A format string is parsed at runtime and nothing checks it against the arguments. Here the spec is a
+A program parses a format string at runtime, and nothing checks it against the arguments. Here the spec is a
 `const` array in flash, the type is an enum, and every value carries its own type tag. `build`
 compares the two and refuses the record if they disagree.
 
 ## Gotchas
 
-**`MMGR_END` terminates the spec.** Leaving it off runs off the end of the array.
+**`MMGR_END` terminates the spec.** Without it, the walk runs off the end of the array.
 
-**A type mismatch returns 0 and empties the buffer.** So does too few values, or too many. The
-record is written or it is not; there is no partial record.
+**A type mismatch returns 0 and empties the buffer.** So do too few values, or too many. The
+record is complete or absent; there is no partial record.
 
 **`emit` takes no spec.** Each value carries its own type and width, and so it is the entry to use when
-the layout is not fixed.
+the layout changes.
 
 @ref mod_numer "Generated reference"
 
@@ -179,8 +185,8 @@ the layout is not fixed.
 
 # Memoriam praetereo: transfer submission {#mod_praet_guide}
 
-@note Compiled only when `MMGR_ENABLE_DMA` is set, which defaults off. With it off the module is not
-in the library and its suite is skipped with a message instead of passing empty.
+@note The build compiles it only when `MMGR_ENABLE_DMA` is on, which defaults off. With it off the
+module is not in the library, and the build skips its suite with a message and does not pass it empty.
 
 ## What it is
 
@@ -197,42 +203,42 @@ const PraetCfg ch = {
 
 if (EMBED_CALL(praet.open, PraetCfg, .channel = ch.channel, .peripheral = ch.peripheral))
 {
-    EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 0, .buf = buf, .len = len);
+    EMBED_CALL(praet.tx_submit, PraetTransferCfg, .channel = 0, .buf = buf, .bytes = len);
     EMBED_CALL(praet.poll, PraetCfg, .channel = 0);
     EMBED_CALL(praet.close, PraetTransferCfg, .channel = 0);
 }
 ```
 
-There is no handle. The channel number identifies the transfer, and so nothing has to be stored between
+There is no handle. The channel number identifies the transfer, and so nothing needs storage between
 `open` and `close`. `open` and `tx_submit` return false when the channel is busy or out of range.
 
-A completion callback is optional: point `PraetCfg::on_complete` at a @ref PraetCallbackCfg and it
-is called with a @ref mmgr_praet_event describing what finished.
+A completion callback is optional: point `PraetCfg::on_complete` at a @ref PraetCallbackCfg, and the
+module calls it with a @ref mmgr_praet_event that describes what finished.
 
 ## The hardware hooks are weak
 
 The functions that actually touch a controller are `EMBED_WEAK`. A board support file overrides one
-by defining a symbol with the same name: no registration, no function pointer table, no init order
-to get right.
+with a definition of a symbol of the same name. There is no registration, no function pointer table,
+and no init order to get right.
 
-Without an override they are present and refuse every request, as lets
-`memoriam_praetereo` compile and its tests link on a host with no DMA controller at all.
+Without an override they are present and refuse every request. So `memoriam_praetereo` compiles,
+and its tests link on a host with no DMA controller at all.
 
 ## Gotchas
 
 **A submitted buffer must stay valid until the transfer completes** [BORROWS]. The module does not
-copy it and cannot tell when the controller is done: `poll` and the completion
+copy it and cannot tell when the controller finishes: `poll` and the completion
 callback report. Everywhere else in MMgr a lifetime ends at a mark you control; here it ends when
 the hardware says so.
 
-**Cache coherency is not handled here.** On a part with a data cache and a DMA engine that does not
+**This module does not handle cache coherency.** On a part with a data cache and a DMA engine that does not
 snoop it, the clean and invalidate are the board file's job.
 
-**The schedule's knobs are read only when the gate is on, and an unset one stops the build.**
+**The module reads the schedule's knobs only when the gate is on, and an unset one stops the build.**
 `PRAET_CHANNELS` and the rest arrive through `MMGR_PRAET_KNOBS`. See @ref ref_configuration.
 
 **`praet_hw_progress` is a fifth hook, with a weak default in `praet_ordo.c` that reports no
-movement.** A port that leaves it in place still gets the watchdog: a running channel nothing
-reports on is marked stalled once its keepalive window passes.
+movement.** A port that leaves it in place still gets the watchdog. A running channel that nothing
+reports on gets the stalled mark once its keepalive window passes.
 
 @ref mod_praet "Generated reference"

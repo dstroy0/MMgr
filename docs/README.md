@@ -2,13 +2,13 @@
 
 Zero-heap memory manager in C11.
 
-You declare a pool: a block of bytes, whose placement is settled by which declaration you write.
+You declare a pool: a block of bytes. The declaration you write settles its placement.
 `LocusCarcerum` dresses a pool as a cellblock, and a cellblock passes out cells from both ends. The
 persistent tier grows up from base, the temporary tier grows down from size, and the gap between them
 is what either can still take. An allocation neither the gap nor a free cell of its tier can meet returns NULL and moves no boundary.
-Spans are bounded views over cells, and rings move bytes between one producer and one consumer.
+Spans are views over cells, each with a bound, and rings move bytes between one producer and one consumer.
 
-Nothing calls `malloc`. Every size is fixed before the program runs. The footprint is a number you
+Nothing calls `malloc`. The build fixes every size before the program runs. The footprint is a number you
 can check against a budget before the program starts.
 
 ```c
@@ -36,11 +36,11 @@ const size_t len = EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = buf, .ca
 
 Each of these is a claim the documentation has to answer for, and each links to the page that does.
 
-- **Nothing allocates.** Storage is borrowed, never owned. @ref concept_zero_heap
+- **Nothing allocates.** The library borrows storage and never owns it. @ref concept_zero_heap
 - **One region, two tiers.** Persist grows up and interim grows down, each boundary one atomic word a
   take bumps by one fetch-add. @ref concept_architecture
 - **Scanning is SWAR, and the carrier is the machine word.** The benches measure it. @ref concept_swar
-- **The width is a compile-time knob, and every width is built.** Five environments, one build.
+- **The width is a compile-time knob, and the build makes every width.** Five environments, one build.
   @ref ref_environments
 - **Host-buildable and host-testable.** It reaches for no standard header. Its types, attributes and
   atomics come from embedded_types. @ref qa_testing
@@ -59,19 +59,19 @@ Each of these is a claim the documentation has to answer for, and each links to 
 ## A note on the names
 
 The modules carry Latin category names: `locus_carcerum` is the region and its pools, `spatium` is a
-span, `verbum_scrutor` is the SWAR scanner. Every one of them is decoded in @ref ref_glossary.
+span, `verbum_scrutor` is the SWAR scanner. The glossary, @ref ref_glossary, decodes every one of them.
 
 The reason is that libc and `<string.h>` are everywhere, and these are not libc functions. They
 reach the same conclusion for the same input, across every domain, and share nothing else. How they
 reach it is entirely different.
 
-The backend is machine-width parallel word processing throughout. Bitmath is extensive and SIMD
-within a register is used wherever it applies. That gives speed far above the traditional embedded
+The backend works on machine-width words in parallel throughout. Bitmath is extensive, and the
+backend uses SIMD within a register wherever it applies. That gives speed far above the traditional embedded
 string and memory routines in far less space. A name that collided with libc's would
 suggest a drop-in replacement of the implementation as well as the result, and it is not one.
 
-That difference is also why the testing is what it is. Every translation unit is fuzzed with bit
-strobing, bit waves, clock stretching and other abuse the internals will never meet in service. On
+That difference is also why the tests are what they are. The fuzzer drives every translation unit
+with bit strobes, bit waves, clock stretch and other abuse the internals will never meet in service. On
 top of that: interoperability against libc, newlib and GNU; correctness; binary size; and
 resource allocation lifetime cycles.
 
@@ -79,5 +79,5 @@ The call-site idiom follows from that. Each module exposes a dispatch table name
 and every entry takes one argument: a pointer to that module's config struct. `EMBED_CALL` builds it
 as a compound literal. A call reads
 `EMBED_CALL(spat.from, SpatiumCfg, .buf = buf, .cap = n)` with the arguments named instead of
-ordered. Both forms exist and both are documented; the free function is what the table points at.
+ordered. Both forms exist and the documentation covers both; the free function is what the table points at.
 @ref concept_ns_idiom

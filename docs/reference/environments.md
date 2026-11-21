@@ -1,13 +1,13 @@
 # The environment matrix {#ref_environments}
 
-Five sets of compile-time widths. The whole library and the whole test suite are built against every
-one of them, in one build.
+Five sets of compile-time widths. One build compiles the whole library and the whole test suite
+against every one of them.
 
 ## What an environment is
 
-An environment is one set of width macros. It is not a target, a toolchain or a board: it is the
-handful of numbers that make one machine different from another, turned into a compile-time knob so
-that a wide host can exercise a narrow machine's code paths without owning the narrow machine.
+An environment is one set of width macros. It is not a target, a toolchain or a board. It is the
+handful of numbers that make one machine different from another, as a compile-time knob. With it, a
+wide host can exercise a narrow machine's code paths, and nobody needs the narrow machine.
 
 `CMakeLists.txt` declares them as a flat list:
 
@@ -58,23 +58,16 @@ ctest --test-dir build -R '_word16$' --output-on-failure
 
 ## Why these five
 
-`word16` and `idx16` are the two that earn their place usually. A SWAR scan is written once and
-runs at whatever the carrier is; the tail, the bytes after the last whole word, is where an
-off-by-one hides, and a 16-bit carrier reaches that tail four times sooner than a 64-bit one.
-`idx16` exists because a narrow index against a wide word is the combination nothing else covers,
-and it is what the static asserts in `embed_types.h` are there to catch.
+`word16` and `idx16` are the two that earn their place usually. You write a SWAR scan once, and it
+runs at whatever the carrier is. The tail, the bytes after the last whole word, is where an
+off-by-one hides. A 16-bit carrier reaches that tail four times sooner than a 64-bit one.
+`idx16` exists because nothing else covers a narrow index against a wide word. The static asserts
+in `embed_types.h` are there to catch that combination.
 
-`checks` is not a width at all. It compiles in the library's checks and selects the trapping
-`MMGR_ASSERT`, which turns a broken precondition from a silent no-op into a failed test. It is the
-only environment where an assert is evaluated. An expectation that is never exercised there
-is one nothing has ever tested.
-
-## A note about earlier names
-
-Two environments called `swar16` and `swar32` used to exist. They set the _scan lane_ narrower than
-the machine word, a configuration no real target has, because the carrier is the machine word on
-every machine. They were replaced by narrowing the whole machine instead, which is a case that does
-exist. If you find `swar16` in a path or a comment, it is stale.
+`checks` is not a width at all. It compiles in the library's checks and selects the `MMGR_ASSERT`
+that traps, which turns a broken precondition from a silent no-op into a failed test. It is the
+only environment that evaluates an assert. An expectation that nothing exercises there
+is an expectation that no test checks.
 
 ## Adding one
 
@@ -92,8 +85,8 @@ set(MMGR_ENVIRONMENTS
 ```
 
 Every module target, every aggregate and every test registration follows from it. Nothing central
-lists the modules, and so nothing central has to be retained in step.
+lists the modules, and so nothing central needs a change.
 
-@note The generated API reference on this site is produced at one configuration, 64-bit word,
-32-bit index, because Doxygen must resolve `embed_word` to a single concrete type. The other four
+@note Doxygen produces the generated API reference on this site at one configuration, 64-bit word
+and 32-bit index. Doxygen must resolve `embed_word` to a single concrete type. The other four
 environments differ only in those typedefs. See `PREDEFINED` in `docs/Doxyfile`.

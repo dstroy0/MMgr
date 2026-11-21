@@ -137,15 +137,15 @@ void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner
     (void)cell_owner;
     (void)bytes;
     s_misnamed += 1u;
-    embed_atomic_usize_store(&s_turnstile_taken, 1u);
-    while (embed_atomic_usize_load(&s_hold_turnstile) != 0u)
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_turnstile_taken, .value = 1u);
+    while (EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_hold_turnstile) != 0u)
     {
         mmgr_host_threads_yield();
     }
     if (s_hook_watched != NULL)
     {
-        embed_atomic_usize_store(&s_moved_under_pass,
-                                 (mmgr_owner_of_buf(&single_narrow_ctx, s_hook_watched) != NULL) ? 1u : 0u);
+        EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_moved_under_pass,
+                   .value = (mmgr_owner_of_buf(&single_narrow_ctx, s_hook_watched) != NULL) ? 1u : 0u);
     }
 }
 
@@ -172,13 +172,13 @@ void setUp(void)
     mmgr_series_cellularum_emptied(&single_narrow_ctx);
     mmgr_series_cellularum_emptied(&unassigned_bare_ctx);
     mmgr_series_cellularum_emptied(&crowded_crowd_ctx);
-    embed_atomic_u32_store(&s_next_index, 0u);
-    embed_atomic_usize_store(&s_writers_done, 0u);
-    embed_atomic_usize_store(&s_moves, 0u);
-    embed_atomic_usize_store(&s_lost, 0u);
-    embed_atomic_usize_store(&s_refused, 0u);
-    embed_atomic_usize_store(&s_hold_turnstile, 0u);
-    embed_atomic_usize_store(&s_turnstile_taken, 0u);
+    EMBED_CALL(embed_atomic_u32_table.store, EmbedAtomicU32StoreCfg, .word = &s_next_index, .value = 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_writers_done, .value = 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_moves, .value = 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_lost, .value = 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_refused, .value = 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_hold_turnstile, .value = 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_turnstile_taken, .value = 0u);
     s_ticks_left = 0u;
     s_tick = 0u;
     s_turn_on_tick = 0u;
@@ -194,7 +194,7 @@ void setUp(void)
     s_thread_id = 0u;
     s_take_when_misnamed = NULL;
     s_hook_watched = NULL;
-    embed_atomic_usize_store(&s_moved_under_pass, 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_moved_under_pass, .value = 0u);
     s_misnamed = 0u;
     option_assigned();
 }
@@ -652,7 +652,9 @@ void test_the_temporary_tier_reads_no_fragmentation(void)
     plain.moving.persistent_buf_release(below, s_mover);
     plain.moving.persistent_buf_release(persistent, s_mover);
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_fragmentation(&plain_moving_ctx));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u,
+                                     (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                        .word = &plain_moving_ctx.persistent_in_use),
                                      "every persistent cell is counted back");
 }
 
@@ -662,20 +664,26 @@ void test_a_cell_counts_to_the_tier_it_lies_in(void)
 
     TEST_ASSERT_NOT_NULL(hole);
     TEST_ASSERT_NOT_NULL(plain.moving.temporary_buf_alloc(64u, s_mover));
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use));
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                    .word = &plain_moving_ctx.persistent_in_use));
     while (plain.moving.persistent_buf_alloc(64u, s_mover) != NULL)
     {
     }
-    const size_t persistent = (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use);
+    const size_t persistent = (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                 .word = &plain_moving_ctx.persistent_in_use);
 
     TEST_ASSERT_TRUE(persistent != 0u);
     plain.moving.persistent_buf_release(hole, s_mover);
     TEST_ASSERT_NULL_MESSAGE(plain.moving.persistent_buf_alloc(512u, s_mover),
                              "a persistent take retains to its tier: the free temporary cell is the other tier's");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(persistent, (size_t)embed_atomic_usize_load(&plain_moving_ctx.persistent_in_use),
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(persistent,
+                                     (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                        .word = &plain_moving_ctx.persistent_in_use),
                                      "nothing counted to the persistent tier");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(persistent + 64u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use),
-                                     "the temporary cell left counts to the cellblock");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        persistent + 64u,
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &plain_moving_ctx.in_use),
+        "the temporary cell left counts to the cellblock");
 }
 
 void test_each_series_cellularum_retains_its_own_running_total(void)
@@ -683,12 +691,16 @@ void test_each_series_cellularum_retains_its_own_running_total(void)
     void *const here = plain.moving.persistent_buf_alloc(512u, s_mover);
     void *const there = unassigned.bare.persistent_buf_alloc(512u, s_mover);
 
-    TEST_ASSERT_EQUAL_size_t(512u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
-    TEST_ASSERT_EQUAL_size_t(512u, (size_t)embed_atomic_usize_load(&unassigned_bare_ctx.in_use));
+    TEST_ASSERT_EQUAL_size_t(512u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                      .word = &plain_moving_ctx.in_use));
+    TEST_ASSERT_EQUAL_size_t(512u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                      .word = &unassigned_bare_ctx.in_use));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(1024u, mmgr_owner_in_use(s_mover), "the owner spans both");
     plain.moving.persistent_buf_release(here, s_mover);
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
-    TEST_ASSERT_EQUAL_size_t(512u, (size_t)embed_atomic_usize_load(&unassigned_bare_ctx.in_use));
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                    .word = &plain_moving_ctx.in_use));
+    TEST_ASSERT_EQUAL_size_t(512u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                      .word = &unassigned_bare_ctx.in_use));
     unassigned.bare.persistent_buf_release(there, s_mover);
 }
 
@@ -696,13 +708,16 @@ void test_the_running_total_follows_the_temporary_tier_and_a_growth(void)
 {
     void *const cell = plain.moving.temporary_buf_alloc(64u, s_mover);
 
-    TEST_ASSERT_EQUAL_size_t(64u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
+    TEST_ASSERT_EQUAL_size_t(64u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                     .word = &plain_moving_ctx.in_use));
     void *const grown = plain.moving.buf_grow(cell, 128u, s_mover);
 
     TEST_ASSERT_NOT_NULL(grown);
-    TEST_ASSERT_EQUAL_size_t(128u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
+    TEST_ASSERT_EQUAL_size_t(128u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                      .word = &plain_moving_ctx.in_use));
     plain.moving.persistent_buf_release(grown, s_mover);
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use));
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                    .word = &plain_moving_ctx.in_use));
 }
 
 void test_bytes_outside_any_series_cellularum_count_to_an_owner_alone(void)
@@ -710,7 +725,10 @@ void test_bytes_outside_any_series_cellularum_count_to_an_owner_alone(void)
     mmgr_owner_bytes_taken(s_other, 4096u);
     TEST_ASSERT_EQUAL_size_t(4096u, mmgr_owner_in_use(s_other));
     TEST_ASSERT_TRUE(mmgr_owner_hw(s_other) >= 4096u);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&plain_moving_ctx.in_use), "no cellblock's");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u,
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &plain_moving_ctx.in_use),
+        "no cellblock's");
     mmgr_owner_bytes_given(s_other, 4096u);
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_in_use(s_other));
 }
@@ -878,9 +896,10 @@ void test_a_pass_between_readings_is_not_a_quiet_reading(void)
 // The second runs the mover, whose sort finds a pass between its moves and backs off
 static void backoff_each(void)
 {
-    if (embed_atomic_u32_fetch_add(&s_next_index, 1u) == 0u)
+    if (EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_next_index, .value = 1u) ==
+        0u)
     {
-        while (embed_atomic_usize_load(&s_moves) == 0u)
+        while (EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_moves) == 0u)
         {
             plain.moving.persistent_buf_release(plain.moving.persistent_buf_alloc(16u, s_mover), s_mover);
         }
@@ -888,7 +907,7 @@ static void backoff_each(void)
     }
     s_ticks_left = MMGR_MOVABLE_QUIET_READINGS + 1u;
     mmgr_movable_run(&plain_moving_ctx);
-    embed_atomic_usize_store(&s_moves, 1u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_moves, .value = 1u);
 }
 
 void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_wait(void)
@@ -909,8 +928,9 @@ void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_w
     TEST_ASSERT_TRUE_MESSAGE((s_moving_told == 0u) || (s_max_wait >= MMGR_MOVABLE_READ_MS), "the wait is or doubled");
     assert_marked(one, 128u, 0x31u);
     assert_marked(two, 128u, 0x32u);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_word_load(&plain_moving_ctx.closed),
-                                     "the cellblock is open once the mover ends");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &plain_moving_ctx.closed),
+        "the cellblock is open once the mover ends");
 }
 
 // The thread that releases a movable cell with the wrong owner and is in its pass until the mover tells of a
@@ -919,12 +939,13 @@ static const CarcerMovableEntry *s_occupied_cell;
 
 static void occupied_each(void)
 {
-    if (embed_atomic_u32_fetch_add(&s_next_index, 1u) == 0u)
+    if (EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_next_index, .value = 1u) ==
+        0u)
     {
         (void)single.narrow.movable_buf_release(s_occupied_cell, s_other);
         return;
     }
-    while (embed_atomic_usize_load(&s_turnstile_taken) == 0u)
+    while (EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_turnstile_taken) == 0u)
     {
         mmgr_host_threads_yield();
     }
@@ -938,7 +959,7 @@ static void occupied_moving(embed_bool is_moving)
     script_moving(is_moving);
     if (is_moving)
     {
-        embed_atomic_usize_store(&s_hold_turnstile, 0u);
+        EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_hold_turnstile, .value = 0u);
     }
 }
 
@@ -959,12 +980,13 @@ void test_a_sort_waits_out_the_pass_under_way(void)
     TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&single_narrow_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
     s_occupied_cell = cell;
     s_hook_watched = low;
-    embed_atomic_usize_store(&s_hold_turnstile, 1u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_hold_turnstile, .value = 1u);
     TEST_ASSERT_TRUE(mmgr_host_threads_run(occupied_each, 2u));
     TEST_ASSERT_EQUAL_UINT_MESSAGE(1u, s_misnamed, "the release reached the hook inside its pass");
     TEST_ASSERT_TRUE_MESSAGE(s_moving_told >= 1u, "the sort started while the pass was");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_moved_under_pass),
-                                     "no move landed while the pass was");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_moved_under_pass),
+        "no move landed while the pass was");
     TEST_ASSERT_TRUE_MESSAGE(mmgr_owner_of_buf(&single_narrow_ctx, low) == s_mover, "and the move landed after it");
     TEST_ASSERT_TRUE(single.narrow.movable_buf_release(cell, s_mover));
 }
@@ -1000,6 +1022,40 @@ void test_a_program_that_gives_a_yield_and_no_move_report_has_its_sort_yield_wit
     TEST_ASSERT_TRUE_MESSAGE(single.narrow.buf_available() > gap, "and the tier's end came back");
     TEST_ASSERT_TRUE_MESSAGE(s_yields >= 1u, "the sort gave the processor back after its move");
     TEST_ASSERT_EQUAL_UINT_MESSAGE(0u, s_moving_told, "the program gave no move report, and so it heard none");
+    TEST_ASSERT_TRUE(single.narrow.movable_buf_release(cell, s_mover));
+}
+
+// A yield that makes one pass through the cellblock: a take, given back
+static void pass_yield(void)
+{
+    s_yields += 1u;
+    single.narrow.persistent_buf_release(single.narrow.persistent_buf_alloc(16u, s_mover), s_mover);
+}
+
+// The sort yields after each move, and the yield here makes a pass. So the sort reads a pass between its moves on
+// every run, with no second thread. It backs off, and the wait after it is twice MMGR_MOVABLE_READ_MS
+void test_a_yield_that_makes_a_pass_after_a_move_backs_the_sort_off_and_doubles_the_wait(void)
+{
+    memset(mmgr_pars_storage_narrow_option, 0, narrow_option_bytes);
+    TEST_ASSERT_TRUE(single.narrow.movable_init(&(CarcerMovableInitCfg){.storage = mmgr_pars_storage_narrow_option,
+                                                                        .storage_bytes = narrow_option_bytes,
+                                                                        .cells = MOVING_CELLS,
+                                                                        .width = 1u,
+                                                                        .thread_wait = script_wait,
+                                                                        .thread_yield = pass_yield}));
+    void *const low = single.narrow.persistent_buf_alloc(512u, s_mover);
+    const CarcerMovableEntry *const cell = single.narrow.movable_buf_alloc(128u, s_mover);
+
+    TEST_ASSERT_NOT_NULL(cell);
+    single.narrow.persistent_buf_release(low, s_mover);
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_fragmentation(&single_narrow_ctx) >= MMGR_MOVABLE_SETTLE_PERCENT);
+    s_yields = 0u;
+    // The quiet readings alone: the last of them sorts, and the wait the script hears after it is the sort's
+    s_ticks_left = MMGR_MOVABLE_QUIET_READINGS;
+    mmgr_movable_run(&single_narrow_ctx);
+    TEST_ASSERT_TRUE_MESSAGE(s_yields >= 1u, "the sort moved a cell and yielded");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(2u * MMGR_MOVABLE_READ_MS, s_last_wait,
+                                     "the sort backed off and the wait doubled");
     TEST_ASSERT_TRUE(single.narrow.movable_buf_release(cell, s_mover));
 }
 
@@ -1064,38 +1120,47 @@ static void *s_bit_taken;
 
 static void bit_each(void)
 {
-    if (embed_atomic_u32_fetch_add(&s_next_index, 1u) == 0u)
+    if (EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_next_index, .value = 1u) ==
+        0u)
     {
-        (void)embed_atomic_word_fetch_or(&plain_moving_ctx.closed, 1u);
-        embed_atomic_usize_store(&s_bit_held, 1u);
-        while (((embed_atomic_word_load(&plain_moving_ctx.closed) & 2u) == 0u) &&
-               (embed_atomic_usize_load(&s_bit_answered) == 0u))
+        (void)EMBED_CALL(embed_atomic_word_table.fetch_or, EmbedAtomicWordFetchOrCfg, .word = &plain_moving_ctx.closed,
+                         .value = 1u);
+        EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_bit_held, .value = 1u);
+        while (((EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &plain_moving_ctx.closed) &
+                 2u) == 0u) &&
+               (EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_bit_answered) == 0u))
         {
             mmgr_host_threads_yield();
         }
-        embed_atomic_usize_store(&s_bit_slept, (embed_atomic_word_load(&plain_moving_ctx.closed) >> 1u) & 1u);
-        (void)embed_atomic_word_fetch_and(&plain_moving_ctx.closed, ~(embed_atomic_word_value)3u);
-        embed_word_wake(&plain_moving_ctx.closed);
+        EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_bit_slept,
+                   .value = (EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg,
+                                        .word = &plain_moving_ctx.closed) >>
+                             1u) &
+                            1u);
+        (void)EMBED_CALL(embed_atomic_word_table.fetch_and, EmbedAtomicWordFetchAndCfg,
+                         .word = &plain_moving_ctx.closed, .value = ~(embed_atomic_word_value)3u);
+        EMBED_CALL(embed_turnstile_table.word_wake, EmbedWordWakeCfg, .word = &plain_moving_ctx.closed);
         return;
     }
-    while (embed_atomic_usize_load(&s_bit_held) == 0u)
+    while (EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_bit_held) == 0u)
     {
         mmgr_host_threads_yield();
     }
     s_bit_taken = plain.moving.temporary_buf_alloc(512u, s_mover);
-    embed_atomic_usize_store(&s_bit_answered, 1u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_bit_answered, .value = 1u);
 }
 
 void test_a_take_finding_the_series_cellularum_closed_waits_for_the_writer_and_is_not_refused(void)
 {
-    embed_atomic_usize_store(&s_bit_held, 0u);
-    embed_atomic_usize_store(&s_bit_answered, 0u);
-    embed_atomic_usize_store(&s_bit_slept, 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_bit_held, .value = 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_bit_answered, .value = 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_bit_slept, .value = 0u);
     s_bit_taken = NULL;
     TEST_ASSERT_TRUE(mmgr_host_threads_run(bit_each, 2u));
     TEST_ASSERT_NOT_NULL_MESSAGE(s_bit_taken, "the gap holds the take: the take waits for the writer");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, (size_t)embed_atomic_usize_load(&s_bit_slept),
-                                     "and sets the sleeper flag on the closed word while it waits");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        1u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_bit_slept),
+        "and sets the sleeper flag on the closed word while it waits");
     TEST_ASSERT_EQUAL_size_t(512u, mmgr_owner_in_use(s_mover));
 }
 
@@ -1135,7 +1200,8 @@ static void crowd_written(void)
             cell = crowded.crowd.movable_buf_alloc(sizeof(words), s_mover);
             if (cell == NULL)
             {
-                (void)embed_atomic_usize_fetch_add(&s_refused, 1u);
+                (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_refused,
+                                 .value = 1u);
                 continue;
             }
             count = 0u;
@@ -1146,7 +1212,8 @@ static void crowd_written(void)
         (void)crowded.crowd.movable_buf_read(&(CarcerMovableCfg){.cell = cell, .dst = words, .bytes = sizeof(words)});
         if (!crowd_holds(words, count))
         {
-            (void)embed_atomic_usize_fetch_add(&s_lost, 1u);
+            (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_lost,
+                             .value = 1u);
         }
         count += 1u;
         crowd_filled(words, count);
@@ -1161,22 +1228,25 @@ static void crowd_written(void)
     {
         (void)crowded.crowd.movable_buf_release(cell, s_mover);
     }
-    (void)embed_atomic_usize_fetch_add(&s_writers_done, 1u);
+    (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_writers_done,
+                     .value = 1u);
 }
 
 // The first thread moves cells until the last writer stops, the others write
 static void crowd_each(void)
 {
-    if (embed_atomic_u32_fetch_add(&s_next_index, 1u) != 0u)
+    if (EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_next_index, .value = 1u) !=
+        0u)
     {
         crowd_written();
         return;
     }
-    while (embed_atomic_usize_load(&s_writers_done) < CROWD_WRITERS)
+    while (EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_writers_done) < CROWD_WRITERS)
     {
         if (mmgr_movable_buf_move(&crowded_crowd_ctx))
         {
-            (void)embed_atomic_usize_fetch_add(&s_moves, 1u);
+            (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_moves,
+                             .value = 1u);
         }
         mmgr_host_threads_yield();
     }
@@ -1190,13 +1260,17 @@ void test_no_write_is_lost_while_another_thread_moves_the_cells(void)
                                                                         .cells = CROWD_WRITERS + 1u,
                                                                         .width = CROWD_WIDTH}));
     TEST_ASSERT_TRUE(mmgr_host_threads_run(crowd_each, CROWD_WRITERS + 1u));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_lost),
-                                     "a write landed in a copy left behind");
-    TEST_ASSERT_TRUE_MESSAGE((size_t)embed_atomic_usize_load(&s_moves) > 0u,
-                             "the case has to move cells to mean anything");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_lost),
+        "a write landed in a copy left behind");
+    TEST_ASSERT_TRUE_MESSAGE(
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_moves) > 0u,
+        "the case has to move cells to mean anything");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_mover), "every cell is counted back");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&crowded_crowd_ctx.in_use),
-                                     "by the cellblock too");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u,
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &crowded_crowd_ctx.in_use),
+        "by the cellblock too");
     // a give at the end while a move had the cellblock closed left its cell free in the tier. One give at the end with
     // no writer about trims every free cell below it
     crowded.crowd.persistent_buf_release(crowded.crowd.persistent_buf_alloc(16u, s_mover), s_mover);

@@ -101,7 +101,7 @@ void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner
     (void)named;
     (void)cell_owner;
     (void)bytes;
-    (void)embed_atomic_usize_fetch_add(&s_misnamed, 1u);
+    (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_misnamed, .value = 1u);
 }
 
 /** @brief The system's page in bytes. */
@@ -182,7 +182,8 @@ static uint64_t header_of(const uint8_t *payload)
 /** @brief One step appended to the trace with the boundaries as they are after it: its sequence number. */
 static uint32_t traced(unsigned int thread, unsigned int op, uint32_t off, size_t size)
 {
-    const uint32_t seq = embed_atomic_u32_fetch_add(&s_trace_next, 1u);
+    const uint32_t seq =
+        EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_trace_next, .value = 1u);
     StressTrace *const step = &s_trace[seq & (STRESS_TRACE_MAX - 1u)];
 
     step->thread = (uint8_t)thread;
@@ -191,8 +192,10 @@ static uint32_t traced(unsigned int thread, unsigned int op, uint32_t off, size_
     step->off = off;
     step->end = (uint32_t)mmgr_series_cellularum_persistent_end(s_block);
     step->top = (uint32_t)mmgr_series_cellularum_temporary_top(s_block);
-    step->over_end = (uint32_t)embed_atomic_usize_load(&s_block->persistent_overrun);
-    step->over_top = (uint32_t)embed_atomic_usize_load(&s_block->temporary_overrun);
+    step->over_end = (uint32_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                          .word = &s_block->persistent_overrun);
+    step->over_top = (uint32_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                          .word = &s_block->temporary_overrun);
     step->seq = seq;
     return seq;
 }
@@ -210,14 +213,14 @@ static int header_fits(uint64_t word, size_t bytes)
  */
 static void dumped(unsigned int thread, const StressHeld *held, uint64_t word)
 {
-    if (embed_atomic_u32_fetch_add(&s_broken, 1u) != 0u)
+    if (EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_broken, .value = 1u) != 0u)
     {
         for (;;)
         {
         }
     }
     const uint32_t off = off_of(held->payload);
-    const uint32_t now = embed_atomic_u32_load(&s_trace_next);
+    const uint32_t now = EMBED_CALL(embed_atomic_u32_table.load, EmbedAtomicU32LoadCfg, .word = &s_trace_next);
     const uint32_t from = (now > STRESS_TRACE_DISPLAYED) ? (now - STRESS_TRACE_DISPLAYED) : 0u;
     static const char *const names[8] = {"?", "P", "T", "R", "p!", "t!", "p?", "t?"};
 
@@ -226,8 +229,10 @@ static void dumped(unsigned int thread, const StressHeld *held, uint64_t word)
         "BROKEN thread %u cell off=%#x bytes=%zu tier=%s header=%#llx end=%#zx top=%#zx over_end=%#zx over_top=%#zx\n",
         thread, off, held->bytes, held->temporary ? "temporary" : "persistent", (unsigned long long)word,
         (size_t)mmgr_series_cellularum_persistent_end(s_block), (size_t)mmgr_series_cellularum_temporary_top(s_block),
-        (size_t)embed_atomic_usize_load(&s_block->persistent_overrun),
-        (size_t)embed_atomic_usize_load(&s_block->temporary_overrun));
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                           .word = &s_block->persistent_overrun),
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                           .word = &s_block->temporary_overrun));
     for (uint32_t seq = from; seq < now; seq += 1u)
     {
         const StressTrace *const step = &s_trace[seq & (STRESS_TRACE_MAX - 1u)];
@@ -250,13 +255,13 @@ static void dumped(unsigned int thread, const StressHeld *held, uint64_t word)
 /** @brief A take that landed on a word another live take holds: both steps and every step between them printed once. */
 static void overlapped(unsigned int thread, uint32_t seq, uint32_t off, size_t bytes, uint32_t other)
 {
-    if (embed_atomic_u32_fetch_add(&s_broken, 1u) != 0u)
+    if (EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_broken, .value = 1u) != 0u)
     {
         for (;;)
         {
         }
     }
-    const uint32_t now = embed_atomic_u32_load(&s_trace_next);
+    const uint32_t now = EMBED_CALL(embed_atomic_u32_table.load, EmbedAtomicU32LoadCfg, .word = &s_trace_next);
     const uint32_t oldest = (now > STRESS_TRACE_MAX - 64u) ? (now - (STRESS_TRACE_MAX - 64u)) : 0u;
     const uint32_t from = (other > oldest) ? other : oldest;
     static const char *const names[8] = {"?", "P", "T", "R", "p!", "t!", "p?", "t?"};
@@ -266,8 +271,10 @@ static void overlapped(unsigned int thread, uint32_t seq, uint32_t off, size_t b
             "over_end=%#zx over_top=%#zx\n",
             thread, seq, off, bytes, other, (size_t)mmgr_series_cellularum_persistent_end(s_block),
             (size_t)mmgr_series_cellularum_temporary_top(s_block),
-            (size_t)embed_atomic_usize_load(&s_block->persistent_overrun),
-            (size_t)embed_atomic_usize_load(&s_block->temporary_overrun));
+            (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                               .word = &s_block->persistent_overrun),
+            (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                               .word = &s_block->temporary_overrun));
     for (uint32_t at = from; at < now; at += 1u)
     {
         const StressTrace *const step = &s_trace[at & (STRESS_TRACE_MAX - 1u)];
@@ -296,7 +303,8 @@ static void shadowed(unsigned int thread, uint32_t seq, uint32_t off, size_t byt
     }
     for (uint32_t at = first; at < first + words; at += 1u)
     {
-        const uint32_t was = embed_atomic_u32_exchange(&s_shadow[at], seq + 1u);
+        const uint32_t was = EMBED_CALL(embed_atomic_u32_table.exchange, EmbedAtomicU32ExchangeCfg,
+                                        .word = &s_shadow[at], .value = seq + 1u);
 
         if (was != 0u)
         {
@@ -318,7 +326,7 @@ static void unshadowed(uint32_t off, size_t bytes)
     }
     for (uint32_t at = first; at < first + words; at += 1u)
     {
-        embed_atomic_u32_store(&s_shadow[at], 0u);
+        EMBED_CALL(embed_atomic_u32_table.store, EmbedAtomicU32StoreCfg, .word = &s_shadow[at], .value = 0u);
     }
 }
 
@@ -347,7 +355,8 @@ static void given(unsigned int thread, StressHeld *held, unsigned int *count, un
     }
     if (!intact(&held[at], mark))
     {
-        (void)embed_atomic_usize_fetch_add(&s_damaged, 1u);
+        (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_damaged,
+                         .value = 1u);
     }
     const uint32_t off = off_of(held[at].payload);
     unshadowed(off, held[at].bytes);
@@ -359,7 +368,8 @@ static void given(unsigned int thread, StressHeld *held, unsigned int *count, un
 
 static void each(void)
 {
-    const unsigned int index = embed_atomic_u32_fetch_add(&s_next, 1u);
+    const unsigned int index =
+        EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_next, .value = 1u);
     const CellOwner *const owner = s_own[index];
     const uint8_t mark = (uint8_t)(index + 1u);
     uint64_t state = s_seed ^ (0x9E3779B97F4A7C15ull * (uint64_t)(index + 1u));
@@ -377,7 +387,8 @@ static void each(void)
             uint8_t *const payload = mmgr_persistent_buf_alloc(s_block, bytes, owner);
             if (payload == NULL)
             {
-                (void)embed_atomic_usize_fetch_add(&s_refused, 1u);
+                (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_refused,
+                                 .value = 1u);
                 (void)traced(index, STRESS_OP_REFUSED_PERSISTENT, STRESS_OFF_NONE, bytes);
                 continue;
             }
@@ -385,7 +396,8 @@ static void each(void)
             memset(payload, mark, bytes);
             held[count] = (StressHeld){payload, bytes, 0};
             count += 1u;
-            (void)embed_atomic_usize_fetch_add(&s_taken, 1u);
+            (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_taken,
+                             .value = 1u);
             checked_all(index, held, count);
         }
         else if ((choice < 70u) && (count < STRESS_HELD_MAX))
@@ -394,7 +406,8 @@ static void each(void)
             uint8_t *const payload = mmgr_temporary_buf_alloc(s_block, bytes, owner);
             if (payload == NULL)
             {
-                (void)embed_atomic_usize_fetch_add(&s_refused, 1u);
+                (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_refused,
+                                 .value = 1u);
                 (void)traced(index, STRESS_OP_REFUSED_TEMPORARY, STRESS_OFF_NONE, bytes);
                 continue;
             }
@@ -402,7 +415,8 @@ static void each(void)
             memset(payload, mark, bytes);
             held[count] = (StressHeld){payload, bytes, 1};
             count += 1u;
-            (void)embed_atomic_usize_fetch_add(&s_taken, 1u);
+            (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_taken,
+                             .value = 1u);
             checked_all(index, held, count);
         }
         else if ((choice < 96u) && (count != 0u))
@@ -451,11 +465,11 @@ int main(int argc, char **argv)
     int failed = 0;
     for (unsigned int run = 0u; run < runs; run += 1u)
     {
-        embed_atomic_u32_store(&s_next, 0u);
-        embed_atomic_usize_store(&s_refused, 0u);
-        embed_atomic_usize_store(&s_taken, 0u);
-        embed_atomic_usize_store(&s_damaged, 0u);
-        embed_atomic_usize_store(&s_misnamed, 0u);
+        EMBED_CALL(embed_atomic_u32_table.store, EmbedAtomicU32StoreCfg, .word = &s_next, .value = 0u);
+        EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_refused, .value = 0u);
+        EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_taken, .value = 0u);
+        EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_damaged, .value = 0u);
+        EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_misnamed, .value = 0u);
         if (!mmgr_host_threads_run(each, threads))
         {
             fprintf(stderr, "run %u: the threads did not all start\n", run);
@@ -470,16 +484,20 @@ int main(int argc, char **argv)
         const size_t available = mmgr_buf_available(s_block);
         const size_t end = mmgr_series_cellularum_persistent_end(s_block);
         const size_t top = mmgr_series_cellularum_temporary_top(s_block);
-        const int clean = (located == 0u) && (end == 0u) && (top == bytes) && (available == bytes) &&
-                          (embed_atomic_usize_load(&s_damaged) == 0u) && (embed_atomic_usize_load(&s_misnamed) == 0u);
-        printf("run %u: taken=%llu refused=%llu damaged=%llu misnamed=%llu located=%llu end=%llu top=%llu "
-               "available=%llu %s\n",
-               run, (unsigned long long)embed_atomic_usize_load(&s_taken),
-               (unsigned long long)embed_atomic_usize_load(&s_refused),
-               (unsigned long long)embed_atomic_usize_load(&s_damaged),
-               (unsigned long long)embed_atomic_usize_load(&s_misnamed), (unsigned long long)located,
-               (unsigned long long)end, (unsigned long long)top, (unsigned long long)available,
-               clean ? "clean" : "BROKEN");
+        const int clean =
+            (located == 0u) && (end == 0u) && (top == bytes) && (available == bytes) &&
+            (EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_damaged) == 0u) &&
+            (EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_misnamed) == 0u);
+        printf(
+            "run %u: taken=%llu refused=%llu damaged=%llu misnamed=%llu located=%llu end=%llu top=%llu "
+            "available=%llu %s\n",
+            run,
+            (unsigned long long)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_taken),
+            (unsigned long long)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_refused),
+            (unsigned long long)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_damaged),
+            (unsigned long long)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_misnamed),
+            (unsigned long long)located, (unsigned long long)end, (unsigned long long)top,
+            (unsigned long long)available, clean ? "clean" : "BROKEN");
         fflush(stdout);
         failed = failed || !clean;
         mmgr_series_cellularum_emptied(s_block);

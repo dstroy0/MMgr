@@ -1,14 +1,13 @@
 # Every compile-time knob {#ref_configuration}
 
-**Purpose:** Set the library's widths, sizes and optional modules for your target, and know which of
-them are derived and never yours to set.
+**Purpose:** Set the library's widths, sizes and optional modules for your target. Know which of
+them derive from others and are never yours to set.
 **Scope:** `include/mmgr.h`, `deps/embedded_types/include/`, `CMakeLists.txt`
 **Author:** dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
 **Date:** 2026-08-30
 
-Nothing here is set at runtime. Every value below is a preprocessor define with a default: you
-set only what you are changing. The last section is the exception: those are CMake options and
-never defines.
+Nothing here changes at runtime. Every value below is a preprocessor define with a default: you set
+only what you change. The last section is the exception: those are CMake options and never defines.
 
 ## Widths
 
@@ -19,9 +18,9 @@ These come from `embedded_types`, not from MMgr, and carry its prefix.
 | `EMBED_WORD_BITS`  |           derived from `UINTPTR_MAX` | the SWAR carrier and `embed_word`. 64, 32 or 16 |
 | `EMBED_INDEX_BITS` | 32, or `EMBED_WORD_BITS` if narrower | the type of an offset into a region             |
 
-Setting `EMBED_WORD_BITS` narrower than the machine does not make anything faster: it makes the
-scanner answer for fewer bytes per load. It exists to let a wide host exercise a narrow machine's
-code paths. See @ref concept_swar.
+An `EMBED_WORD_BITS` narrower than the machine does not make anything faster: it makes the scanner
+answer for fewer bytes per load. It exists to let a wide host exercise a narrow machine's code
+paths. See @ref concept_swar.
 
 `embed_types.h` carries static asserts that police the combination; `idx16` is the environment that
 exists to reach them.
@@ -29,8 +28,8 @@ exists to reach them.
 ## Pools and cellblocks
 
 No knob sets a size here. **The size is in the declaration**:
-`ParsMemoriaeInternae(work, 4096)` states the extent where the storage exists, and
-`sizeof` is asserted against the count it was passed so the two cannot disagree.
+`ParsMemoriaeInternae(work, 4096)` states the extent where the storage exists. The pool asserts its
+`sizeof` against the count it gets, so the two cannot disagree.
 
 | knob                |              default | what it changes                                          |
 | ------------------- | -------------------: | -------------------------------------------------------- |
@@ -38,31 +37,42 @@ No knob sets a size here. **The size is in the declaration**:
 | `MMGR_CARCER_ALIGN` | `sizeof(embed_word)` | **derived.** The alignment every cell is passed out at   |
 | `MMGR_EXTRAM_ATTR`  |                empty | placement an external pool carries. The port supplies it |
 
-`MMGR_EXTRAM_ATTR` is named here and filled by the port, because which section a part puts external
+This page names `MMGR_EXTRAM_ATTR`, and the port fills it, because which section a part puts external
 memory in is the part's business. A build that enables external memory and leaves this empty gets
 pools placed wherever the linker puts an ordinary one, and nothing diagnoses that.
 
-These are the numbers you change after measuring. Do not guess them. See @ref guide_first_region
-for reading the high-water marks.
+These are the numbers you change after you measure. Do not guess them. See @ref guide_first_region
+for how to read the high-water marks.
 
 ## Workers and owners
 
-| knob                          | default | what it changes                                                    |
-| ----------------------------- | ------: | ------------------------------------------------------------------ |
-| `MMGR_CARCER_OWNERS`          |   `128` | the max owners a program's owner table holds                       |
-| `MMGR_MOVABLE_SETTLE_PERCENT` |    `25` | the fragmentation at which a cellblock's mover sorts               |
-| `MMGR_MOVABLE_READ_MS`        |   `100` | the milliseconds between the mover's readings                      |
-| `MMGR_MOVABLE_QUIET_READINGS` |     `3` | the readings in a row of low occupancy before it locks a turnstile |
-| `MMGR_MOVABLE_BACKOFF_MAX_MS` | `25600` | the longest it waits after a sort it backed off from               |
+| knob                             | default | what it changes                                                                                  |
+| -------------------------------- | ------: | ------------------------------------------------------------------------------------------------ |
+| `MMGR_CARCER_OWNERS`             |   `128` | the max owners a program's owner table holds                                                     |
+| `MMGR_MOVABLE_SETTLE_PERCENT`    |    `25` | the fragmentation at which a cellblock's mover sorts                                             |
+| `MMGR_MOVABLE_READ_MS`           |   `100` | the milliseconds between the mover's readings                                                    |
+| `MMGR_MOVABLE_QUIET_READINGS`    |     `3` | the readings in a row of low occupancy before it locks a turnstile                               |
+| `MMGR_MOVABLE_BACKOFF_MAX_MS`    | `25600` | the longest it waits after a sort it backed off from                                             |
+| `MMGR_MOVABLE_IDLE_MAX_MS`       |  `1000` | the longest it waits over a settled cellblock that no pass touched                               |
+| `MMGR_CARCER_REGIONS`            |     `0` | regions of the temporary tier, one per thread place modulo this; 0 is one shared stack           |
+| `MMGR_CARCER_REGION_BYTES`       |     `0` | bytes of each region, a multiple of `MMGR_CARCER_ALIGN`                                          |
+| `MMGR_CARCER_LARGE_REGION_BYTES` |     `0` | bytes of the one region every thread shares for a take over a region's room; 0 refuses that take |
 
-A cellblock is shared by every context that reaches it, with no switch and no lock. Every boundary,
-every cell's claim and every count is an atomic word from `embedded_types`, moved in one step each, and
-no context waits for another. The same build serves a host thread, a part's task and a GPU thread.
+Over a settled cellblock that no pass touched, each reading doubles the mover's wait up to
+`MMGR_MOVABLE_IDLE_MAX_MS`. A pass or a rise brings the next reading back to `MMGR_MOVABLE_READ_MS`.
 
-An owner's own counts, its bytes in use and its peak, are retained in the `CellOwner` record the program's
-owner table holds. `MMGR_OWNERS` positions the table once, as data, from the program's list of owners, and
-defines each owner's const pointer into it, which the owner's module names on every take, give and growth.
-A list longer than `MMGR_CARCER_OWNERS` fails the build. See @ref concept_ownership.
+The regions lie at the top of the cellblock, and the gap lies below them. A take goes to the region
+that `embed_thread_place()` selects, and a give goes to the region that holds the cell. The host
+defines `embed_thread_place` beside `embed_clock_ns`.
+
+Every context that reaches a cellblock shares it, with no switch and no lock. Every boundary, every
+cell's claim and every count is an atomic word from `embedded_types`, moved in one step each, and no
+context waits for another. The same build serves a host thread, a part's task and a GPU thread.
+
+The `CellOwner` record in the program's owner table retains an owner's own counts, its bytes in use
+and its peak. `MMGR_OWNERS` positions the table once, as data, from the program's list of owners. It
+also defines each owner's const pointer into it, which the owner's module names on every take, give
+and growth. A list longer than `MMGR_CARCER_OWNERS` fails the build. See @ref concept_ownership.
 
 ## Debug
 
@@ -74,11 +84,11 @@ A list longer than `MMGR_CARCER_OWNERS` fails the build. See @ref concept_owners
 The default `MMGR_ASSERT` retains its expression type-checked with `sizeof` and then discards it: it
 cannot rot and costs nothing.
 
-`MMGR_DEBUG_CHECKS=1` is all it takes to trap: `test/support/mmgr_host_traps.h` then supplies `MMGR_ASSERT`, as
-a report to `stderr` naming the expectation, the file and the line, followed by `abort()`. That
-report is the `checks` environment entire. Define `MMGR_ASSERT` yourself before including the header and
-neither form is used, the shape a target with no `stderr` and no `abort()` wants.
-See @ref ref_error_handling.
+`MMGR_DEBUG_CHECKS=1` is all it takes to trap: `test/support/mmgr_host_traps.h` then supplies
+`MMGR_ASSERT`. That form writes a report to `stderr` that names the expectation, the file and the
+line, and then calls `abort()`. That report is the `checks` environment entire. Define `MMGR_ASSERT`
+yourself before you include the header, and the library uses neither form. A target with no
+`stderr` and no `abort()` wants that shape. See @ref ref_error_handling.
 
 ## Optional modules
 
@@ -87,14 +97,14 @@ See @ref ref_error_handling.
 | `MMGR_ENABLE_DMA`    |     `0` | compiles `memoriam_praetereo/`, included from `mmgr.h` |
 | `MMGR_ENABLE_EXTRAM` |     `0` | compiles `memoria_externa/`, included from `mmgr.h`    |
 
-With these off, the modules are absent entirely, with no stubs. Their test suites are skipped with a
-CMake status message instead of being silently dropped.
+With these off, the modules are absent entirely, with no stubs. The build skips their test suites
+with a CMake status message and does not drop them silently.
 
 ## The DMA schedule
 
-Read only where `MMGR_ENABLE_DMA` is on. None of these has a value that is right for every part, and
-a build answers them. From CMake, pass them as one list in `MMGR_PRAET_KNOBS`, which reaches the
-library and every suite over it:
+The module reads these only where `MMGR_ENABLE_DMA` is on. None of these has a value that is right
+for every part, and a build answers them. From CMake, pass them as one list in `MMGR_PRAET_KNOBS`,
+which reaches the library and every suite over it:
 
 ```
 -DMMGR_PRAET_KNOBS="PRAET_CHANNELS=8u;PRAET_SETTLE_MICROS=40u;PRAET_KEEPALIVE_MICROS=250u;PRAET_RECOVERY=1;EMBED_CLOCK_HZ=240000000u;EMBED_CLOCK_SOURCE=EMBED_CLOCK_CALLER"
@@ -108,10 +118,10 @@ library and every suite over it:
 | `PRAET_RECOVERY`         |                           `0` | whether a stalled transfer can be backed out or scrubbed        |
 | `EMBED_CLOCK_HZ`         |                     `1000000` | ticks per second of the clock the deadlines are scaled from     |
 | `EMBED_CLOCK_SOURCE`     | derived from the architecture | `EMBED_CLOCK_CALLER` or `EMBED_CLOCK_OWN`                       |
-| `EMBED_CLOCK_CORE`       |   `EMBED_CLOCK_CORE_DEFAULT` | the core a pinned timer runs on, read only on `EMBED_CLOCK_OWN` |
+| `EMBED_CLOCK_CORE`       |    `EMBED_CLOCK_CORE_DEFAULT` | the core a pinned timer runs on, read only on `EMBED_CLOCK_OWN` |
 
-Each unset knob takes its default and raises a warning naming itself. After every knob has been
-read, `praet_iudex.h` stops the build once if any of them was unset. Define `MMGR_ACCEPT_DEFAULTS` to
+Each unset knob takes its default and raises a warning that names it. After the build reads every
+knob, `praet_iudex.h` stops the build once if any of them was unset. Define `MMGR_ACCEPT_DEFAULTS` to
 build on the defaults and retain the warnings as the record.
 
 ## Scanning and text
@@ -125,24 +135,24 @@ build on the defaults and retain the warnings as the record.
 | `MMGR_SIEVE_ROWS`      |                      `1` | needle offsets the search sieve tests per candidate word           |
 | `MMGR_FIND_CHAIN_MAX`  |               `SIZE_MAX` | longest haystack a one or two byte needle is settled by mask chain |
 
-`MMGR_RING_LOCULI_MAX` is derived, not a knob, and it is `EMBED_WORD_BITS` instead of a fixed 32:
-the free and busy masks are one `embed_word` each, one bit per loculus
+`MMGR_RING_LOCULI_MAX` derives from the word and is not a knob, and it is `EMBED_WORD_BITS` and not
+a fixed 32. The free and busy masks are one `embed_word` each, one bit per loculus
 (`src/memoria_anularis/memoria_anularis.c:308-309`), and the ceiling moves with the word width. A
-build declaring more loculi than that fails the static assert in
+build that declares more loculi than that fails the static assert in
 `src/memoria_anularis/memoria_anularis.h:84`.
 
-The byte-frequency profile is a CMake option taking a value in place of a set of defines:
+The byte-frequency profile is a CMake option that takes a value, in place of a set of defines:
 `-DMMGR_ANCORAE_FORMA=english`, and likewise `uri`, `inet`, `route` or `generic`. One profile is one
-translation unit, `src/impensa_ancorae_acus/CMakeLists.txt:7-15` selects the single source that
-carries the table, and the four not chosen are not in the image at all. It defaults to `generic`, and
-picking the wrong one costs speed and never correctness: the search still finds what is there. See
+translation unit. `src/impensa_ancorae_acus/CMakeLists.txt:7-15` selects the single source that
+carries the table, and the four not chosen are not in the image at all. It defaults to `generic`.
+The wrong one costs speed and never correctness: the search still finds what is there. See
 @ref mod_anchor_guide.
 
 `MMGR_FIND_CHAIN_MAX` defaults to no limit, which folds its test away: `read_cap <= SIZE_MAX` holds
-for every `size_t`. A default build emits no comparison. A one or two byte needle is settled by a
-mask chain, one broadcast per needle byte, every start position in the word decided at once, nothing
-to verify, in place of building the sieve, which exists to find a rare byte in a long needle and
-prove the rest once. Measured with a two byte needle, cycles for the whole call:
+for every `size_t`. A default build emits no comparison. A mask chain settles a one or two byte
+needle. It does one broadcast per needle byte and decides every start position in the word at once,
+with nothing to verify. The sieve does not run; it exists to find a rare byte in a long needle and prove the rest
+once. Measured with a two byte needle, cycles for the whole call:
 
 | n            |   8 |  64 |  2048 |
 | ------------ | --: | --: | ----: |
@@ -151,10 +161,11 @@ prove the rest once. Measured with a two byte needle, cycles for the whole call:
 | RISC-V chain | 124 | 488 | 13393 |
 | RISC-V sieve | 219 | 680 | 17059 |
 
-The chain wins at every length on both parts: nothing needs setting. The knob is retained because
-a measurement proves nothing about an unmeasured length; zero sends every needle through the sieve.
+The chain wins at every length on both parts: nothing needs a change. The library retains the knob
+because a measurement proves nothing about an unmeasured length; zero sends every needle through the
+sieve.
 
-Case folding always goes through the sieve: the chain compares raw bytes.
+A find that ignores case always goes through the sieve: the chain compares raw bytes.
 
 ## Platform
 
@@ -167,26 +178,27 @@ These come from `embedded_types` as well.
 | `EMBED_INLINE`              |    `static inline`, plus `always_inline` where available | how hot entries are inlined           |
 | `EMBED_FLATTEN`             | `__attribute__((flatten))` where available, else nothing | a caller's lever to inline an entry   |
 
-`EMBED_FLATTEN` is for a caller and never for the library. Put it on the one hot function that reaches an
-entry and the compiler inlines the entry into it, which the inliner otherwise declines to do on size
-even under link-time optimization. Measured on an ESP32-S3, `cellul.len` over eight bytes is 112
-cycles called and 80 inlined, a third of the work at that length. @ref ref_performance has the table
-and the caveats: it needs LTO, it costs the walk's code at every site that takes it, and a long scan
-amortizes the call and will not notice.
+`EMBED_FLATTEN` is for a caller and never for the library. Put it on the one hot function that
+reaches an entry, and the compiler inlines the entry into it. The inliner otherwise declines to do
+that on size, even under link-time optimization. Measured on an ESP32-S3, `cellul.len` over eight
+bytes is 112 cycles as a call and 80 inlined, a third of the work at that length.
 
-`EMBED_FAST_UNALIGNED_LOAD` is not whether an unaligned load _compiles_: every target accepts one
-through a type carrying `EMBED_RAW`, which is `EMBED_ALIGN(1)` and `EMBED_ALIAS`. It is whether the hardware does it in
-one instruction, or the compiler assembles the word out of byte loads and shifts. Measured on a
-single such load: ARMv7-M emits one `ldr`, Xtensa twelve instructions, RISC-V eleven. A walk that
-needs the word at an offset of one takes the load where it is one instruction and derives it from
-the word already in hand where it is a dozen.
+The page @ref ref_performance has the table and the caveats. It needs LTO, and it costs the walk's
+code at every site that takes it. A long scan amortizes the call and will not notice.
+
+`EMBED_FAST_UNALIGNED_LOAD` is not whether an unaligned load _compiles_. Every target accepts one
+through a type that carries `EMBED_RAW`, which is `EMBED_ALIGN(1)` and `EMBED_ALIAS`. It is whether
+the hardware does it in one instruction, or the compiler assembles the word out of byte loads and
+shifts. Measured on a single such load: ARMv7-M emits one `ldr`, Xtensa twelve instructions, RISC-V
+eleven. A walk that needs the word at an offset of one takes the load where it is one instruction.
+Where it is a dozen, the walk derives it from the word already in hand.
 
 It is not a statement about the family either. Cortex-M0 is ARMv6-M, has no unaligned access, and
-the macro reports it slow: the compiler answers through `__ARM_FEATURE_UNALIGNED`, which
+the macro reports it slow. The compiler answers through `__ARM_FEATURE_UNALIGNED`, which
 `-mno-unaligned-access` also turns off on a part that has it.
 
-Every compiler conditional lives in `embed_compiler_directives.h` by policy: supporting a new
-toolchain is one file to read. See @ref ref_compiler_support.
+Every compiler conditional lives in `embed_compiler_directives.h` by policy: a new toolchain is one
+file to read. See @ref ref_compiler_support.
 
 ## CMake options
 
@@ -199,7 +211,7 @@ These are build options and never preprocessor defines.
 | `MMGR_WERROR`      |   `OFF` | treat warnings as errors                                |
 | `MMGR_LTO`         |    `ON` | link-time optimization, where the toolchain supports it |
 
-One more thing the build does that is worth knowing: `MinSizeRel` normally means `-Os`, and `-Os`
-declines to inline the small branch-free entries that _are_ this library, and the calls it saves
-space on are the calls that cost the max. The top-level `CMakeLists.txt` rewrites `-Os` to `-O2`
-for that configuration. An embedded build reaching for `MinSizeRel` wants small, not slow-and-small.
+The build also does one more thing you should know. `MinSizeRel` normally means `-Os`, and `-Os`
+declines to inline the small branch-free entries that _are_ this library. The calls it saves space
+on are the calls that cost the max. The top-level `CMakeLists.txt` rewrites `-Os` to `-O2` for that
+configuration. An embedded build that reaches for `MinSizeRel` wants small, not slow-and-small.

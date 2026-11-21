@@ -1,7 +1,7 @@
 # The modules {#nav_modules}
 
 One guide per module: what it is for, when to reach for it, what it composes with, and the two or
-three things that bite. Signatures are not restated here - each guide links to its generated
+three things that bite. This page does not give the signatures again - each guide links to its generated
 reference.
 
 ## Region

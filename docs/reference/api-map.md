@@ -19,12 +19,12 @@ mmgr_<infix>_<tail>
 | `mmgr_memor_cmp`      | `memor`  | `memoria_operor`    |
 | `mmgr_cellul_len`     | `cellul` | `cellularum_laboro` |
 
-`locus_carcerum` is the exception. Its public entries are named for what they do and not for the
-module, `mmgr_persistent_buf_alloc`, `mmgr_temporary_buf_alloc`, `mmgr_buf_available`, and so there is
+`locus_carcerum` is the exception. Its public entries take their names from what they do and not from
+the module, `mmgr_persistent_buf_alloc`, `mmgr_temporary_buf_alloc`, `mmgr_buf_available`. So there is
 no `carcer` infix to read a module off. Reach them through a declared region's pools instead
 (`prison.work.persistent_buf_alloc`), and that is how the header presents them.
 
-And the dispatch table is named for the same stem, and so `spat.from` and `mmgr_spat_from` are the same
+And the dispatch table takes its name from the same stem, and so `spat.from` and `mmgr_spat_from` are the same
 function reached two ways. See @ref concept_ns_idiom.
 
 ## Stem to module
@@ -54,17 +54,17 @@ function reached two ways. See @ref concept_ns_idiom.
 ## The exceptions
 
 `verba_scribo/verba_linea.h` has no table. Its `mmgr_line_*` entries take a `VerbaLinea` and the
-value as plain arguments, and the header includes `mmgr.h` alone, and therefore a C++ translation unit reaches
-them without the designated initializers the module's tables are written with.
+value as plain arguments, and the header includes `mmgr.h` alone. Therefore a C++ translation unit reaches
+them without the designated initializers that the module's tables use.
 
 `memoria_operor/memoria_linea.h` and `cellularum_laboro/cellularum_linea.h` have no table either. Their
 `mmgr_bytes_*` and `mmgr_text_*` entries are the calls of `memor` and `cellul` with plain arguments, for the same
 reason.
 
 `proximus_operor` has one table, `proxim`, and retains its three **strategies** apart in the entry
-names instead: `load` and `put` are unaligned, `al_load` and `al_put` are aligned, and the may-alias
-part is `mmgr_migro_word`, the type they all move. Merging them is a miscompile the compiler cannot
-report, and so the naming retains them apart. `aequus` and `migro` are backend prefixes inside the `.c`
+names instead. `load` and `put` do unaligned access, `al_load` and `al_put` do aligned access, and the
+may-alias part is `mmgr_migro_word`, the type they all move. A merge of them is a miscompile the
+compiler cannot report, and so the names retain them apart. `aequus` and `migro` are backend prefixes inside the `.c`
 and a type name: neither is a table a caller reaches for.
 
 `verbum_scrutor` splits the other way: three tables, `lane`, `mask`, `word`, over one module, named
@@ -85,7 +85,7 @@ conversion needs. See @ref qa_numeric for what it is for.
 | `EMBED_<NAME>` | a macro or a constant from `embedded_types`                    |
 
 Every entry takes one `const <Pascal>Cfg *`, built at the call site with `EMBED_CALL`. A module
-whose state outlives a call names that state `<Pascal>Ctx` and the caller holds it; the cfg carries
+whose state outlives a call names that state `<Pascal>Ctx` and the caller holds it. The cfg carries
 a pointer to it and not the state itself.
 
 ## Finding it in the reference
@@ -96,5 +96,5 @@ a pointer to it and not the state itself.
 
 The search box indexes all three.
 
-@note `tools/dev_env/names.tsv` is the machine-readable version of this page, the table the naming
-law is enforced from.
+@note `tools/dev_env/names.tsv` is the machine-readable version of this page: the tools enforce the
+law of names from that table.

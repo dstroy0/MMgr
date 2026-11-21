@@ -24,28 +24,29 @@
 #define NOMINMAX
 #include <windows.h>
 
-int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value old_value, embed_word nanoseconds)
+int embed_word_wait(const EmbedWordWaitCfg *args)
 {
-    embed_atomic_word_value compare_value = old_value;
+    embed_atomic_word_value compare_value = args->old_value;
 
-    if (nanoseconds == 0u)
+    if (args->nanoseconds == 0u)
     {
-        return embed_atomic_word_load(word) != old_value;
+        return EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = args->word) != args->old_value;
     }
     // WaitOnAddress takes whole milliseconds. The limit rounds up, so a wait below one millisecond waits one.
     // Explicit casts widen the limit for the sum, and narrow the milliseconds, which Backoff.lean bounds at 1074
-    const DWORD timeout_ms =
-        (nanoseconds == EMBED_WAIT_INFINITE) ? INFINITE : (DWORD)(((embed_u64)nanoseconds + 999999ULL) / 1000000ULL);
+    const DWORD timeout_ms = (args->nanoseconds == EMBED_WAIT_INFINITE)
+                                 ? INFINITE
+                                 : (DWORD)(((embed_u64)args->nanoseconds + 999999ULL) / 1000000ULL);
 
-    (void)WaitOnAddress(&word->value, &compare_value, sizeof(compare_value), timeout_ms);
-    return embed_atomic_word_load(word) != old_value;
+    (void)WaitOnAddress(&args->word->value, &compare_value, sizeof(compare_value), timeout_ms);
+    return EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = args->word) != args->old_value;
 }
 
-void embed_word_wake(embed_atomic_word *word)
+void embed_word_wake(const EmbedWordWakeCfg *args)
 {
     // WakeByAddressAll takes the address of the word as a plain pointer. The address goes through uintptr_t, so no
     // cast removes the qualifier of the atomic value.
-    WakeByAddressAll((void *)(uintptr_t)&word->value);
+    WakeByAddressAll((void *)(uintptr_t)&args->word->value);
 }
 
 embed_word embed_clock_ns(void)
@@ -86,11 +87,11 @@ extern int __ulock_wake(uint32_t operation, void *address, uint64_t wake_value);
 #define HOST_ULOCK_NO_ERRNO 0x01000000u
 #endif
 
-int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value old_value, embed_word nanoseconds)
+int embed_word_wait(const EmbedWordWaitCfg *args)
 {
-    if (nanoseconds == 0u)
+    if (args->nanoseconds == 0u)
     {
-        return embed_atomic_word_load(word) != old_value;
+        return EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = args->word) != args->old_value;
     }
 #if defined(__linux__)
     // The futex compares 32 bits. On this little-endian host that is the whole word of 32 bits, or the low half of a
@@ -100,44 +101,45 @@ int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value old_value, 
     struct timespec span;
     // Explicit casts narrow the seconds and the nanoseconds of the limit. Backoff.lean bounds the limit at 2^30 ns,
     // and the nanoseconds are below 10^9, so both fit.
-    span.tv_sec = (time_t)(nanoseconds / 1000000000u);
-    span.tv_nsec = (long)(nanoseconds % 1000000000u);
-    (void)syscall(SYS_futex, (void *)(uintptr_t)&word->value, FUTEX_WAIT_PRIVATE, (unsigned int)old_value,
-                  (nanoseconds == EMBED_WAIT_INFINITE) ? NULL : &span, NULL, 0);
+    span.tv_sec = (time_t)(args->nanoseconds / 1000000000u);
+    span.tv_nsec = (long)(args->nanoseconds % 1000000000u);
+    (void)syscall(SYS_futex, (void *)(uintptr_t)&args->word->value, FUTEX_WAIT_PRIVATE, (unsigned int)args->old_value,
+                  (args->nanoseconds == EMBED_WAIT_INFINITE) ? NULL : &span, NULL, 0);
 #elif defined(__APPLE__)
     // __ulock_wait takes microseconds in 32 bits, 0 for no end. The limit rounds up, and Backoff.lean bounds it
     const uint32_t timeout_us =
-        (nanoseconds == EMBED_WAIT_INFINITE) ? 0u : (uint32_t)(((embed_u64)nanoseconds + 999ULL) / 1000ULL);
-    (void)__ulock_wait((sizeof(old_value) == 8u ? HOST_ULOCK_COMPARE_AND_WAIT64 : HOST_ULOCK_COMPARE_AND_WAIT) |
+        (args->nanoseconds == EMBED_WAIT_INFINITE) ? 0u : (uint32_t)(((embed_u64)args->nanoseconds + 999ULL) / 1000ULL);
+    (void)__ulock_wait((sizeof(args->old_value) == 8u ? HOST_ULOCK_COMPARE_AND_WAIT64 : HOST_ULOCK_COMPARE_AND_WAIT) |
                            HOST_ULOCK_NO_ERRNO,
-                       (void *)(uintptr_t)&word->value, (uint64_t)old_value, timeout_us);
+                       (void *)(uintptr_t)&args->word->value, (uint64_t)args->old_value, timeout_us);
 #else
     // A host with no address wait sleeps the limit, or one millisecond for no end, and the caller tests again
-    const embed_u64 sleep_ns = (nanoseconds == EMBED_WAIT_INFINITE) ? 1000000ULL : (embed_u64)nanoseconds;
+    const embed_u64 sleep_ns = (args->nanoseconds == EMBED_WAIT_INFINITE) ? 1000000ULL : (embed_u64)args->nanoseconds;
     struct timespec span;
     // Explicit casts narrow the seconds and the nanoseconds of the sleep. Backoff.lean bounds the limit at 2^30 ns,
     // and the nanoseconds are below 10^9, so both fit.
     span.tv_sec = (time_t)(sleep_ns / 1000000000u);
     span.tv_nsec = (long)(sleep_ns % 1000000000u);
-    if (embed_atomic_word_load(word) == old_value)
+    if (EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = args->word) == args->old_value)
     {
         (void)nanosleep(&span, NULL);
     }
 #endif
-    return embed_atomic_word_load(word) != old_value;
+    return EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = args->word) != args->old_value;
 }
 
-void embed_word_wake(embed_atomic_word *word)
+void embed_word_wake(const EmbedWordWakeCfg *args)
 {
 #if defined(__linux__)
-    (void)syscall(SYS_futex, (void *)(uintptr_t)&word->value, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, 0);
+    (void)syscall(SYS_futex, (void *)(uintptr_t)&args->word->value, FUTEX_WAKE_PRIVATE, INT_MAX, NULL, NULL, 0);
 #elif defined(__APPLE__)
     const uint32_t operation =
         (sizeof(embed_atomic_word_value) == 8u) ? HOST_ULOCK_COMPARE_AND_WAIT64 : HOST_ULOCK_COMPARE_AND_WAIT;
 
-    (void)__ulock_wake(operation | HOST_ULOCK_WAKE_ALL | HOST_ULOCK_NO_ERRNO, (void *)(uintptr_t)&word->value, 0u);
+    (void)__ulock_wake(operation | HOST_ULOCK_WAKE_ALL | HOST_ULOCK_NO_ERRNO, (void *)(uintptr_t)&args->word->value,
+                       0u);
 #else
-    (void)word;
+    (void)args->word;
 #endif
 }
 
@@ -180,7 +182,9 @@ embed_u32 embed_thread_place(void)
 {
     if (t_place_plus_one == 0u)
     {
-        t_place_plus_one = embed_atomic_u32_fetch_add(&s_places_given, 1u) + 1u;
+        t_place_plus_one = EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg,
+                                      .word = &s_places_given, .value = 1u) +
+                           1u;
     }
     return t_place_plus_one - 1u;
 }

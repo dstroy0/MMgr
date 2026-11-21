@@ -13,16 +13,16 @@ ctest --test-dir build --output-on-failure
 ```
 
 A clean run is 160 CTest targets. `test_memoriam_praetereo` and `test_memoria_externa` are not
-among them unless `MMGR_ENABLE_DMA` or `MMGR_ENABLE_EXTRAM` is on. They are skipped loudly, through
-`MMGR_SUITES_SKIPPED` and a CMake status message, because a silently dropped suite leaves a passing
-run that tested less than it looks like.
+among them unless `MMGR_ENABLE_DMA` or `MMGR_ENABLE_EXTRAM` is on. The build skips them loudly,
+through `MMGR_SUITES_SKIPPED` and a CMake status message. A suite that drops out silently leaves a
+green run that tested less than it looks like.
 
 A capability gates the whole suite, never a case inside one. A suite that compiles half its cases
-away still reports as passing.
+away still reports a pass.
 
 ## Formatting
 
-Three formatters, one per language, each owning its own files, alone. All three wrap at
+Three formatters, one per language, each the one owner of its own files. All three wrap at
 120 columns. A Python tool and the C it rewrites line up in a side-by-side diff.
 
 ```sh
@@ -32,13 +32,13 @@ npm run format
 ```
 
 CI checks and never rewrites. A formatter that rewrites on CI produces commits nobody reviewed and
-races the author's own push; the fix belongs in the working tree.
+races the author's own push; the fix belongs in the work tree.
 
 ## Comments
 
 Public headers carry Doxygen comments. Implementation files carry a comment only where the code
-cannot say it for itself - a bound that is not obvious, a cast that is essential, a failure mode
-you would see at runtime. A comment that restates the line is worse than none.
+cannot say it for itself. That is a bound that is not obvious, a cast that is essential, or a
+failure mode you would see at runtime. A comment that restates the line is worse than none.
 
 Every header opens with an SPDX line and a `@file` block. The group is `mod_<stem>`, the stem
 column of `tools/dev_env/names.tsv`, and `docs/groups.dox` already declares it - do not add a
@@ -59,8 +59,8 @@ column of `tools/dev_env/names.tsv`, and `docs/groups.dox` already declares it -
 ```
 
 A config struct documents its members with `@param` in the struct's own block. Do not repeat them
-on the entries that read it - they are aggregate-initialized members, not function parameters, and
-listing them as parameters of a one-argument function reads as a lie:
+on the entries that read it. They are members of an aggregate initializer, not function parameters.
+A list of them as parameters of a one-argument function reads as a lie:
 
 ```c
 /**
@@ -92,16 +92,16 @@ mmgr_span mmgr_spat_from(const SpatiumCfg *c);
 a borrow here, and so `[BORROWS]` is what you will write.
 
 Doxygen takes one branch of a `#if`. Put the doc block on the branch it takes, not above the
-`#if`, or the entity comes out undocumented - `docs/Doxyfile` sets `PREDEFINED` and that setting
+`#if`, or the entity comes out undocumented. `docs/Doxyfile` sets `PREDEFINED`, and that value
 decides which branch that is.
 
-Run `doxygen docs/Doxyfile` before committing. `WARN_IF_UNDOCUMENTED` is on. Anything you added
+Run `doxygen docs/Doxyfile` before you commit. `WARN_IF_UNDOCUMENTED` is on. Anything you added
 and did not document shows up in `docs/doxygen-warnings.log`.
 
 ## Adding a module
 
 1. A directory under `src/`.
-2. A three-line `CMakeLists.txt` calling `mmgr_add_module()`. Nothing central lists the modules, and so
+2. A three-line `CMakeLists.txt` that calls `mmgr_add_module()`. Nothing central lists the modules, and so
    there is no registry to retain in step.
 3. One line in `src/CMakeLists.txt`.
 4. One `@defgroup` in `docs/groups.dox`, placed where it belongs in the data path.
@@ -110,8 +110,8 @@ and did not document shows up in `docs/doxygen-warnings.log`.
 
 ## Documentation
 
-Anything in `docs/` that can be derived from the tree **is** derived from the tree and lives inside
-a generated region. Regenerate before committing:
+Anything in `docs/` that the tree can give **comes** from the tree and lives inside a generated
+region. Regenerate before you commit:
 
 ```sh
 python -m tools.ci_tooling.ci gen

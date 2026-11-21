@@ -74,7 +74,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/integration/test_tenant_lifecycle\\test_tenant_lifecycle.c");
+  UnityBegin("test/integration/test_tenant_lifecycle/test_tenant_lifecycle.c");
   run_test(test_the_two_series_cellularum_are_separate, "test_the_two_series_cellularum_are_separate", 27);
   run_test(test_the_allocation_puts_them_back_to_back, "test_the_allocation_puts_them_back_to_back", 41);
   run_test(test_max_security_release_zeroes_the_cell, "test_max_security_release_zeroes_the_cell", 51);

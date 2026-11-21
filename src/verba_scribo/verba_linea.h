@@ -233,7 +233,7 @@ void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant,
  *
  * @param[in,out] line The line [BORROWS].
  * @return             The length the line holds, or 0 where it is full.
- * @note A full line is terminated in its last byte and holds capacity minus one bytes.
+ * @note A full line holds the terminator in its last byte, and capacity minus one bytes before it.
  */
 size_t mmgr_line_finish(VerbaLinea *line);
 

@@ -136,9 +136,9 @@
 #define MMGR_ENABLE_DMA 0
 #endif
 /**
- * @brief Set to 1 to build the confinium_externum external memory path.
+ * @brief Set to 1 to build the memoria_externa external memory path.
  *
- * @note mmgr.h includes confinium_externum.h only when this holds.
+ * @note mmgr.h includes memoria_externa.h only when this holds.
  */
 #ifndef MMGR_ENABLE_EXTRAM
 

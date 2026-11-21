@@ -110,6 +110,7 @@ int main(void)
     assert(mmgr_series_cellularum_temporary_top(GENMC_BLOCK) == GENMC_BYTES);
     assert(mmgr_series_cellularum_persistent_end(GENMC_BLOCK) == 0u);
     assert(mmgr_owner_in_use(s_writer) == 0u);
-    assert((embed_atomic_word_load(&GENMC_BLOCK->closed) & (CARCER_CLOSED | CARCER_TRIM_PENDING)) == 0u);
+    assert((EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &GENMC_BLOCK->closed) &
+            (CARCER_CLOSED | CARCER_TRIM_PENDING)) == 0u);
     return 0;
 }

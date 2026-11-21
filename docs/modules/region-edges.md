@@ -12,7 +12,7 @@ keepouts.
 ## What it composes with
 
 It moves what @ref mod_confin_guide passed out. The segment view passes whole buffers **by index**,
-and nothing is copied across the boundary.
+and nothing crosses the boundary as a copy.
 
 ## Three things over the same bytes
 
@@ -24,10 +24,11 @@ The producer fills a segment and publishes its index; the consumer reads that in
 when done. The bytes never move.
 
 **Loculi.** `loculus_ready`, `loculus_next`, `loculus_hold`, `loculus_keepout`, `loculus_drop`,
-`loculus_mark`. A numbered hold that records a region to retain out of, for a reader walking bytes in
+`loculus_mark`. A numbered hold that records a region to retain out of, for a reader that walks bytes in
 place. Their free and pinned masks are one machine word each, and so `MMGR_RING_LOCULI_MAX` is
-`EMBED_WORD_BITS`. `MMGR_RING_LOCULI` is the build knob under that ceiling, and a static assert names
-it if it is set higher; a build with no use for them sets it to `0` and gets the keepout storage back.
+`EMBED_WORD_BITS`. `MMGR_RING_LOCULI` is the build knob under that ceiling.
+
+A static assert names it if a build sets it higher. A build with no use for them sets it to `0` and gets the keepout storage back.
 
 ## Worked example
 
@@ -41,16 +42,16 @@ EMBED_CALL(anularis.init, AnularisCfg, .ring = &ring, .buf = mmgr_pars_storage_r
            .capacity = ring_bytes_bytes, .segment_count = 8u);
 ```
 
-`MemoriaAnularis` declares the ring's storage and claims the pool. The claim stops those same
-bytes being dressed a second time, as a cellblock, or as another ring, which would put two sets of
-records over one region with nothing at run time to report it.
+`MemoriaAnularis` declares the ring's storage and claims the pool. The claim stops a second
+dress of those same bytes, as a cellblock or as another ring. That would put two sets of records
+over one region, with nothing at run time to report it.
 
 `.segment_bytes` gives the segments their size where the capacity divided by the count is not the size wanted. The
-capacity can then be any size that holds them, since a segment's place is its index times its size and the segment
-counters wrap by the count, which stays a power of two. Such a ring has no byte stream: `vacant` reads 0, `put` is
-refused and `read` takes nothing.
+capacity can then be any size that holds them. A segment's place is its index times its size, and the segment
+counters wrap by the count, which stays a power of two. Such a ring has no byte stream: `vacant` reads 0, `put`
+refuses, and `read` takes nothing.
 
-Filling and draining:
+To fill and to drain:
 
 ```c
 if (!EMBED_CALL(anularis.put, AnularisCfg, .ring = &ring, .src = msg, .bytes = n)) {
@@ -60,7 +61,7 @@ if (!EMBED_CALL(anularis.put, AnularisCfg, .ring = &ring, .src = msg, .bytes = n
 const size_t got = EMBED_CALL(anularis.read, AnularisCfg, .ring = &ring, .dst = out, .bytes = n);
 ```
 
-Passing whole segments by index instead, and so nothing is copied across the boundary:
+To pass whole segments by index instead, with no copy across the boundary:
 
 ```c
 size_t seg = 0;
@@ -87,24 +88,24 @@ acquire and release ordering is enough and no entry on those two needs a
 read-modify-write.
 
 **`put` is all or nothing.** It checks the whole span against `vacant` first. A partial write
-never happens and a half span is never visible. It answers `EMBED_FALSE` instead of writing what
+never happens, and no reader ever sees a half span. It answers `EMBED_FALSE` and does not write what
 fits.
 
 **`peek` copies what you ask for regardless of whether it arrived.** Read `available` first. A count above
-the ring's capacity is clamped there, since one lap is all two runs can express.
+the ring's capacity clamps to it there, since one lap is all two runs can express.
 
-**Nothing is ever zeroed.** A loculus retains its bytes after a drop. A restream can run again over
-the same region. Bytes read are not scrubbed behind the cursor either.
+**Nothing ever zeroes.** A loculus retains its bytes after a drop. A restream can run again over
+the same region. The ring does not scrub bytes behind the cursor either.
 
 **Capacity must be a power of two.** The index wrap is a mask. `nsegs` likewise, and at max `cap`.
 
-**The buffer is aligned before the ring gets it.** The ring does not check and has no way to.
+**Align the buffer before the ring gets it.** The ring does not check and has no way to.
 
-**`loculus_next` is a SWAR popcount fold and not a builtin.** Same reasoning as the rest of the library,
+**`loculus_next` is a SWAR popcount fold and not a builtin.** Same reasons as the rest of the library,
 see @ref concept_swar.
 
-**Self-contained.** It reaches nothing outside `config`: the span mover, the bit index and the span
-type it records are all defined in its own `.c`, which is also where the atomics of embedded_types stay.
+**Self-contained.** It reaches nothing outside `config`. Its own `.c` defines the span mover, the bit
+index and the span type it records, and the atomics of embedded_types stay there too.
 
 ## Reference
 
@@ -116,18 +117,18 @@ type it records are all defined in its own `.c`, which is also where the atomics
 
 Decides where a buffer should live when there is more than one type of memory.
 
-@note Compiled only when `MMGR_ENABLE_EXTRAM` is set. It defaults off, and its test suite is
-skipped loudly and not silently.
+@note The build compiles it only when `MMGR_ENABLE_EXTRAM` is on. It defaults off, and the build
+skips its test suite loudly and not silently.
 
 ## When to reach for it
 
-A part with both internal SRAM and external PSRAM, where the trade is real: internal is fast and
-scarce, external is large and slower, and some of it cannot be reached by DMA.
+A part with both internal SRAM and external PSRAM, where the trade is real. Internal is fast and
+scarce, external is large and slower, and DMA cannot reach some of it.
 
 ## What it does
 
-Every entry takes one argument pack, as the rest of the library does, and so the six figures are named
-and not positional:
+Every entry takes one argument pack, as the rest of the library does, and so the six figures have
+names and not positions:
 
 ```c
 const mmgr_place where = EMBED_CALL(exter.place, ExternaCfg, .size = want, .dma_required = needs_dma,
@@ -153,7 +154,7 @@ const uint8_t now = EMBED_CALL(exter.pingpong_swap, ExternaCfg, .pingpong = &pai
 ## Gotchas
 
 **`dma_required` is not advisory.** On parts where the DMA engine cannot address external memory,
-passing `EMBED_TRUE` stops the answer being `PLACE_PSRAM`.
+an `EMBED_TRUE` there stops the answer `PLACE_PSRAM`.
 
 **`PLACE_FAIL` is a real answer**, not an error code. Handle it.
 
@@ -170,8 +171,8 @@ Three access strategies. Not one thing under three names.
 ## The three
 
 One dispatch table, `proxim` (`src/proximus_operor/proximus_operor.h:218`). The strategy is in the
-entry name and not in a table of its own, and the may-alias part is in the type every entry
-moves and not in a third entry to pick.
+entry name and not in a table of its own. The may-alias part is in the type every entry moves, and
+not in a third entry to pick.
 
 | entry               | strategy  | use when                                                                            |
 | ------------------- | --------- | ----------------------------------------------------------------------------------- |
@@ -187,19 +188,19 @@ const uint32_t narrow = EMBED_CALL(proxim.load32, ProximusCfg, .at = p);
 
 ## Why they are not merged
 
-**Merging them is a miscompile the compiler cannot report.**
+**A merge of them is a miscompile the compiler cannot report.**
 
-An aligned load emitted for an address that is not aligned faults on some machines and silently
-returns a wrong value on others. A load without the may-alias marking lets the optimizer reorder it
-against a store it genuinely conflicts with, and the reordering is legal, because you told the
-compiler the pointers could not alias.
+An aligned load emitted for an address without that alignment faults on some machines and silently
+returns a wrong value on others. A load without the may-alias mark lets the optimizer reorder it
+against a store it genuinely conflicts with. That reorder is legal, because you told the compiler
+the pointers could not alias.
 
-This is also why `tools/dev_env/names.tsv` retains three infixes for one module. Collapsing them onto
-one stem merged seven symbol pairs, including the aligned and the unaligned load.
+This is also why `tools/dev_env/names.tsv` retains three infixes for one module. One stem for all
+three merges seven symbol pairs, the aligned and the unaligned load among them.
 
 ## Gotchas
 
-**`aequus` does not check.** It is a promise you are making and not a request to verify.
+**`aequus` does not check.** It is a promise you make and not a request to verify.
 
 **Unaligned is not always slower.** On x86-64 `proxim.u32` is one `mov`. The distinction matters max
 on parts where it is not.

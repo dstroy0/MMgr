@@ -23,3 +23,8 @@ heading
 giving
 threading
 scanning
+substring
+absorbing
+interleaving
+compiling
+twiddling

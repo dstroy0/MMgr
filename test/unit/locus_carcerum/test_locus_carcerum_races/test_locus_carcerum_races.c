@@ -79,12 +79,14 @@ void tearDown(void)
 // The open lanes of the cellblock's turnstiles that a pass or a contraction holds
 static size_t lanes_busy(void)
 {
-    const unsigned int open_lane_count = embed_turnstile_open_lane_count(&BLOCK->turnstiles);
+    const unsigned int open_lane_count =
+        EMBED_CALL(embed_turnstile_table.open_lane_count, EmbedTurnstileOpenLaneCountCfg, .set = &BLOCK->turnstiles);
     size_t busy_lane_count = 0u;
 
     for (unsigned int place = 0u; place < open_lane_count; place += 1u)
     {
-        const embed_atomic_word_value lane_word = embed_atomic_word_load(&BLOCK->turnstiles.lanes[place].word);
+        const embed_atomic_word_value lane_word = EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg,
+                                                             .word = &BLOCK->turnstiles.lanes[place].word);
 
         // Explicit cast widens the test of the busy bit to a count
         busy_lane_count += (size_t)((lane_word & EMBED_TURNSTILE_BUSY_BIT) != 0u);
@@ -140,9 +142,11 @@ void test_a_store_a_pass_must_not_land_lands_on_the_sink(void)
 
     TEST_ASSERT_EQUAL_PTR(carcer_word_at(BLOCK, 0u), live);
     TEST_ASSERT_EQUAL_PTR(&BLOCK->sink, sunk);
-    embed_atomic_usize_store(sunk, 77u);
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, 0u)),
-                                     "the cellblock's bytes are as they were");
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = sunk, .value = 77u);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u,
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = carcer_word_at(BLOCK, 0u)),
+        "the cellblock's bytes are as they were");
 }
 
 void test_a_word_whose_place_is_past_the_table_finds_no_owner(void)
@@ -181,46 +185,53 @@ void test_a_foot_is_counted_off_once_and_a_claim_not_permitted_touches_nothing(v
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_one), "the first claim counts the cell off");
     carcer_foot_claimed(BLOCK, off, PAYLOAD, carcer_all(1), carcer_all(1));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_one), "a second claim finds the completion bit set");
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&BLOCK->in_use));
+    TEST_ASSERT_EQUAL_size_t(
+        0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &BLOCK->in_use));
 }
 
 void test_a_bump_the_gap_cannot_meet_leaves_the_boundary_moved_records_the_overrun_and_positions_its_words_on_the_sink(
     void)
 {
-    const CarcerTakeCtx take = {RACED_BYTES, s_one, 0u, carcer_all(1)};
+    const CarcerTakeCtx take = {RACED_BYTES, s_one, 0u, carcer_all(1), 0u};
     const uintptr_t answer = carcer_bumped(BLOCK, &take, carcer_all(1));
 
     TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)answer);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES, mmgr_series_cellularum_persistent_end(BLOCK),
                                      "the end is where the bump moved it");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES,
-                                     (size_t)embed_atomic_usize_load(&BLOCK->persistent_overrun),
-                                     "the overrun records the bump's bytes");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, 0u)),
-                                     "no header was positioned");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        CARCER_HDR + RACED_BYTES,
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &BLOCK->persistent_overrun),
+        "the overrun records the bump's bytes");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u,
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = carcer_word_at(BLOCK, 0u)),
+        "no header was positioned");
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_in_use(s_one));
-    const CarcerTakeCtx down = {RACED_BYTES, s_one, carcer_all(1), carcer_all(1)};
+    const CarcerTakeCtx down = {RACED_BYTES, s_one, carcer_all(1), carcer_all(1), 0u};
 
     TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &down, carcer_all(1)));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(((size_t)RACED_BYTES - (CARCER_HDR + RACED_BYTES)) & (size_t)MMGR_CARCER_HALF_MASK,
                                      mmgr_series_cellularum_temporary_top(BLOCK),
                                      "the top is where the bump moved it, below zero within its half");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES,
-                                     (size_t)embed_atomic_usize_load(&BLOCK->temporary_overrun),
-                                     "the overrun records the bump's bytes");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        CARCER_HDR + RACED_BYTES,
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &BLOCK->temporary_overrun),
+        "the overrun records the bump's bytes");
     carcer_settled(BLOCK);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_series_cellularum_persistent_end(BLOCK),
                                      "the settle takes the overrun back");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(RACED_BYTES, mmgr_series_cellularum_temporary_top(BLOCK),
                                      "the settle takes the overrun back");
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&BLOCK->persistent_overrun));
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&BLOCK->temporary_overrun));
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                    .word = &BLOCK->persistent_overrun));
+    TEST_ASSERT_EQUAL_size_t(0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                    .word = &BLOCK->temporary_overrun));
 }
 
 void test_after_a_refused_bump_every_bump_of_the_tier_is_refused_until_a_writer_settles(void)
 {
-    const CarcerTakeCtx wide = {RACED_BYTES, s_one, 0u, carcer_all(1)};
-    const CarcerTakeCtx narrow = {PAYLOAD, s_two, 0u, carcer_all(1)};
+    const CarcerTakeCtx wide = {RACED_BYTES, s_one, 0u, carcer_all(1), 0u};
+    const CarcerTakeCtx narrow = {PAYLOAD, s_two, 0u, carcer_all(1), 0u};
 
     TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &wide, carcer_all(1)));
     TEST_ASSERT_EQUAL_UINT64_MESSAGE(0u, (uint64_t)carcer_bumped(BLOCK, &narrow, carcer_all(1)),
@@ -234,11 +245,11 @@ void test_after_a_refused_bump_every_bump_of_the_tier_is_refused_until_a_writer_
 
 void test_a_bump_not_permitted_moves_nothing(void)
 {
-    const CarcerTakeCtx take = {PAYLOAD, s_one, 0u, carcer_all(1)};
+    const CarcerTakeCtx take = {PAYLOAD, s_one, 0u, carcer_all(1), 0u};
 
     TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &take, carcer_all(0)));
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(BLOCK));
-    const CarcerTakeCtx unlisted = {PAYLOAD, s_one, 0u, carcer_all(0)};
+    const CarcerTakeCtx unlisted = {PAYLOAD, s_one, 0u, carcer_all(0), 0u};
 
     TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &unlisted, carcer_all(1)));
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(BLOCK));
@@ -246,54 +257,70 @@ void test_a_bump_not_permitted_moves_nothing(void)
 
 void test_a_bump_that_lands_positions_its_header_and_owner_word_and_counts(void)
 {
-    const CarcerTakeCtx take = {PAYLOAD, s_two, 0u, carcer_all(1)};
+    const CarcerTakeCtx take = {PAYLOAD, s_two, 0u, carcer_all(1), 0u};
     const uintptr_t answer = carcer_bumped(BLOCK, &take, carcer_all(1));
 
     TEST_ASSERT_EQUAL_PTR(BLOCK->base + CARCER_WORD, (void *)answer);
     TEST_ASSERT_EQUAL_size_t(carcer_end_of(0u, PAYLOAD), mmgr_series_cellularum_persistent_end(BLOCK));
-    TEST_ASSERT_EQUAL_size_t(carcer_word(PAYLOAD, CARCER_BUSY),
-                             (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, 0u)));
+    TEST_ASSERT_EQUAL_size_t(
+        carcer_word(PAYLOAD, CARCER_BUSY),
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = carcer_word_at(BLOCK, 0u)));
     TEST_ASSERT_EQUAL_PTR(s_two, mmgr_owner_of_buf(BLOCK, (void *)answer));
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, mmgr_owner_in_use(s_two));
-    TEST_ASSERT_EQUAL_size_t(PAYLOAD, (size_t)embed_atomic_usize_load(&BLOCK->persistent_in_use));
+    TEST_ASSERT_EQUAL_size_t(PAYLOAD, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                         .word = &BLOCK->persistent_in_use));
 }
 
 void test_a_pass_that_finds_the_series_cellularum_closed_misses_and_touches_nothing(void)
 {
-    const CarcerTakeCtx take = {PAYLOAD, s_one, 0u, carcer_all(1)};
+    const CarcerTakeCtx take = {PAYLOAD, s_one, 0u, carcer_all(1), 0u};
     size_t missed = 0u;
 
-    (void)embed_atomic_word_fetch_or(&BLOCK->closed, CARCER_CLOSED);
-    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_attempted(BLOCK, s_one->place, carcer_bumped, &take, &missed));
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_or, EmbedAtomicWordFetchOrCfg, .word = &BLOCK->closed,
+                     .value = CARCER_CLOSED);
+    // Explicit cast narrows the owner's place to the badge's word. The table holds two owners, and so the place fits
+    TEST_ASSERT_EQUAL_UINT64(
+        0u, (uint64_t)carcer_attempted(BLOCK, (embed_atomic_word_value)s_one->place, carcer_bumped, &take, &missed));
     TEST_ASSERT_EQUAL_size_t(SIZE_MAX, missed);
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(BLOCK));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, lanes_busy(), "the lane is let go");
-    (void)embed_atomic_word_fetch_and(&BLOCK->closed, ~CARCER_CLOSED);
-    TEST_ASSERT_NOT_EQUAL(0u, (uint64_t)carcer_attempted(BLOCK, s_one->place, carcer_bumped, &take, &missed));
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_and, EmbedAtomicWordFetchAndCfg, .word = &BLOCK->closed,
+                     .value = ~CARCER_CLOSED);
+    // Explicit cast narrows the owner's place to the badge's word, as above
+    TEST_ASSERT_NOT_EQUAL(
+        0u, (uint64_t)carcer_attempted(BLOCK, (embed_atomic_word_value)s_one->place, carcer_bumped, &take, &missed));
     TEST_ASSERT_EQUAL_size_t(0u, missed);
 }
 
 void test_a_pass_through_a_closed_series_cellularum_opened_meanwhile_lands_on_its_second_try(void)
 {
-    const CarcerTakeCtx take = {PAYLOAD, s_one, 0u, carcer_all(1)};
+    const CarcerTakeCtx take = {PAYLOAD, s_one, 0u, carcer_all(1), 0u};
 
     // the first attempt reads the closed bit; the writer opens before the backoff's wait, with no sleeper to wake,
     // and the second attempt lands. The weak wait answers at once: the host's answer where nothing sleeps
-    (void)embed_atomic_word_fetch_or(&BLOCK->closed, CARCER_CLOSED);
-    (void)embed_atomic_word_fetch_and(&BLOCK->closed, ~CARCER_CLOSED);
-    TEST_ASSERT_NOT_EQUAL(0u, (uint64_t)carcer_passed(BLOCK, s_one->place, carcer_bumped, &take));
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_or, EmbedAtomicWordFetchOrCfg, .word = &BLOCK->closed,
+                     .value = CARCER_CLOSED);
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_and, EmbedAtomicWordFetchAndCfg, .word = &BLOCK->closed,
+                     .value = ~CARCER_CLOSED);
+    // Explicit cast narrows the owner's place to the badge's word. The table holds two owners, and so the place fits
+    TEST_ASSERT_NOT_EQUAL(0u,
+                          (uint64_t)carcer_passed(BLOCK, (embed_atomic_word_value)s_one->place, carcer_bumped, &take));
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, mmgr_owner_in_use(s_one));
 }
 
 void test_a_closed_series_cellularum_opened_wakes_the_sleepers_and_clears_both_bits(void)
 {
-    (void)embed_atomic_word_fetch_or(&BLOCK->closed, CARCER_CLOSED | CARCER_CLOSED_SLEEPERS);
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_or, EmbedAtomicWordFetchOrCfg, .word = &BLOCK->closed,
+                     .value = CARCER_CLOSED | CARCER_CLOSED_SLEEPERS);
     carcer_opened(BLOCK);
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_word_load(&BLOCK->closed));
+    TEST_ASSERT_EQUAL_size_t(
+        0u, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &BLOCK->closed));
     carcer_shut(BLOCK);
-    TEST_ASSERT_EQUAL_size_t(CARCER_CLOSED, (size_t)embed_atomic_word_load(&BLOCK->closed));
+    TEST_ASSERT_EQUAL_size_t(CARCER_CLOSED, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg,
+                                                               .word = &BLOCK->closed));
     carcer_opened(BLOCK);
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_word_load(&BLOCK->closed));
+    TEST_ASSERT_EQUAL_size_t(
+        0u, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &BLOCK->closed));
 }
 
 void test_the_sweep_merges_free_runs_takes_the_first_that_fits_and_trims_the_end(void)
@@ -317,7 +344,8 @@ void test_the_sweep_merges_free_runs_takes_the_first_that_fits_and_trims_the_end
     TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_off_of(BLOCK, three), sweep.boundary,
                                      "the run reaching the end goes to the gap");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_word((2u * PAYLOAD) + CARCER_HDR, CARCER_FREE),
-                                     (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, sweep.at)),
+                                     (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                        .word = carcer_word_at(BLOCK, sweep.at)),
                                      "the run is positioned as one free cell");
     TEST_ASSERT_NOT_NULL(held);
 }
@@ -344,7 +372,8 @@ void test_the_downward_sweep_merges_free_runs_takes_the_last_that_fits_and_trims
     TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_off_of(BLOCK, held), sweep.boundary,
                                      "the run from the top goes to the gap");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_word((2u * PAYLOAD) + CARCER_HDR, CARCER_FREE),
-                                     (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, sweep.at)),
+                                     (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                        .word = carcer_word_at(BLOCK, sweep.at)),
                                      "the run is positioned as one free cell");
     const CarcerPlaced placed = carcer_split(BLOCK, sweep, PAYLOAD, carcer_all(1));
 
@@ -352,7 +381,8 @@ void test_the_downward_sweep_merges_free_runs_takes_the_last_that_fits_and_trims
                                      "the take lands at the run's end away from the gap");
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, placed.size);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(carcer_word(PAYLOAD, CARCER_FREE),
-                                     (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, sweep.at)),
+                                     (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                        .word = carcer_word_at(BLOCK, sweep.at)),
                                      "the rest is positioned free below it, facing the gap");
 }
 
@@ -399,7 +429,8 @@ void test_a_split_positions_the_rest_as_a_free_cell_and_retains_a_run_too_small_
     const size_t rest_at = carcer_end_of(sweep.at, PAYLOAD);
 
     TEST_ASSERT_EQUAL_size_t(carcer_word((3u * PAYLOAD) - CARCER_HDR, CARCER_FREE),
-                             (size_t)embed_atomic_usize_load(carcer_word_at(BLOCK, rest_at)));
+                             (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                .word = carcer_word_at(BLOCK, rest_at)));
     const CarcerSweep whole = {carcer_all(1), sweep.at, PAYLOAD + MMGR_CARCER_ALIGN, sweep.boundary};
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(PAYLOAD + MMGR_CARCER_ALIGN, carcer_split(BLOCK, whole, PAYLOAD, 0u).size,
@@ -461,7 +492,8 @@ void test_the_trim_walks_the_top_up_over_free_cells_and_stops_at_a_busy_one(void
     (void)carcer_given(BLOCK, held, s_one, 0u, carcer_all(1));
     carcer_trimmed(BLOCK, 0u);
     TEST_ASSERT_EQUAL_size_t(RACED_BYTES, mmgr_series_cellularum_temporary_top(BLOCK));
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_word_load(&BLOCK->closed));
+    TEST_ASSERT_EQUAL_size_t(
+        0u, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &BLOCK->closed));
 }
 
 void test_zeroing_starts_at_an_address_off_a_word_boundary(void)
@@ -487,7 +519,8 @@ void test_a_claim_sets_the_lowest_free_bit_and_a_full_table_claims_nothing(void)
 
     TEST_ASSERT_EQUAL_size_t(words, movable->claimed_words);
     // the bits past the cells in the last word stay set for good
-    const embed_atomic_usize_value past = embed_atomic_usize_load(&movable->claimed[words - 1u]);
+    const embed_atomic_usize_value past =
+        EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &movable->claimed[words - 1u]);
 
     TEST_ASSERT_EQUAL_size_t(RACED_CELLS - ((words - 1u) * MMGR_MOVABLE_CLAIM_BITS), lowest_set(past));
     for (size_t at = 0u; at < RACED_CELLS; at += 1u)
@@ -495,7 +528,8 @@ void test_a_claim_sets_the_lowest_free_bit_and_a_full_table_claims_nothing(void)
         TEST_ASSERT_EQUAL_PTR(&movable->entry[at], carcer_entry_claimed(movable, CARCER_WORD, carcer_all(1)));
     }
     TEST_ASSERT_NULL_MESSAGE(carcer_entry_claimed(movable, CARCER_WORD, carcer_all(1)), "every entry is named");
-    TEST_ASSERT_EQUAL_size_t(RACED_CELLS, (size_t)embed_atomic_usize_load(&movable->named));
+    TEST_ASSERT_EQUAL_size_t(RACED_CELLS, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
+                                                             .word = &movable->named));
 }
 
 void test_a_claim_not_permitted_names_nothing(void)
@@ -504,8 +538,10 @@ void test_a_claim_not_permitted_names_nothing(void)
     CarcerMovable *const movable = carcer_movable_of(BLOCK);
 
     TEST_ASSERT_NULL(carcer_entry_claimed(movable, CARCER_WORD, carcer_all(0)));
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&movable->claimed[0]));
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&movable->named));
+    TEST_ASSERT_EQUAL_size_t(
+        0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &movable->claimed[0]));
+    TEST_ASSERT_EQUAL_size_t(
+        0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &movable->named));
 }
 
 void test_a_claim_lost_to_another_context_names_nothing_and_the_take_tries_once_more(void)
@@ -514,11 +550,13 @@ void test_a_claim_lost_to_another_context_names_nothing_and_the_take_tries_once_
     CarcerMovable *const movable = carcer_movable_of(BLOCK);
 
     // every bit of the first word set as another context's claims would set them: the search finds the second word
-    embed_atomic_usize_store(&movable->claimed[0], ~(embed_atomic_usize_value)0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &movable->claimed[0],
+               .value = ~(embed_atomic_usize_value)0u);
     CarcerMovableEntry *const entry = carcer_entry_claimed(movable, CARCER_WORD, carcer_all(1));
 
     TEST_ASSERT_EQUAL_PTR(&movable->entry[MMGR_MOVABLE_CLAIM_BITS], entry);
-    TEST_ASSERT_EQUAL_size_t(1u, (size_t)embed_atomic_usize_load(&movable->lowest));
+    TEST_ASSERT_EQUAL_size_t(
+        1u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &movable->lowest));
 }
 
 void test_the_highest_named_cell_below_a_bound_and_under_a_size(void)
@@ -530,7 +568,8 @@ void test_the_highest_named_cell_below_a_bound_and_under_a_size(void)
     size_t payload = 0u;
 
     TEST_ASSERT_EQUAL_PTR(high, carcer_entry_highest(movable, BLOCK, RACED_BYTES, RACED_BYTES, &payload));
-    TEST_ASSERT_EQUAL_size_t((size_t)embed_atomic_usize_load(&high->word), payload);
+    TEST_ASSERT_EQUAL_size_t(
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &high->word), payload);
     TEST_ASSERT_EQUAL_PTR_MESSAGE(low, carcer_entry_highest(movable, BLOCK, RACED_BYTES, 2u * PAYLOAD, &payload),
                                   "a cell at the size refused is passed over");
     TEST_ASSERT_EQUAL_PTR_MESSAGE(&carcer_entry_none, carcer_entry_highest(movable, BLOCK, 0u, RACED_BYTES, &payload),
@@ -576,14 +615,18 @@ void test_emptying_puts_the_record_back_at_rest(void)
     option_assigned();
     (void)cells.raced.persistent_buf_alloc(PAYLOAD, s_one);
     (void)cells.raced.temporary_buf_alloc(PAYLOAD, s_one);
-    (void)embed_atomic_word_fetch_or(&BLOCK->closed, CARCER_CLOSED);
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_or, EmbedAtomicWordFetchOrCfg, .word = &BLOCK->closed,
+                     .value = CARCER_CLOSED);
     mmgr_series_cellularum_emptied(BLOCK);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_idle(BLOCK));
     // Explicit cast reads the closed word as the count it holds
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_word_load(&BLOCK->closed));
+    TEST_ASSERT_EQUAL_size_t(
+        0u, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &BLOCK->closed));
     TEST_ASSERT_EQUAL_size_t(0u, lanes_busy());
-    TEST_ASSERT_EQUAL_UINT32(0u, embed_atomic_u32_load(&BLOCK->turnstiles.queue_length));
+    TEST_ASSERT_EQUAL_UINT32(
+        0u, EMBED_CALL(embed_atomic_u32_table.load, EmbedAtomicU32LoadCfg, .word = &BLOCK->turnstiles.queue_length));
     // Explicit cast widens the count of open lanes to size_t
-    TEST_ASSERT_EQUAL_size_t(1u, (size_t)embed_turnstile_open_lane_count(&BLOCK->turnstiles));
+    TEST_ASSERT_EQUAL_size_t(1u, (size_t)EMBED_CALL(embed_turnstile_table.open_lane_count,
+                                                    EmbedTurnstileOpenLaneCountCfg, .set = &BLOCK->turnstiles));
     TEST_ASSERT_NULL(carcer_movable_of(BLOCK));
 }

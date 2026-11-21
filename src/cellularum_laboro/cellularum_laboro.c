@@ -290,11 +290,13 @@ EMBED_INLINE size_t cellul_len(const CellulCtx *args)
     {
         // Explicit cast reads the text as the bytes the vector loads
         const embed_lane_mask zero_lanes =
-            embed_lane_bytes_zero(embed_lane_load_aligned((const uint8_t *)args->src + at));
+            EMBED_CALL(embed_lane_table.bytes_zero, EmbedLaneBytesZeroCfg,
+                       .lane = EMBED_CALL(embed_lane_table.load_aligned, EmbedLaneLoadAlignedCfg,
+                                          .at = (const uint8_t *)args->src + at));
 
         if (zero_lanes != 0u)
         {
-            return at + embed_lane_mask_first(zero_lanes);
+            return at + EMBED_CALL(embed_lane_table.mask_first, EmbedLaneMaskFirstCfg, .mask = zero_lanes);
         }
         // Advance separated from the test above so the loop body carries no side effect
         at += EMBED_LANE_BYTES;
@@ -423,7 +425,7 @@ EMBED_INLINE const char *cellul_chr(const CellulCtx *args)
     // A vector a pass while a whole one remains within cap, the sought byte repeated into every lane
     // once ahead of the walk. A vector with a terminator or a match settles the walk. A match counts
     // only before the terminator, as cellul_chr_settle settles a word
-    const embed_lane sought = embed_lane_fill_byte(args->byte);
+    const embed_lane sought = EMBED_CALL(embed_lane_table.fill_byte, EmbedLaneFillByteCfg, .byte = args->byte);
 
     // A word a pass up to the first aligned vector, as the word walk below steps
     while ((at != full) && ((((uintptr_t)args->src + at) & (EMBED_LANE_BYTES - 1u)) != 0u))
@@ -442,15 +444,20 @@ EMBED_INLINE const char *cellul_chr(const CellulCtx *args)
     while ((full - at) >= EMBED_LANE_BYTES)
     {
         // Explicit cast reads the text as the bytes the vector loads
-        const embed_lane loaded = embed_lane_load_aligned((const uint8_t *)args->src + at);
-        const embed_lane_mask end = embed_lane_bytes_zero(loaded);
-        const embed_lane_mask hit = embed_lane_bytes_equal(loaded, sought);
+        const embed_lane loaded =
+            EMBED_CALL(embed_lane_table.load_aligned, EmbedLaneLoadAlignedCfg, .at = (const uint8_t *)args->src + at);
+        const embed_lane_mask end = EMBED_CALL(embed_lane_table.bytes_zero, EmbedLaneBytesZeroCfg, .lane = loaded);
+        const embed_lane_mask hit =
+            EMBED_CALL(embed_lane_table.bytes_equal, EmbedLaneBytesEqualCfg, .one = loaded, .other = sought);
 
         if ((end | hit) != 0u)
         {
-            const embed_lane_mask live = hit & embed_lane_mask_before(end);
+            const embed_lane_mask live =
+                hit & EMBED_CALL(embed_lane_table.mask_before, EmbedLaneMaskBeforeCfg, .mask = end);
 
-            return (live != 0u) ? (args->src + at + embed_lane_mask_first(live)) : NULL;
+            return (live != 0u)
+                       ? (args->src + at + EMBED_CALL(embed_lane_table.mask_first, EmbedLaneMaskFirstCfg, .mask = live))
+                       : NULL;
         }
         // Advance separated from the test above so the loop body carries no side effect
         at += EMBED_LANE_BYTES;

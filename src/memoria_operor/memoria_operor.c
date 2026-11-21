@@ -86,7 +86,8 @@ EMBED_INLINE void memor_cpy(MemorCpyCtx *args)
     // and a vector's bytes are whole words, which leaves the rest whole
     while (word_bytes >= EMBED_LANE_BYTES)
     {
-        embed_lane_put(args->dst, embed_lane_load(args->src));
+        EMBED_CALL(embed_lane_table.put, EmbedLanePutCfg, .destination = args->dst,
+                   .lane = EMBED_CALL(embed_lane_table.load, EmbedLaneLoadCfg, .at = args->src));
 
         // Advances separated from the move above so the loop body carries no side effect
         args->dst += EMBED_LANE_BYTES;
@@ -274,11 +275,14 @@ EMBED_INLINE embed_iword memor_cmp(const MemorScanCtx *args)
     while ((full - at) >= EMBED_LANE_BYTES)
     {
         const embed_lane_mask differing =
-            embed_lane_bytes_differ(embed_lane_load(args->src + at), embed_lane_load(args->other + at));
+            EMBED_CALL(embed_lane_table.bytes_differ, EmbedLaneBytesDifferCfg,
+                       .one = EMBED_CALL(embed_lane_table.load, EmbedLaneLoadCfg, .at = args->src + at),
+                       .other = EMBED_CALL(embed_lane_table.load, EmbedLaneLoadCfg, .at = args->other + at));
 
         if (differing != 0u)
         {
-            const size_t first_diff = at + embed_lane_mask_first(differing);
+            const size_t first_diff =
+                at + EMBED_CALL(embed_lane_table.mask_first, EmbedLaneMaskFirstCfg, .mask = differing);
 
             // Explicit casts widen both bytes to embed_iword so the difference retains its sign
             return (embed_iword)args->src[first_diff] - (embed_iword)args->other[first_diff];
@@ -386,15 +390,17 @@ EMBED_INLINE const void *memor_chr(const MemorScanCtx *args)
 
     // A vector a pass while a whole one remains within the bytes to search. The sought byte repeats
     // into every lane once ahead of the walk, as the word walk below repeats it into a word
-    const embed_lane sought = embed_lane_fill_byte(args->val);
+    const embed_lane sought = EMBED_CALL(embed_lane_table.fill_byte, EmbedLaneFillByteCfg, .byte = args->val);
 
     while ((full - at) >= EMBED_LANE_BYTES)
     {
-        const embed_lane_mask matching = embed_lane_bytes_equal(embed_lane_load(args->src + at), sought);
+        const embed_lane_mask matching = EMBED_CALL(
+            embed_lane_table.bytes_equal, EmbedLaneBytesEqualCfg,
+            .one = EMBED_CALL(embed_lane_table.load, EmbedLaneLoadCfg, .at = args->src + at), .other = sought);
 
         if (matching != 0u)
         {
-            return args->src + at + embed_lane_mask_first(matching);
+            return args->src + at + EMBED_CALL(embed_lane_table.mask_first, EmbedLaneMaskFirstCfg, .mask = matching);
         }
         // Advance separated from the test above so the loop body carries no side effect
         at += EMBED_LANE_BYTES;
@@ -450,11 +456,11 @@ EMBED_INLINE void memor_set(MemorSetCtx *args)
 
     // A vector a pass while a whole one remains, the byte repeated into every lane once ahead of the
     // walk. The word walks below take the rest
-    const embed_lane filled = embed_lane_fill_byte(args->val);
+    const embed_lane filled = EMBED_CALL(embed_lane_table.fill_byte, EmbedLaneFillByteCfg, .byte = args->val);
 
     while (word_bytes >= EMBED_LANE_BYTES)
     {
-        embed_lane_put(args->dst, filled);
+        EMBED_CALL(embed_lane_table.put, EmbedLanePutCfg, .destination = args->dst, .lane = filled);
 
         // Advances separated from the store above so the loop body carries no side effect
         args->dst += EMBED_LANE_BYTES;

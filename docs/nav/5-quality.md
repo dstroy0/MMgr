@@ -1,6 +1,6 @@
 # Correctness {#nav_quality}
 
-What is tested, what is analyzed, and what none of it covers.
+What the tests cover, what the analyzers read, and what none of it covers.
 
 - @subpage qa_testing
 - @subpage qa_numeric

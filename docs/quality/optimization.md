@@ -9,28 +9,28 @@ Reproduce it with:
 python tools/dev_env/target_sizes.py
 ```
 
-That compiles each unit with the toolchains the library ships to - 32-bit Xtensa, RISC-V and ARM - at
-each level, on its own, no LTO and no link. Sections are read and not file lengths, because an
+That compiles each unit at each level, on its own, with no LTO and no link. It uses the toolchains the
+library ships to: 32-bit Xtensa, RISC-V and ARM. The tool reads sections and not file lengths. An
 object also carries relocations, symbol tables and debug records that never get flashed.
 
 @warning `tools/dev_env/sizes.py` measures the same thing on the host. It reads its options out of
-`build/compile_commands.json`, and so its figures are x86-64 code size, and this page used to be written
-from them. They do not merely differ from the target by a constant: on the host `-O1` comes in under
-`-O2`, and on **all three** targets it comes in over. A level picked off the host table is picked off
-the wrong machine. Retain sizes.py for what it is good for - checking a change did not blow a unit up
-while you are working on the desktop - and decide with the table below.
+`build/compile_commands.json`, and so its figures are x86-64 code size. They differ from the target by
+more than a constant: on the host `-O1` comes in under `-O2`, and on **all three** targets it comes
+in over. A level picked off the host table comes from the wrong machine. Retain sizes.py for a
+quick check that a change does not blow a unit up while you work on the desktop. Decide with the
+table below.
 
 ## Size
 
-`.text`, in bytes, per translation unit. Each unit compiled on its own, no LTO and no link. A row
-is that unit alone:
+`.text`, in bytes, per translation unit. Each unit compiles on its own, with no LTO and no link. A
+row is that unit alone:
 
 ```
 <target>-gcc -std=c11 -I src -O<level> -c <unit>.c -o <unit>.o && <target>-size <unit>.o
 ```
 
-ARM is measured `-mcpu=cortex-m4 -mthumb`, because `arm-none-eabi-gcc` otherwise defaults to a core
-nothing in the target list is, and the wide ARM encoding reports a code size no target flashes.
+The ARM column uses `-mcpu=cortex-m4 -mthumb`. Without it, `arm-none-eabi-gcc` defaults to a core
+that nothing in the target list is, and the wide ARM encoding reports a code size no target flashes.
 
 Xtensa (esp32s3, gcc 14.2):
 
@@ -64,66 +64,64 @@ The other two, totals only - the shape is the same on all three:
 | ARM (cortex-m4, thumb)        | 100138 | 30014 | **25534** | 28418 | 34690 |
 | _host (x86-64), for contrast_ | 108592 | 37696 |     30768 | 38992 | 44320 |
 
-`memoria_externa` and `memoriam_praetereo` compile to nothing and are left out. The five
-`impensa_ancorae_acus_*` units are one row because they are alternatives and not additions: a build
-links exactly one cost table and they all define the same symbol. The total counts one.
+`memoria_externa` and `memoriam_praetereo` compile to nothing, and the table leaves them out. The five
+`impensa_ancorae_acus_*` units are one row because they are alternatives and not additions. A build
+links exactly one cost table, and they all define the same symbol. The total counts one.
 
-**-Os is the smallest, and -O1 is not second.** On all three targets -O1 lands _above_ -O2, by 2521
-bytes on Xtensa, 2934 on RISC-V and 1596 on ARM, and so the order is -Os, -O2, -O1, -O3. A build that
-wants small and does not want to think about it should ask for -Os and stop there; there is no reason
-to reach for -O1. -O3 costs 7080 bytes over -O2 on Xtensa, and @ref ref_performance is where to look
-before paying it.
+**-Os is the smallest, and -O1 is not second.** On all three targets -O1 lands _above_ -O2: by 2521
+bytes on Xtensa, 2934 on RISC-V and 1596 on ARM. So the order is -Os, -O2, -O1, -O3. A build that
+wants small with no further thought should ask for -Os and stop there; there is no reason to reach for
+-O1. On Xtensa, -O3 costs 7080 bytes over -O2, and @ref ref_performance is where to look before you
+pay it.
 
-@note That ordering is the reason this page is measured on the targets. The host row is in the table
-only to show the disagreement: it puts -O1 under -O2, which reads as a sensible ladder and is not the
-one any shipping target walks. Three instruction sets agree with each other and not one of them agrees
+@note That order is the reason this page measures on the targets. The host row is in the table only
+to show the disagreement. It puts -O1 under -O2, which reads as a sensible ladder and is not the one
+any target we ship to walks. Three instruction sets agree with each other, and not one of them agrees
 with the desktop.
 
-Two units carry the majority of it. `verba_scribo` and `cellularum_laboro` are half the total at every level,
-as a decimal engine and a string module cost. `verba_scribo` is also the one unit where
-the size is buying correctness and not speed: both of its render entries were wrong before it
-inlined that engine, `verba.fixed` by 15.87% below about 1e-41, and `verba.g` failing to name its
-own value back 87.07% of the time. Both are 0.0000% now. See @ref qa_numeric.
+Two units carry the majority of it. `verba_scribo` and `cellularum_laboro` are half the total at
+every level, as a decimal engine and a string module cost. `verba_scribo` is also the one unit where
+the size buys correctness and not speed. Without the engine inlined, `verba.fixed` is wrong for
+15.87% of values below about 1e-41, and `verba.g` fails to name its own value back 87.07% of the
+time. With it, both are wrong for 0.0000%. See @ref qa_numeric.
 
 `transformo` has the widest spread that matters, 2898 at -Os against 5936 at -O3 on Xtensa. It is the
 unit to look at first if a target is tight and -O3 is on.
 
-`cellularum_laboro` and `memoria_operor` are the two units the on-device work changed, and both grew
-for it: 6742 to 8550 on Xtensa and 1246 to 1294. The scans stopped rebuilding an extent mask and a
-lane index on every word, they read through the aligned load and not one assembled from byte
-loads, `len` takes two words a pass, a one or two byte needle is settled by a mask chain instead of a
-sieve, and the region moves were unrolled to four words. @ref ref_performance carries what each of
-those bought, measured on the parts themselves - `len` went 5.040 cycles per byte to 2.547.
+`cellularum_laboro` and `memoria_operor` carry the rules that the on-device measurements set, and both
+pay for them: 8550 against 6742 on Xtensa, and 1294 against 1246. The scans build no extent mask and
+no lane index on every word. They read through the aligned load and not one assembled from byte loads.
+`len` takes two words a pass, and a mask chain settles a one or two byte needle in place of a sieve.
+The region moves run four words an iteration.
 
-Whether that trade is right is a judgement about the target and not a fact. The section below on
-newlib is where it shows up as flash.
+@ref ref_performance carries what each of those buys, measured on the parts themselves: `len` costs
+2.547 cycles per byte against 5.040 without them. Whether that trade is right is a judgement about
+the target and not a fact. The section below on newlib is where it shows up as flash.
 
-@note These are a fresh measurement of the tree as it is. The per-module deltas that used to be
-here compared against a table taken before the module split, and its build settings are not recorded
-anywhere, and so those comparisons were dropped and not carried forward against numbers that cannot
-be reproduced.
+@note These figures measure the tree as it is. No comparison here rests on a table whose build
+settings nobody recorded.
 
 ## Speed
 
 There is no speed table on this page, by design.
 
-A host measurement, taken on x86-64, does not belong here, because it misleads every
-round of optimization work: it puts the scans within a few percent of libc,
-while on the parts this library ships to they are three to sixteen times off. A
-desktop libc answers `strlen`, `memcmp` and `memchr` with SSE or AVX, reading 16 to 48 bytes per
-instruction. No target in the list has anything of the type. A comparison drawn on the host measures
-the vector unit and reports it as a fact about this library.
+A host measurement, taken on x86-64, does not belong here, because it misleads every round of
+optimization work. It puts the scans within a few percent of libc, while on the parts this library
+ships to they are three to sixteen times off. A desktop libc answers `strlen`, `memcmp` and `memchr`
+with SSE or AVX, and reads 16 to 48 bytes per instruction. No target in the list has anything of the
+type. A comparison drawn on the host measures the vector unit and reports it as a fact about this
+library.
 
 Speed lives in @ref ref_performance, measured on silicon against the target's own libc, and nowhere
-else. If a number here would have changed a decision, it belongs there instead.
+else. If a number here would change a decision, it belongs there instead.
 
-Size is still measured here because size is a property of the emitted code and can be read straight
-off an object file for each target - as the table above does.
+Size is still on this page because size is a property of the emitted code. You can read it straight
+off an object file for each target, as the table above does.
 
 ## Where a module names its own level
 
 `mmgr_add_module` takes `OPTIMIZE`, which appends after the build's own flags. The last `-O` on the
-command line is the single one that counts, and so nothing has to be removed for it to take effect.
+command line is the single one that counts, and so nothing has to come out for it to take effect.
 
 Costs below are Xtensa, with ARM in parentheses where the two disagree enough to matter.
 
@@ -133,22 +131,22 @@ Costs below are Xtensa, with ARM in parentheses where the two disagree enough to
 | `transformo`      | -O2   | -O3 costs 2142 bytes, 56% more than the module. On ARM it costs nothing at all, the clearest case on this page for deciding per target.        |
 | `proximus_operor` | -O2   | -O3 adds 122 bytes to 492 for entries that are single loads and stores, already one instruction each. Proportionally worse on ARM, 188 to 308. |
 
-`cellularum_laboro` is left at the build's level: -O3 costs it 780 bytes on Xtensa and 356 on ARM,
-against a module of 8550 and 7760, which is not enough either way to override the build.
+`cellularum_laboro` stays at the build's level. On Xtensa, -O3 costs it 780 bytes, and on ARM 356,
+against a module of 8550 and 7760. That is not enough either way to override the build.
 
-@note These are size arguments, and only size arguments. The speed half of each of these rows used to
-cite the host bench, and one of them credited `cellularum_laboro` with 14% on `to_double`, which is
-not even its entry. Whether a level is worth it for speed is a question for @ref ref_performance, on
-the part in question - there is no per-level sweep on silicon yet, and so no such claim is made here.
+@note These are size arguments, and only size arguments. Whether a level is worth it for speed is a
+question for @ref ref_performance, on the part in question. There is no per-level sweep on silicon,
+and so this page makes no such claim.
 
 ## Against the libc it would replace
 
 `tools/dev_env/against_libc.py` weighs this library against newlib for the same core at the same
-level. newlib because it is the libc an embedded target actually ships, it is a static archive with
-one object per entry, which lets a single function be weighed, and it is built by the same compiler
-family. Only `.text` is counted: an archive member also carries relocations and symbol tables that
-never reach flash, and the linker pulls whole members. A member is the unit regardless of whether every
-entry in it is called.
+level. newlib is the libc an embedded target actually ships. It is a static archive with one object
+per entry, so each function has its own weight. The same compiler family builds it.
+
+The tool counts only `.text`. An archive member also carries relocations and symbol tables that never
+reach flash, and the linker pulls whole members. A member is the unit regardless of whether every
+entry in it gets a call.
 
 cortex-m4, -Os, newlib from armv7e-m:
 
@@ -161,71 +159,75 @@ cortex-m4, -Os, newlib from armv7e-m:
 
 **21,676 bytes of flash**, for the same set of jobs.
 
-@warning Moving and comparing bytes is _larger_ than newlib's, 1368 against 924, where before the
-on-device work it was 736 and smaller. Searching and parsing text has come down from 3.11x to 2.04x
-over the same stretch. Both are the same trade: `memor.cpy` and `memor.set` moved one word an
-iteration and lost to ROM `memcpy` by half again, and so both were unrolled; the scans stopped rebuilding
-masks per word, took the aligned load, and gained a mask chain for short needles. What it bought is
-in @ref ref_performance - `cellul.len` at 0.28 against ROM `strnlen`, `memor.chr` at 0.47, `cpy` and
-`set` level with ROM assembly. Whether roughly 3,350 bytes is the right price is a judgement about
-the target, not a fact, and it is the number on this page max worth arguing with.
+@warning The byte moves and compares are _larger_ than newlib's, 1368 against 924. That is the price
+of the on-device rules. `memor.cpy` and `memor.set` move four words an iteration, because at one word
+they lose to ROM `memcpy` by half again. The scans build no masks per word, take the aligned load, and
+carry a mask chain for short needles.
 
-Every entry on both sides is bounded, and so the libc column names `strnlen` and `strncmp`
-and not their unbounded twins, and `snprintf` and `vsnprintf` instead of `printf`. A bounded
-string constructor is what `verba` is; comparing it against something that writes until it is
-finished would be comparing two different jobs.
+What those rules buy is in @ref ref_performance: `cellul.len` at 0.28 against ROM `strnlen`,
+`memor.chr` at 0.47, and `cpy` and `set` level with ROM assembly. Whether roughly 3,350 bytes is the
+right price is a judgement about the target, not a fact. It is the number on this page max worth an
+argument.
 
-The families are drawn where the code actually is and not where the header names suggest.
-`cellularum_laboro` holds the bounded scans and the decimal parser in one translation unit, which on
-the newlib side is `str*` plus the whole `strtod`, `dtoa` and `mprec` apparatus. Every newlib member
-is named once across all three families - `dtoa` and `mprec` serve both parsing and printing there,
-and counting them twice would flatter this library by six kilobytes.
+Every entry on both sides has a bound. So the libc column names `strnlen` and `strncmp` and not their
+unbounded twins, and `snprintf` and `vsnprintf` and not `printf`. A bounded string constructor is what
+`verba` is. A comparison against something that writes until it finishes would compare two different
+jobs.
 
-Where the gap comes from is worth being precise about.
+The families follow where the code actually is and not where the header names suggest.
+`cellularum_laboro` holds the bounded scans and the decimal parser in one translation unit. On the
+newlib side that is `str*` plus the whole `strtod`, `dtoa` and `mprec` apparatus. The table names each
+newlib member once across all three families. `dtoa` and `mprec` serve both directions there, and a
+second count of them would flatter this library by six kilobytes.
 
-Parsing is 2.04x because newlib spends 10,272 bytes on `strtod` + `dtoa` + `mprec`, and `mprec` is
-an arbitrary-precision bignum. It is exact for every input by carrying however many limbs the input
-needs. This library is exact for every input by carrying 128 bits and never growing, because 128
-bits is enough to decide a rounding and the rest of the expansion is never looked at. That is a
-real difference in approach and not a trick of accounting, and so the obvious question is why the other
-side does not do the same. Three answers, and the third matters here.
+Where the gap comes from deserves a precise statement.
+
+The parse family is 2.04x because newlib spends 10,272 bytes on `strtod` + `dtoa` + `mprec`, and
+`mprec` is an arbitrary-precision bignum. It is exact for every input because it carries however many
+limbs the input needs. This library is exact for every input with 128 bits that never grow. 128 bits
+are enough to decide a round, and nothing looks at the rest of the expansion. That is a real difference
+in approach and not a trick of the count.
+
+So the obvious question is why the other side does not do
+the same. Three answers, and the third matters here.
 
 **The result is newer than the code.** newlib's is David Gay's `dtoa` and `mprec`, which date from
-1990 and are the reference implementation everyone inherited. That a fixed-width intermediate always
-suffices, that you need enough bits to decide guard, round and sticky and never the full expansion,
-is Grisu in 2010, Ryu in 2018, Eisel-Lemire in 2020. Twenty to thirty years later. Gay's code is
-not naive; it is correct, and it predates the result that makes it unnecessary.
+1990 and are the reference implementation everyone inherited. A fixed-width intermediate always
+suffices: you need enough bits to decide guard, round and sticky, and never the full expansion. That
+result is Grisu in 2010, Ryu in 2018, Eisel-Lemire in 2020. Gay's code is not naive; it is correct, and
+it predates the result that makes it unnecessary.
 
 **A bignum serves every width with one body.** `mprec` is exact for `double`, `long double` and
-whatever else the target has, because limbs do not care. The table here is 360 bytes of powers of
-five sized for binary64, alone. libc has to answer for all of them; this library answers
-for one, and bought the difference by narrowing what it promises.
+whatever else the target has, because limbs do not care. The table here is 360 bytes of powers of five
+sized for binary64, alone. libc has to answer for all of them. This library answers for one, and buys
+the difference with a narrower promise.
 
-**And a bignum has to put its limbs somewhere.** `mprec.o` in this newlib carries undefined
-references to `malloc` and `_calloc_r`. On a target with a heap that is a cost. On a target without
-one it is not a trade at all: the entry does not link. So the table is not a smaller way of doing
-what libc does. It is the only way available to a library that must not allocate, and it happens to
-also be smaller. See @ref qa_numeric.
+**And a bignum has to put its limbs somewhere.** `mprec.o` in this newlib carries undefined references
+to `malloc` and `_calloc_r`. On a target with a heap that is a cost. On a target without one it is not
+a trade at all: the entry does not link. So the table is not a smaller way to do what libc does. It is
+the only way available to a library that must not allocate, and it also happens to be smaller
+(see @ref qa_numeric).
 
-Rendering is 2.92x and the `FILE` members are counted, which needs saying plainly: newlib's
-`snprintf` is built on its `FILE` machinery. It constructs a fake stream over the caller's buffer
-and goes through `vfprintf`, and so linking `snprintf` links `fvwrite`, `findfp`, `fflush`, `makebuf`
-and `wsetup` regardless of whether a stream is ever opened. A caller pays this for the entry they
-called, and so it is counted - not because printing to a stream is a wider job. The rest of the gap is
-the format string: newlib parses one at run time, and `verba` has none, because a call names the
-entry it wants.
+The render family is 2.92x, and the table counts the `FILE` members. That needs a plain statement:
+newlib's `snprintf` sits on its `FILE` machinery. It constructs a fake stream over the caller's buffer
+and goes through `vfprintf`. So a link of `snprintf` links `fvwrite`, `findfp`, `fflush`, `makebuf` and
+`wsetup`, whether or not a stream ever opens.
 
-Nothing stops this library sitting under a file layer once the pieces below it are correct. That is
-a separate concern and not what this table is about.
+A caller pays this for the entry they called, and so the table counts it. The reason is not that a
+print to a stream is a wider job. The rest of the gap is the format string. The newlib code parses
+one at run time, and `verba` has none, because a call names the entry it wants.
 
-Bytes is 1.26x, the honest number for a fair fight: `memcpy` against `memcpy` is nearly a
-wash, because there is not much room in either.
+Nothing stops a file layer on top of this library once the pieces below it are correct. That
+is a separate concern and not what this table is about.
+
+The byte family is 0.68x. There is not much room in `memcpy` against `memcpy`, and the warning above
+says where these bytes go.
 
 ### And the speed, on a libc that can be measured
 
-Size is measured cross-compiled for a cortex-m4, which cannot be run here. Speed is measured on the
-host against glibc, a different target and a different libc, and so the two tables are about different
-things and neither transfers to the other.
+The size figures come from a cross-compile for a cortex-m4, which cannot run here. The speed figures
+come from the host against glibc, a different target and a different libc. So the two tables are about
+different things, and neither transfers to the other.
 
 gcc 13.3, glibc 2.39, x86-64. Same corpus, same order, best of fifteen:
 
@@ -234,21 +236,19 @@ gcc 13.3, glibc 2.39, x86-64. Same corpus, same order, best of fifteen:
 | `cellul.to_double` | 179.2 ns | `strtod` 292.1 ns   | **1.63x** |
 | `verba.g`          | 397.5 ns | `snprintf` 954.2 ns | **2.40x** |
 
-Correctness on the same run, because a speed number for a wrong answer is not a number: `to_double`
-differs from glibc's `strtod` on **0 of 2000** random bit patterns, and `verba.g` rendered at
-seventeen digits and read back by glibc names its own value on **0 of 2000**.
+Correctness on the same run, because a speed number for a wrong answer is not a number. `to_double`
+differs from glibc's `strtod` on **0 of 2000** random bit patterns. `verba.g` rendered at seventeen
+digits and read back by glibc names its own value on **0 of 2000**.
 
 So the comparison is identical accuracy, fewer bytes, and fewer cycles, on both directions of the
 conversion. Not a trade.
 
-Two things that number is not. It is one host. And the parser has not had the treatment the rest of
-the library has had:
-`cellularum_laboro` is still a single translation unit holding the scans and the decimal parser
-together, and it is the single one module that has not been cut back to the shape the others are in. The
-1.63x is what it does before that and not after.
+Two things that number is not. It is one host. And `cellularum_laboro` is still a single translation
+unit that holds the scans and the decimal parser together. It is the single one module not yet in the
+shape the others are in, and the 1.63x is its figure in that shape.
 
-## The honest caveat
+## The caveat
 
-These are one compiler on one target - gcc 13.2 on x86-64. The shape of the argument holds
-elsewhere: code that is already minimal does not benefit from being unrolled. The specific numbers
-do not. Rerun the tool on the target that matters before quoting them at anybody.
+Each target here is one compiler version. The shape of the argument holds elsewhere: code that is
+already minimal does not gain from an unroll. The specific numbers do not. Run the tool again on the
+target that matters before you quote them to anybody.

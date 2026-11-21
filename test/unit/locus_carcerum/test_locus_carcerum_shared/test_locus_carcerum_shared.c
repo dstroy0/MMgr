@@ -65,10 +65,10 @@ static void owner_ready(const CellOwner *owner)
 void setUp(void)
 {
     mmgr_series_cellularum_emptied(&crowded_shared_ctx);
-    embed_atomic_u32_store(&s_next_index, 0u);
-    embed_atomic_usize_store(&s_refused, 0u);
-    embed_atomic_usize_store(&s_overwritten, 0u);
-    embed_atomic_usize_store(&s_retained, 0u);
+    EMBED_CALL(embed_atomic_u32_table.store, EmbedAtomicU32StoreCfg, .word = &s_next_index, .value = 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_refused, .value = 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_overwritten, .value = 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &s_retained, .value = 0u);
     owner_ready(s_crowd);
     owner_ready(s_scratch);
 }
@@ -86,7 +86,7 @@ static size_t tiers_held(void)
 
 static unsigned int contend_index_taken(void)
 {
-    return embed_atomic_u32_fetch_add(&s_next_index, 1u);
+    return EMBED_CALL(embed_atomic_u32_table.fetch_add, EmbedAtomicU32FetchAddCfg, .word = &s_next_index, .value = 1u);
 }
 
 // Each thread fills every persistent cell it holds with its own mark and reads the mark back before
@@ -119,8 +119,10 @@ static void contend_with(const CellOwner *owner, unsigned int index)
             crowded.shared.persistent_buf_release(held[at], owner);
         }
     }
-    (void)embed_atomic_usize_fetch_add(&s_refused, refused);
-    (void)embed_atomic_usize_fetch_add(&s_overwritten, overwritten);
+    (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_refused,
+                     .value = refused);
+    (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_overwritten,
+                     .value = overwritten);
 }
 
 static void contend_shared_owner(void)
@@ -174,9 +176,12 @@ static void contend_temporary_with(const CellOwner *owner, embed_bool giving)
             }
         }
     }
-    (void)embed_atomic_usize_fetch_add(&s_refused, refused);
-    (void)embed_atomic_usize_fetch_add(&s_overwritten, overwritten);
-    (void)embed_atomic_usize_fetch_add(&s_retained, retained);
+    (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_refused,
+                     .value = refused);
+    (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_overwritten,
+                     .value = overwritten);
+    (void)EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg, .word = &s_retained,
+                     .value = retained);
 }
 
 static void contend_temporary(void)
@@ -215,8 +220,9 @@ void test_threads_taking_and_giving_at_once_never_share_a_cell(void)
     // a take refused while sixteen threads hold cells is the pool's size, and the case holds what the
     // tier promises: no cell passed to two
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_shared_owner, MMGR_HOST_THREADS_MAX));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
-                                     "a cell was passed to two threads at once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_overwritten),
+        "a cell was passed to two threads at once");
 }
 
 void test_threads_taking_and_giving_at_once_leave_the_series_cellularum_whole(void)
@@ -232,8 +238,9 @@ void test_threads_taking_and_giving_temporary_cells_at_once_never_share_a_cell(v
     // a take refused once the gap runs out is the pool's size. The case holds what the tier promises:
     // no cell passed to two, and the tier whole once every cell goes back
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary, MMGR_HOST_THREADS_MAX));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
-                                     "a temporary cell was passed to two threads at once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_overwritten),
+        "a temporary cell was passed to two threads at once");
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(&crowded_shared_ctx));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(SHARED_BYTES, mmgr_series_cellularum_temporary_top(&crowded_shared_ctx),
                                      "the gives return the whole tier");
@@ -264,7 +271,8 @@ void test_an_owner_for_each_thread_is_counted_back_to_nothing(void)
         peaks += mmgr_owner_hw(s_own[at]);
     }
     TEST_ASSERT_TRUE(peaks > 0u);
-    TEST_ASSERT_EQUAL_size_t(0u, (size_t)embed_atomic_usize_load(&s_overwritten));
+    TEST_ASSERT_EQUAL_size_t(
+        0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_overwritten));
 }
 
 void test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_nothing(void)
@@ -272,8 +280,9 @@ void test_temporary_cells_given_back_one_at_a_time_count_their_owner_back_to_not
     // every temporary take counts to the owner it names. The single give counts the cell off the
     // owner its footer names whatever owner the give carries
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_shared_owner, MMGR_HOST_THREADS_MAX));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
-                                     "a temporary cell was passed to two threads at once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_overwritten),
+        "a temporary cell was passed to two threads at once");
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, mmgr_owner_in_use(s_crowd),
                                      "a temporary take or give was counted twice or not at all");
     TEST_ASSERT_TRUE(mmgr_owner_hw(s_crowd) > 0u);
@@ -284,11 +293,14 @@ void test_temporary_cells_retained_across_threads_count_to_their_owner(void)
 {
     // the threads retain every cell they receive, and the owner counts each payload the tier holds
     TEST_ASSERT_TRUE(mmgr_host_threads_run(contend_temporary_retained, MMGR_HOST_THREADS_MAX));
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, (size_t)embed_atomic_usize_load(&s_overwritten),
-                                     "a temporary cell was passed to two threads at once");
-    TEST_ASSERT_EQUAL_size_t_MESSAGE((size_t)embed_atomic_usize_load(&s_retained), mmgr_owner_in_use(s_crowd),
-                                     "the owner counts every payload the tier holds");
-    TEST_ASSERT_TRUE_MESSAGE(SHARED_BYTES - mmgr_series_cellularum_temporary_top(&crowded_shared_ctx) >=
-                                 (size_t)embed_atomic_usize_load(&s_retained),
-                             "the tier holds the retained payloads and their words");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_overwritten),
+        "a temporary cell was passed to two threads at once");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(
+        (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_retained),
+        mmgr_owner_in_use(s_crowd), "the owner counts every payload the tier holds");
+    TEST_ASSERT_TRUE_MESSAGE(
+        SHARED_BYTES - mmgr_series_cellularum_temporary_top(&crowded_shared_ctx) >=
+            (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &s_retained),
+        "the tier holds the retained payloads and their words");
 }

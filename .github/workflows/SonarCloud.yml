@@ -70,12 +70,16 @@ jobs:
 
       # An MMGR_ASSERT that fails stops the program, and so its failure arm is no branch a green suite runs.
       # The condition is still evaluated in the checks environment.
+      #
+      # A static function can have one definition in each arm of a build switch. The separate mode
+      # keeps each definition on its own line, and the report counts each as a function.
       - name: Coverage report
         run: >
           gcovr --root . --sonarqube coverage.xml
           --exclude 'test/'
           --exclude 'build/'
           --exclude-branches-by-pattern '.*MMGR_ASSERT.*'
+          --merge-mode-functions=separate
           --print-summary
 
       - name: SonarQube Scan

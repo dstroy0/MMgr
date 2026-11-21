@@ -32,7 +32,7 @@ TAGS = {
 }
 
 # The library every behavior build links: each module's sources but the ones a harness builds in itself.
-LIBRARY_SKIPPED = ("memoria_externa", "memoriam_praetereo", "confinium_exclusivum_infinitas", "confinium_externum")
+LIBRARY_SKIPPED = ("memoria_externa", "memoriam_praetereo")
 
 DEFINES = ["MMGR_ENABLE_DMA=0", "MMGR_ENABLE_EXTRAM=0", "MMGR_CARCER_OWNERS=1024u", "_CRT_SECURE_NO_WARNINGS"]
 
@@ -127,7 +127,7 @@ def toolchains():
 def modules_chosen(root, names, tags):
     every = sorted(entry for entry in os.listdir(os.path.join(root, "src"))
                    if os.path.isfile(os.path.join(root, "src", entry, "CMakeLists.txt")) and entry not in
-                   ("config", "confinium_exclusivum_infinitas", "confinium_externum"))
+                   ("config",))
     chosen = list(names or [])
     for tag in tags or []:
         if tag not in TAGS:

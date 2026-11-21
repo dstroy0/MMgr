@@ -34,17 +34,18 @@ void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner
 static void owner_ready(const CellOwner *owner)
 {
     mmgr_owner_bytes_given(owner, mmgr_owner_in_use(owner));
-    embed_atomic_usize_store(&((CellOwner *)(uintptr_t)owner)->hw, 0u);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &((CellOwner *)(uintptr_t)owner)->hw,
+               .value = 0u);
 }
 
 static size_t in_use_of(const CellOwner *owner)
 {
-    return (size_t)embed_atomic_usize_load(&owner->in_use);
+    return (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &owner->in_use);
 }
 
 static size_t hw_of(const CellOwner *owner)
 {
-    return (size_t)embed_atomic_usize_load(&owner->hw);
+    return (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &owner->hw);
 }
 
 void setUp(void)

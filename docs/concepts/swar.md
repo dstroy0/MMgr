@@ -9,8 +9,8 @@ Register_, LCPC'98, LNCS 1656:290-304, doi:10.1007/3-540-48319-5_19.
 ## The idea
 
 A `uint64_t` holds eight bytes. An `AND`, an `XOR` or a subtract on that word operates on all eight
-simultaneously, on any CPU, with no vector unit and no intrinsics. The whole technique is arranging
-for the answer you want to fall out of arithmetic that was going to happen anyway.
+simultaneously, on any CPU, with no vector unit and no intrinsics. The whole technique is to arrange
+for the answer you want to fall out of arithmetic that occurs anyway.
 
 Three constants set it up, all derived from the carrier width and not tabulated, and so they are
 correct at 16, 32 and 64 bits without a `#if`:
@@ -28,7 +28,7 @@ answer bit.
 ## Worked example: is any byte zero
 
 `lane.has_zero` answers "does this word contain a zero byte" in five operations, and every predicate
-in the module is built on it.
+in the module sits on it.
 
 ```c
 ~(((w & MMGR_SWAR_LOW7) + MMGR_SWAR_LOW7) | w) & MMGR_VERBUM_SCRUTOR_HIGH
@@ -39,8 +39,8 @@ Read it a lane at a time:
 - `w & LOW7` drops the top bit of every lane, and so no lane can carry into its neighbor.
 - `+ LOW7` adds `0x7F` to each. A lane whose low seven bits contained anything at all carries into bit 7;
   a lane that contained zero in those bits does not.
-- `| w` puts the top bits back, and so bit 7 of each lane is now set exactly when the lane was nonzero,
-  either because the add carried, or because the byte was `0x80` or above to begin with.
+- `| w` puts the top bits back. So each lane now has bit 7 set exactly when the lane was nonzero.
+  Either the add carried, or the byte was `0x80` or above to begin with.
 - `~` inverts it, and `& HIGH` retains one bit per lane. The result is the answer: a set bit for
   every lane that contained zero.
 
@@ -50,8 +50,8 @@ plus a tail.
 The test is Alan Mycroft's, posted to comp.arch on 1987-04-27. Sean Eron Anderson's
 _Bit Twiddling Hacks_ and Henry S. Warren Jr.'s _Hacker's Delight_ chapter 6 both carry it.
 
-The `mask` table on top of it turns "some lane matched" into "which lane": `lane.count` says how
-many, `lane.first` and `lane.last` say where, `mask.drop_first` and `mask.drop_last` walk them in
+The `mask` table on top of it turns "some lane matched" into "which lane". `lane.count` says how
+many, and `lane.first` and `lane.last` say where. `mask.drop_first` and `mask.drop_last` walk them in
 order, and `mask.tail` trims the last word to the caller's length. A `find` needs exactly this.
 
 Called through the table:
@@ -65,24 +65,25 @@ if (m != 0)
 }
 ```
 
-**Use `word.load_al` in a walk, not `word.load`.** `load` takes any address, which it pays for: the
-type it moves carries `EMBED_RAW`, which is `EMBED_ALIGN(1)` and `EMBED_ALIAS`, and on a target with no unaligned word load the
-compiler assembles each one out of byte loads and shifts, twelve instructions on Xtensa, eleven on
-RISC-V, one on ARMv7-M. A walk steps to the first word boundary once and reads the body through
-`load_al`, which is a single instruction everywhere. That change alone took `cellul.len` from 3.788
-cycles per byte to 3.055. `load` is for the address that genuinely is arbitrary, verifying a
-candidate mid-haystack, say.
+**Use `word.load_al` in a walk, not `word.load`.** `load` takes any address, and it pays for that:
+the type it moves carries `EMBED_RAW`, which is `EMBED_ALIGN(1)` and `EMBED_ALIAS`. On a target with
+no unaligned word load, the compiler assembles each one out of byte loads and shifts. That is twelve
+instructions on Xtensa, eleven on RISC-V and one on ARMv7-M. A walk steps to the first word boundary
+once and reads the body through `load_al`, which is a single instruction everywhere.
+
+With `load_al`, `cellul.len` costs 3.055 cycles per byte against 3.788 with `load`. `load` is for the address that
+genuinely is arbitrary, for example the check of a candidate mid-haystack.
 
 ## The carrier is the machine word
 
-Not a knob. A narrower carrier is never faster: a 16-bit load on a 32-bit machine moves the same
+Not a knob. A narrower carrier is never faster. A 16-bit load on a 32-bit machine moves the same
 cache line, occupies the same load port, and then answers for half the lanes.
 
 There is no separate lane width to set. The scanner reads `EMBED_WORD_BITS` directly, and so nothing can
 desync the carrier from the word: there is no second number to disagree with the first.
 
-What _is_ a knob is `EMBED_WORD_BITS` itself. Set it and the carrier and the machine word move
-together, and that is how the `word32` and `word16` environments run a narrow machine's scan path on a
+What _is_ a knob is `EMBED_WORD_BITS` itself. Set it, and the carrier and the machine word move
+together. That is how the `word32` and `word16` environments run a narrow machine's scan path on a
 64-bit host. See @ref concept_width.
 
 ## No builtins
@@ -96,15 +97,15 @@ measured decision and not an aesthetic one:
   `popcnt` is not in the base ISA. A libgcc call in the middle of a branch-free scan is worse than
   the fold it replaced.
 
-Avoiding them also means there is no `#ifdef` ladder per compiler in the scan path, the
-second reason: every compiler conditional lives in one file (`embed_compiler_directives.h`), and the
-scanner is not allowed to add to it.
+Without them there is also no `#ifdef` ladder per compiler in the scan path, the second reason.
+Every compiler conditional lives in one file (`embed_compiler_directives.h`), and the scanner may
+not add to it.
 
 ## What it is worth
 
-Measured on gcc 13.2 `-O2`, x86-64. `cycles_per_byte` is `cycles_per_call / MMGR_SWAR_BYTES`, the
-column the design claim lives in: a wider carrier answers for more bytes per register
-operation, and so cycles-per-byte should fall as the carrier widens.
+Measured on gcc 13.2 `-O2`, x86-64. `cycles_per_byte` is `cycles_per_call / MMGR_SWAR_BYTES`. The
+design claim lives in that column. A wider carrier answers for more bytes per register operation,
+and so cycles-per-byte should fall as the carrier widens.
 
 | case       | 16-bit | 32-bit | 64-bit | 16 → 64 |
 | ---------- | -----: | -----: | -----: | ------: |
@@ -114,20 +115,20 @@ operation, and so cycles-per-byte should fall as the carrier widens.
 | `spread`   |   7.74 |   2.89 |   1.33 |    5.8x |
 | `eq`       |  10.09 |   4.30 |   2.32 |    4.4x |
 
-It does fall, roughly halving per doubling. `eq` sits about 11% above `has_zero`, the
+It does fall: to about half for each doubled width. `eq` sits about 11% above `has_zero`, the
 `movzbl`, `imul` and `xor` it adds. Nothing to explain.
 
 Read these as a comparison **between rows of one build**, never against a number from another
-machine. @ref ref_performance explains how to run them and how to tell a result from noise.
+machine. The page @ref ref_performance explains how to run them and how to tell a result from noise.
 
 ## Where LTO comes in
 
-Link-time optimization is essential, and it is worth being blunt about how much. These entries are
-generated in `verbum_scrutor.c` by `EMBED_ENTRY` and called by name from every other module, and so no
+Link-time optimization is essential, and this page is blunt about how much. `EMBED_ENTRY` generates
+these entries in `verbum_scrutor.c`, and every other module calls them by name, and so no
 translation unit can inline them on its own. `mmgr_memor_chr` over 512 bytes measured **610 cycles**
-with them as out-of-line calls and **187** when the linker was allowed to inline them. On an
-ESP32-S3, `cellul.len` measured **26.6 cycles/byte without LTO against 5.0 with it**, worse than the
-byte-at-a-time ROM `strnlen` it is compared to. `MMGR_LTO` defaults to `ON` for that reason.
+with them as out-of-line calls and **187** when the linker could inline them. On an ESP32-S3,
+`cellul.len` measured **26.6 cycles/byte without LTO against 5.0 with it**. That is worse than the
+byte-at-a-time ROM `strnlen` it runs against. `MMGR_LTO` defaults to `ON` for that reason.
 
 @warning A toolchain that cannot do link-time optimization does not give a slower build of the same
 library; it gives a different one. ESP-IDF appends `-fno-lto` to every link unconditionally. An

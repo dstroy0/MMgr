@@ -1,6 +1,6 @@
 # Start here {#nav_start}
 
-Building it, linking it, and the first region.
+How to build it, how to link it, and the first region.
 
 - @subpage guide_quickstart
 - @subpage guide_install

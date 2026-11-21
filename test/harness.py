@@ -1293,10 +1293,14 @@ def cmd_coverage(a):
     #
     # A failed MMGR_ASSERT stops the program, and so its failure arm is no branch a green suite
     # runs. The checks environment still tests its condition.
+    #
+    # A static function can have one definition in each arm of a build switch. The separate mode
+    # keeps each definition on its own line, and the report counts each as a function.
     r = run(
         [
             sys.executable, "-m", "gcovr", "--root", ".", "--filter", "src/",
             "--exclude-branches-by-pattern", ".*MMGR_ASSERT.*",
+            "--merge-mode-functions=separate",
             "--print-summary", "--txt-metric", "branch",
             "--csv", "-o", out, "--json", js, tree_path(tree),
         ]

@@ -127,8 +127,8 @@ def mode_headers(go):
         pairs.append(('"%s/%s.h"' % (old, old), '"%s/%s.h"' % (latin, latin)))
         pairs.append(("MMGR_%s_H" % old.upper(), "MMGR_%s_H" % latin.upper()))
     # ring arrived as a bare header and not a directory.
-    pairs.append(('"ring.h"', '"confinium_exclusivum_infinitas/confinium_exclusivum_infinitas.h"'))
-    pairs.append(("MMGR_RING_H", "MMGR_CONFINIUM_EXCLUSIVUM_INFINITAS_H"))
+    pairs.append(('"ring.h"', '"memoria_anularis/memoria_anularis.h"'))
+    pairs.append(("MMGR_RING_H", "MMGR_MEMORIA_ANULARIS_H"))
 
     files = hits = 0
     for p in sources(SRC):

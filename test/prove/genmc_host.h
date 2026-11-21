@@ -37,16 +37,18 @@
 /** @brief The wakes issued, every word's. */
 static embed_atomic_word s_genmc_wakes;
 
-int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value old_value, embed_word nanoseconds)
+int embed_word_wait(const EmbedWordWaitCfg *args)
 {
-    const embed_atomic_word_value epoch = embed_atomic_word_load(&s_genmc_wakes);
+    const embed_atomic_word_value epoch =
+        EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &s_genmc_wakes);
 
     // Explicit casts retain the low 32 bits of each value, the bits the futex compares
-    if ((uint32_t)embed_atomic_word_load(word) != (uint32_t)old_value)
+    if ((uint32_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = args->word) !=
+        (uint32_t)args->old_value)
     {
         return 1;
     }
-    if (nanoseconds != EMBED_WAIT_INFINITE)
+    if (args->nanoseconds != EMBED_WAIT_INFINITE)
     {
         return 0;
     }
@@ -54,17 +56,31 @@ int embed_word_wait(embed_atomic_word *word, embed_atomic_word_value old_value, 
     {
         return 0;
     }
-    __VERIFIER_assume(embed_atomic_word_load(&s_genmc_wakes) != epoch);
+    __VERIFIER_assume(EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &s_genmc_wakes) !=
+                      epoch);
     return 0;
 }
 
-void embed_word_wake(embed_atomic_word *word)
+void embed_word_wake(const EmbedWordWakeCfg *args)
 {
-    (void)word;
-    (void)embed_atomic_word_fetch_add(&s_genmc_wakes, 1u);
+    (void)args;
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_add, EmbedAtomicWordFetchAddCfg, .word = &s_genmc_wakes,
+                     .value = 1u);
 }
 
 embed_word embed_clock_ns(void)
+{
+    return 0u;
+}
+
+/**
+ * @brief The place of the thread, 0 for every thread.
+ *
+ * @return 0.
+ * @note The clients run with no regions, and no take reads the place. The turnstile table names the hook, and so
+ *       the host defines it.
+ */
+embed_u32 embed_thread_place(void)
 {
     return 0u;
 }
