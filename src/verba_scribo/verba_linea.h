@@ -130,6 +130,16 @@ size_t mmgr_line_put_max(VerbaLinea *line, const char *text, size_t max);
 void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int columns);
 
 /**
+ * @brief Writes spaces out to columns and then a terminated text, and so the text is right aligned.
+ *
+ * @param[in,out] line    The line [BORROWS].
+ * @param[in]     text    Terminated text to write [BORROWS].
+ * @param[in]     columns Bytes the spaces and the text fill. A text of columns bytes or more gets no spaces.
+ * @note The measure of the text reads at max columns bytes of it. The text then goes as mmgr_line_put reads it.
+ */
+void mmgr_line_put_right(VerbaLinea *line, const char *text, unsigned int columns);
+
+/**
  * @brief Writes one character.
  *
  * @param[in,out] line      The line [BORROWS].
@@ -171,6 +181,21 @@ void mmgr_line_decimal_signed(VerbaLinea *line, int64_t value);
  * @param[in]     digits_least Fewest digits written, clamped at 255.
  */
 void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least);
+
+/**
+ * @brief Writes a double with decimals digits after the point, right aligned in columns with spaces before it.
+ *
+ * @param[in,out] line     The line [BORROWS].
+ * @param[in]     value    The value.
+ * @param[in]     decimals Digits after the point, clamped at MMGR_FIXED_MAX_DECIMALS. A count of 0 writes no point.
+ * @param[in]     columns  Bytes the value, its sign and its spaces fill, clamped at 255.
+ * @param[in]     plus     EMBED_TRUE writes a plus sign before a value whose sign bit is clear.
+ * @note The digits are those of mmgr_verba_fixed. The fraction rounds from the exact value of the double, and a
+ *       half goes up in magnitude. A negative zero writes its minus sign.
+ * @warning A magnitude too large for 64 bits of integer part goes out as mmgr_verba_g writes it, at ten
+ *          significant digits.
+ */
+void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus);
 
 /**
  * @brief Stores the terminator, the one store a line no write reached yet still needs.

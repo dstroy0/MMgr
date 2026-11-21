@@ -203,17 +203,37 @@ size_t mmgr_line_put_max(VerbaLinea *line, const char *text, size_t max)
     return mmgr_line_put_n(line, text, EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = text, .cap = max));
 }
 
-void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int columns)
+/**
+ * @brief Writes spaces, LINEA_SPACES at a time.
+ *
+ * @param[in,out] line  The line [BORROWS].
+ * @param[in]     count Spaces to write.
+ */
+EMBED_INLINE void linea_spaced(VerbaLinea *line, size_t count)
 {
-    const size_t length = linea_streamed(line, text);
-
-    for (size_t pad = (length < columns) ? (columns - length) : 0u; pad > 0u;)
+    for (size_t pad = count; pad > 0u;)
     {
         const size_t run = (pad < LINEA_SPACES) ? pad : LINEA_SPACES;
 
         (void)mmgr_line_put_n(line, s_linea_spaces, run);
         pad -= run;
     }
+}
+
+void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int columns)
+{
+    const size_t length = linea_streamed(line, text);
+
+    linea_spaced(line, (length < columns) ? (columns - length) : 0u);
+}
+
+void mmgr_line_put_right(VerbaLinea *line, const char *text, unsigned int columns)
+{
+    // The measure stops at columns bytes, as a longer text gets no spaces
+    const size_t length = EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = text, .cap = columns);
+
+    linea_spaced(line, (length < columns) ? (columns - length) : 0u);
+    (void)linea_streamed(line, text);
 }
 
 void mmgr_line_ch(VerbaLinea *line, char character)
@@ -254,6 +274,25 @@ void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least)
     linea_number(line, digits,
                  EMBED_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = digits, .cap = sizeof digits, .val = value,
                             .min = linea_least(digits_least)));
+}
+
+void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus)
+{
+    char digits[LINEA_DIGITS];
+    const embed_bool plus_written =
+        (plus != EMBED_FALSE) && !EMBED_CALL(verba_fractio.sign_bit, VerbaFractioCfg, .real = value);
+
+    if (plus_written)
+    {
+        digits[0] = '+';
+    }
+    // LINEA_DIGITS holds a sign, the twenty digits of 64 bits, a point and MMGR_FIXED_MAX_DECIMALS, and so it fits
+    const size_t written = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = digits, .cap = sizeof digits,
+                                      .at = plus_written ? 1u : 0u, .real = value, .decimals = linea_least(decimals));
+    const size_t wide = linea_least(columns);
+
+    linea_spaced(line, (written < wide) ? (wide - written) : 0u);
+    linea_number(line, digits, written);
 }
 
 size_t mmgr_line_finish(VerbaLinea *line)

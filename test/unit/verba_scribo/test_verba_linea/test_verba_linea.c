@@ -137,6 +137,88 @@ void test_put_columns_pads_past_one_run_of_spaces(void)
     TEST_ASSERT_EQUAL_CHAR('|', s_out[40]);
 }
 
+void test_put_right_pads_with_spaces_before_the_text(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_put_right(&line, "ab", 5u);
+    mmgr_line_ch(&line, '|');
+    mmgr_line_put_right(&line, "longer", 3u);
+    mmgr_line_ch(&line, '|');
+    mmgr_line_put_right(&line, "", 2u);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("   ab|longer|  ", s_out);
+}
+
+void test_put_right_pads_past_one_run_of_spaces(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_put_right(&line, "a", 40u);
+    TEST_ASSERT_EQUAL_size_t(40u, line.at);
+    for (size_t at = 0u; at < 39u; at++)
+    {
+        TEST_ASSERT_EQUAL_CHAR(' ', s_out[at]);
+    }
+    TEST_ASSERT_EQUAL_CHAR('a', s_out[39]);
+}
+
+void test_fixed_writes_the_decimals_asked_for(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_fixed(&line, 3.14159, 2u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, -0.5, 1u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, 7.0, 0u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, 1.0 / 3.0, 15u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("3.14 -0.5 7 0.333333333333333", s_out);
+}
+
+void test_fixed_rounds_a_half_up_in_magnitude(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_fixed(&line, 0.125, 2u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, -0.125, 2u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, 9.995, 2u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("0.13 -0.13 9.99", s_out, "9.995 is below the half as a double");
+}
+
+void test_fixed_writes_a_plus_sign_where_asked(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_fixed(&line, 1.5, 1u, 0u, EMBED_TRUE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, -1.5, 1u, 0u, EMBED_TRUE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, -0.0, 1u, 0u, EMBED_TRUE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_fixed(&line, 0.0, 1u, 0u, EMBED_TRUE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("+1.5 -1.5 -0.0 +0.0", s_out);
+}
+
+void test_fixed_aligns_right_in_its_columns(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_fixed(&line, 1.25, 2u, 8u, EMBED_FALSE);
+    mmgr_line_ch(&line, '|');
+    mmgr_line_fixed(&line, -1.25, 2u, 8u, EMBED_TRUE);
+    mmgr_line_ch(&line, '|');
+    mmgr_line_fixed(&line, 12345.5, 1u, 3u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("    1.25|   -1.25|12345.5", s_out);
+}
+
 void test_ch_writes_one_character(void)
 {
     VerbaLinea line = line_of(4u);
