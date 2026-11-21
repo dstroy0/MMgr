@@ -445,8 +445,9 @@ EMBED_INLINE uint64_t linea_significant(double value, unsigned int significant, 
     // The power estimate is the binary one times 78913, shifted right 18, a power that is never too high
     embed_iword decimal =
         (embed_iword)(((embed_i64)(63 - EMBED_CALL(clz.lead, ClzCfg, .val = mantissa) + binary) * 78913) >> 18);
-    // Explicit cast takes a count of at max MMGR_G_MAX_SIG into the signed word of the scale
-    embed_iword cursor = (embed_iword)significant - 1 - decimal;
+    // Explicit casts take a count of at max MMGR_G_MAX_SIG into the signed word of the scale, and the difference
+    // back from int. The power of a double is at max 309 either way, and so the difference fits 16 bits
+    embed_iword cursor = (embed_iword)((embed_iword)significant - 1 - decimal);
     uint64_t digits = linea_scaled(value, &mantissa, binary, cursor);
 
     while (digits >= limit)
