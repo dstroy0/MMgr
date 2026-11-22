@@ -202,3 +202,38 @@ void test_to_u64_on_the_boundary_ignores_what_is_under_the_round_bit(void)
     TEST_ASSERT_EQUAL_UINT64_MESSAGE(4u, to_u64_of(4u, (embed_u64)1 << 62, -64),
                                      "and they do not lift a value with no half bit at all");
 }
+
+void test_a_digit_value_reads_digits_and_letters_of_either_case(void)
+{
+    TEST_ASSERT_EQUAL_UINT(0u, mmgr_muto_digit_value((uint8_t)'0'));
+    TEST_ASSERT_EQUAL_UINT(9u, mmgr_muto_digit_value((uint8_t)'9'));
+    TEST_ASSERT_EQUAL_UINT(10u, mmgr_muto_digit_value((uint8_t)'a'));
+    TEST_ASSERT_EQUAL_UINT(35u, mmgr_muto_digit_value((uint8_t)'Z'));
+    TEST_ASSERT_EQUAL_UINT_MESSAGE(36u, mmgr_muto_digit_value((uint8_t)'@'), "a byte that is no digit reads 36");
+    TEST_ASSERT_EQUAL_UINT(36u, mmgr_muto_digit_value((uint8_t)'['));
+}
+
+void test_take_in_appends_a_digit_of_its_base(void)
+{
+    embed_u64 mant = 0xAu;
+    TEST_ASSERT_TRUE(EMBED_CALL(muto.take_in, TransformoCfg, .mant = &mant, .digit = 'f', .base = 16u));
+    TEST_ASSERT_EQUAL_UINT64(0xAFu, mant);
+    TEST_ASSERT_TRUE(EMBED_CALL(muto.take_in, TransformoCfg, .mant = &mant, .digit = '1', .base = 2u));
+    TEST_ASSERT_EQUAL_UINT64(0x15Fu, mant);
+}
+
+void test_take_in_refuses_a_base_a_byte_or_an_overflow_and_keeps_the_mantissa(void)
+{
+    embed_u64 mant = 7u;
+    TEST_ASSERT_FALSE(EMBED_CALL(muto.take_in, TransformoCfg, .mant = &mant, .digit = '1', .base = 1u));
+    TEST_ASSERT_FALSE(EMBED_CALL(muto.take_in, TransformoCfg, .mant = &mant, .digit = '1', .base = 37u));
+    TEST_ASSERT_FALSE_MESSAGE(EMBED_CALL(muto.take_in, TransformoCfg, .mant = &mant, .digit = '8', .base = 8u),
+                              "a digit at the base is no digit of it");
+    TEST_ASSERT_EQUAL_UINT64(7u, mant);
+    mant = ~(embed_u64)0 / 16u;
+    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(muto.take_in, TransformoCfg, .mant = &mant, .digit = 'f', .base = 16u),
+                             "the last digit that fits goes on");
+    TEST_ASSERT_EQUAL_UINT64(~(embed_u64)0, mant);
+    TEST_ASSERT_FALSE(EMBED_CALL(muto.take_in, TransformoCfg, .mant = &mant, .digit = '0', .base = 16u));
+    TEST_ASSERT_EQUAL_UINT64(~(embed_u64)0, mant);
+}

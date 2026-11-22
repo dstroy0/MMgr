@@ -26,6 +26,24 @@ embed_bool mmgr_text_equal(const char *left, const char *right, size_t cap)
     return EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = left, .other = right, .cap = cap, .ci = EMBED_FALSE);
 }
 
+int mmgr_text_order(const char *left, const char *right, size_t cap)
+{
+    const size_t left_length = EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = left, .cap = cap);
+    const size_t right_length = EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = right, .cap = cap);
+    const size_t shorter = (left_length < right_length) ? left_length : right_length;
+    // the shorter text and its terminator, or cap where neither ends inside it
+    const size_t reach = (shorter < cap) ? (shorter + 1u) : cap;
+    const size_t differs =
+        EMBED_CALL(cellul.diff, CatenaFinitaCfg, .src = left, .other = right, .cap = reach, .ci = EMBED_FALSE);
+
+    if (differs >= reach)
+    {
+        return 0;
+    }
+    // Explicit casts read each byte as unsigned, as strcmp orders them, and widen it to int
+    return (int)(unsigned char)left[differs] - (int)(unsigned char)right[differs];
+}
+
 embed_bool mmgr_text_starts(const char *text, const char *prefix, size_t cap)
 {
     return EMBED_CALL(cellul.starts, CatenaFinitaCfg, .src = text, .other = prefix, .cap = cap, .ci = EMBED_FALSE);
@@ -50,4 +68,39 @@ size_t mmgr_text_copy(char *dst, const char *src, size_t cap)
 embed_word mmgr_text_unsigned(const char *text, const char **end)
 {
     return EMBED_CALL(cellul.to_ulong, TransfiguroCfg, .src = text, .end = end);
+}
+
+embed_word mmgr_text_unsigned_in(const char *text, const char **end, unsigned int base)
+{
+    return EMBED_CALL(cellul.to_ulong_in, TransfiguroCfg, .src = text, .end = end, .base = base);
+}
+
+size_t mmgr_text_span(const char *text, const char *set, size_t cap)
+{
+    return EMBED_CALL(cellul.span, CatenaFinitaCfg, .src = text, .cap = cap, .other = set);
+}
+
+size_t mmgr_text_span_not(const char *text, const char *set, size_t cap)
+{
+    return EMBED_CALL(cellul.span_not, CatenaFinitaCfg, .src = text, .cap = cap, .other = set);
+}
+
+const char *mmgr_text_char_last(const char *text, uint8_t value, size_t cap)
+{
+    return EMBED_CALL(cellul.chr_last, CatenaFinitaCfg, .src = text, .cap = cap, .byte = value);
+}
+
+embed_bool mmgr_text_class(uint8_t value, MmgrAsciiClass type)
+{
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = type, .byte = value);
+}
+
+uint8_t mmgr_text_lower(uint8_t value)
+{
+    return EMBED_CALL(ascii.lower, AsciiCfg, .byte = value);
+}
+
+uint8_t mmgr_text_upper(uint8_t value)
+{
+    return EMBED_CALL(ascii.upper, AsciiCfg, .byte = value);
 }

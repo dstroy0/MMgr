@@ -79,13 +79,17 @@ typedef struct
 /**
  * @brief Type of the ascii dispatch table.
  *
- * @note EMBED_TABLE_LAYOUT asserts the in member is at offset 0 and that the struct holds nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the three members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ *       nothing else.
+ * @note lower and upper read only the byte.
  */
 typedef struct
 {
     embed_bool (*in)(const AsciiCfg *args); /**< Whether a byte belongs to a class. */
+    uint8_t (*lower)(const AsciiCfg *args); /**< The byte with 'A' to 'Z' folded to 'a' to 'z'. */
+    uint8_t (*upper)(const AsciiCfg *args); /**< The byte with 'a' to 'z' folded to 'A' to 'Z'. */
 } AsciiPersonaBitorumNs;
-EMBED_TABLE_LAYOUT(AsciiPersonaBitorumNs, in);
+EMBED_TABLE_LAYOUT(AsciiPersonaBitorumNs, in, lower, upper);
 
 /**
  * @brief Returns whether args->byte has its bit set in the type bitmap.
@@ -100,10 +104,28 @@ EMBED_TABLE_LAYOUT(AsciiPersonaBitorumNs, in);
 embed_bool mmgr_ascii_in(const AsciiCfg *args);
 
 /**
- * @brief Dispatch table instance named ascii, whose in member holds mmgr_ascii_in.
+ * @brief Returns args->byte with an upper case letter folded to its lower case, as tolower folds it.
+ *
+ * @param[in] args The byte, and args->type, which the call does not read [BORROWS].
+ * @return         'a' to 'z' for 'A' to 'Z', and any other byte as it is.
+ */
+uint8_t mmgr_ascii_lower(const AsciiCfg *args);
+
+/**
+ * @brief Returns args->byte with a lower case letter folded to its upper case, as toupper folds it.
+ *
+ * @param[in] args The byte, and args->type, which the call does not read [BORROWS].
+ * @return         'A' to 'Z' for 'a' to 'z', and any other byte as it is.
+ */
+uint8_t mmgr_ascii_upper(const AsciiCfg *args);
+
+/**
+ * @brief Dispatch table instance named ascii, with each member set to its mmgr_ascii_ function.
  */
 EMBED_TABLE_STORAGE AsciiPersonaBitorumNs ascii EMBED_UNUSED = {
     .in = mmgr_ascii_in,
+    .lower = mmgr_ascii_lower,
+    .upper = mmgr_ascii_upper,
 };
 
 EMBED_END_DECLS

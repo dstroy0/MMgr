@@ -14,7 +14,7 @@ One file, the same in orior, MMgr and embedded_types; orior's harness holds the 
 A technical document is a Markdown file of the tree's prose: the README, the contributing and security notes and
 everything under docs/, but not in a folder that is a repository of its own. A code block, an inline span of code, a table, a heading, a link target, an HTML comment
 and a license section are not prose and are not read. A display formula between two lines of $$ is not prose either.
-An underscore inside a word is part of the word and not emphasis, and so a name like ref_error_handling stays one name.
+An underscore inside a word is part of the word and not emphasis. A name like ref_error_handling stays one name.
 
 The rules checked, with their numbers in ASD-STE100 Issue 9:
 

@@ -52,6 +52,8 @@ typedef struct
     const char **const end; /**< Set by the to_ calls past the number, or back to src when they read none [BORROWS]. */
     const char **const cur; /**< Cursor advanced by expo [BORROWS]. */
     embed_iword *const exp; /**< Set by expo to the signed exponent [BORROWS]. */
+
+    const unsigned int base; /**< Base of to_ulong_in, or 0 for the base the number's prefix names. */
 } CellulCtx;
 
 /**
@@ -1410,6 +1412,153 @@ EMBED_INLINE embed_word cellul_to_ulong(const CellulCtx *args)
 }
 
 /**
+ * @brief Reads an unsigned integer in base args->base, and sets args->end past it.
+ *
+ * @param[in] args Text src, the optional end target and the base [BORROWS].
+ * @return         The value, negated in its word after a '-'. All ones where the digits pass the word. 0 where the
+ *                 base is neither 0 nor 2 to 36.
+ * @note The read skips leading whitespace, then one optional '+' or '-'. A 0x or 0X before a hex digit sets base 16
+ *       for a base of 0 or 16. For a base of 0, a leading 0 sets base 8 and any other byte sets base 10.
+ * @note muto.take_in adds each digit. A digit it refuses carries the value past 64 bits, and the value saturates.
+ * @note When end is not NULL it points past the last digit, or back to src when the read found no digit.
+ * @warning src carries no bound. The read runs until the first byte that is not a digit of the base.
+ */
+EMBED_INLINE embed_word cellul_to_ulong_in(const CellulCtx *args)
+{
+    const char *cursor = args->src;
+
+    while (cellul_is_ws(*cursor))
+    {
+        cursor++;
+    }
+    const embed_bool negative = (*cursor == '-') ? EMBED_TRUE : EMBED_FALSE;
+    if ((*cursor == '+') || (*cursor == '-'))
+    {
+        cursor++;
+    }
+    // The second byte is readable once the first is a 0, and the third once the second is an x and no terminator.
+    // Explicit casts read each byte as the unsigned byte its digit value comes from
+    const embed_bool prefixed = (cursor[0] == '0') && ((((uint8_t)cursor[1]) | 0x20u) == (uint8_t)'x') &&
+                                (mmgr_muto_digit_value((uint8_t)cursor[2]) < 16u);
+    unsigned int base = args->base;
+    if (((base == 0u) || (base == 16u)) && prefixed)
+    {
+        cursor += 2;
+        base = 16u;
+    }
+    if (base == 0u)
+    {
+        base = (cursor[0] == '0') ? 8u : 10u;
+    }
+    if ((base < 2u) || (base > 36u))
+    {
+        if (args->end != NULL)
+        {
+            *args->end = args->src;
+        }
+        return 0u;
+    }
+
+    const char *const digits_start = cursor;
+    embed_u64 value = 0u;
+    embed_bool passed = EMBED_FALSE;
+    // Explicit cast reads the byte as the unsigned byte its digit value comes from
+    while (mmgr_muto_digit_value((uint8_t)*cursor) < base)
+    {
+        const embed_bool taken =
+            EMBED_CALL(muto.take_in, TransformoCfg, .mant = &value, .digit = *cursor, .base = base);
+        passed = (passed || !taken) ? EMBED_TRUE : EMBED_FALSE;
+        cursor++;
+    }
+
+    if (args->end != NULL)
+    {
+        *args->end = (cursor != digits_start) ? cursor : args->src;
+    }
+    // Explicit casts compare the 64-bit value with the all ones of the word, which a 32-bit word holds less of
+    const embed_word all_ones = (embed_word) ~(embed_word)0u;
+    if (passed || (value > (embed_u64)all_ones))
+    {
+        return all_ones;
+    }
+    // Explicit casts narrow a value that the word holds, and negate it in the word as strtoul does
+    return negative ? (embed_word)(0u - (embed_word)value) : (embed_word)value;
+}
+
+/**
+ * @brief Counts the bytes at the start of src that the set other holds, or does not hold.
+ *
+ * @param[in] args Bytes src, the extent cap, and the terminated set other [BORROWS].
+ * @param[in] held 1 to count the bytes the set holds, 0 to count the bytes it does not hold.
+ * @return         The count of bytes before the first byte the other way, the terminator or cap.
+ * @note The set becomes 256 bits first, and so each byte of src takes one test.
+ */
+EMBED_INLINE size_t cellul_span_held(const CellulCtx *args, unsigned int held)
+{
+    uint32_t set[8] = {0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u};
+    for (const char *member = args->other; *member != '\0'; member++)
+    {
+        // Explicit cast reads the byte as the unsigned byte that names its bit
+        const uint8_t byte = (uint8_t)*member;
+        set[byte >> 5u] |= (uint32_t)1u << (byte & 31u);
+    }
+    size_t at = 0u;
+    while ((at < args->cap) && (args->src[at] != '\0'))
+    {
+        // Explicit cast reads the byte as the unsigned byte that names its bit
+        const uint8_t byte = (uint8_t)args->src[at];
+        if (((set[byte >> 5u] >> (byte & 31u)) & 1u) != held)
+        {
+            break;
+        }
+        at++;
+    }
+    return at;
+}
+
+/**
+ * @brief Counts the bytes at the start of src that the set other holds.
+ *
+ * @param[in] args Bytes src, the extent cap, and the terminated set other [BORROWS].
+ * @return         The count, as cellul_span_held gives it.
+ */
+EMBED_INLINE size_t cellul_span(const CellulCtx *args)
+{
+    return cellul_span_held(args, 1u);
+}
+
+/**
+ * @brief Counts the bytes at the start of src that the set other does not hold.
+ *
+ * @param[in] args Bytes src, the extent cap, and the terminated set other [BORROWS].
+ * @return         The count, as cellul_span_held gives it.
+ */
+EMBED_INLINE size_t cellul_span_not(const CellulCtx *args)
+{
+    return cellul_span_held(args, 0u);
+}
+
+/**
+ * @brief Finds the last occurrence of args->byte in src, before the terminator.
+ *
+ * @param[in] args Bytes src, the extent cap, and the byte sought [BORROWS].
+ * @return         Address inside src, or NULL when the byte does not occur [BORROWS].
+ * @note A byte of 0 answers the terminator's address, or src plus cap when no terminator lies in range.
+ */
+EMBED_INLINE const char *cellul_chr_last(const CellulCtx *args)
+{
+    const char *found = NULL;
+    size_t at = 0u;
+    while ((at < args->cap) && (args->src[at] != '\0'))
+    {
+        // Explicit cast reads the byte as the unsigned byte the call seeks
+        found = ((uint8_t)args->src[at] == args->byte) ? &args->src[at] : found;
+        at++;
+    }
+    return (args->byte == 0u) ? &args->src[at] : found;
+}
+
+/**
  * @brief Reads a signed decimal exponent, and advances the cursor past it.
  *
  * @param[in,out] args Cursor cur and the exponent target exp [BORROWS].
@@ -1767,3 +1916,7 @@ CELLUL_CONV_ENTRY(embed_iword, to_long, .src = args->src, .end = args->end)
 CELLUL_CONV_ENTRY(embed_word, to_ulong, .src = args->src, .end = args->end)
 CELLUL_CONV_ENTRY(double, to_double, .src = args->src, .end = args->end)
 CELLUL_CONV_ENTRY(float, to_float, .src = args->src, .end = args->end)
+CELLUL_CONV_ENTRY(embed_word, to_ulong_in, .src = args->src, .end = args->end, .base = args->base)
+CELLUL_ENTRY(size_t, span, .src = args->src, .cap = args->cap, .other = args->other)
+CELLUL_ENTRY(size_t, span_not, .src = args->src, .cap = args->cap, .other = args->other)
+CELLUL_ENTRY(const char *, chr_last, .src = args->src, .cap = args->cap, .byte = args->byte)

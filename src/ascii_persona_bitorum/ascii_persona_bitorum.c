@@ -84,6 +84,30 @@ EMBED_INLINE embed_bool ascii_in(const AsciiCtx *args)
 }
 
 /**
+ * @brief Returns args->byte with 'A' to 'Z' folded to 'a' to 'z'.
+ * @param[in] args The byte [BORROWS].
+ * @return         The folded byte, or the byte as it is where it is no upper case letter.
+ * @note A letter of either case differs from the other case in the bit of 0x20 alone.
+ */
+EMBED_INLINE uint8_t ascii_lower(const AsciiCtx *args)
+{
+    // Explicit cast narrows the int of the bit operation back to the byte it came from
+    return ((args->byte >= (uint8_t)'A') && (args->byte <= (uint8_t)'Z')) ? (uint8_t)(args->byte | 0x20u) : args->byte;
+}
+
+/**
+ * @brief Returns args->byte with 'a' to 'z' folded to 'A' to 'Z'.
+ * @param[in] args The byte [BORROWS].
+ * @return         The folded byte, or the byte as it is where it is no lower case letter.
+ * @note A letter of either case differs from the other case in the bit of 0x20 alone.
+ */
+EMBED_INLINE uint8_t ascii_upper(const AsciiCtx *args)
+{
+    // Explicit cast narrows the int of the bit operation back to the byte it came from
+    return ((args->byte >= (uint8_t)'a') && (args->byte <= (uint8_t)'z')) ? (uint8_t)(args->byte & 0xDFu) : args->byte;
+}
+
+/**
  * @brief Binds this module's four fixed arguments to EMBED_ENTRY.
  *
  * @param[in] ReturnType_ Return type of the entry point.
@@ -101,3 +125,5 @@ EMBED_INLINE embed_bool ascii_in(const AsciiCtx *args)
  * @note ascii_persona_bitorum.h describes each at its declaration.
  */
 ASCII_ENTRY(embed_bool, in, .type = args->type, .byte = args->byte)
+ASCII_ENTRY(uint8_t, lower, .byte = args->byte)
+ASCII_ENTRY(uint8_t, upper, .byte = args->byte)
