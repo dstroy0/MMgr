@@ -15,6 +15,10 @@ extern void test_move_onto_itself_changes_nothing(void);
 extern void test_set_writes_the_value_and_no_byte_past_the_region(void);
 extern void test_compare_answers_zero_exactly_where_every_byte_agrees(void);
 extern void test_find_answers_the_first_byte_that_holds_the_value(void);
+extern void test_sort_puts_words_in_order(void);
+extern void test_sort_keeps_equal_elements_in_their_order(void);
+extern void test_sort_of_many_words_leaves_them_in_order_with_each_one_kept(void);
+extern void test_sort_of_fewer_than_two_elements_and_its_refusals(void);
 
 
 /*=======Mock Management=====*/
@@ -83,6 +87,10 @@ int main(void)
   run_test(test_set_writes_the_value_and_no_byte_past_the_region, "test_set_writes_the_value_and_no_byte_past_the_region", 72);
   run_test(test_compare_answers_zero_exactly_where_every_byte_agrees, "test_compare_answers_zero_exactly_where_every_byte_agrees", 83);
   run_test(test_find_answers_the_first_byte_that_holds_the_value, "test_find_answers_the_first_byte_that_holds_the_value", 99);
+  run_test(test_sort_puts_words_in_order, "test_sort_puts_words_in_order", 122);
+  run_test(test_sort_keeps_equal_elements_in_their_order, "test_sort_keeps_equal_elements_in_their_order", 131);
+  run_test(test_sort_of_many_words_leaves_them_in_order_with_each_one_kept, "test_sort_of_many_words_leaves_them_in_order_with_each_one_kept", 140);
+  run_test(test_sort_of_fewer_than_two_elements_and_its_refusals, "test_sort_of_fewer_than_two_elements_and_its_refusals", 165);
 
   return UNITY_END();
 }

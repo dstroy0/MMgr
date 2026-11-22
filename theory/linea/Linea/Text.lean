@@ -15,7 +15,8 @@ the bytes of the source before its terminator and then a terminator, inside the 
 digits alone, and it stops at the first byte that is not a digit. The number read in a base takes the digits of a
 base from 2 to 36 alone, and it stops at the first byte that is not one. The two span counts answer the bytes at the
 start of the text in the set, or outside it, each before the terminator. The search for the last place of a byte
-answers the last place before the end that holds it. No class holds a byte of 128 or above. The fold to lower case is
+answers the last place before the end that holds it. No class holds a byte of 128 or above, the decimal class is the
+digit test of the number read, and the space class is its white space. The fold to lower case is
 the fold of a compare that folds case, and the fold to upper case undoes it on a lower case letter.
 -/
 
@@ -709,8 +710,39 @@ def classHolds : Nat → Nat → Bool
   | 9, b => 32 ≤ b ∧ b ≤ 126
   | _, _ => false
 
-/-- mmgr_text_class(byte, class). -/
+/-- ascii.in: whether the class `type` holds the byte `b`. -/
 def textClass (b type : Nat) : Bool := b < 128 ∧ classHolds type b = true
+
+/-- mmgr_text_is_num(byte). Each class test of the face is ascii.in with the class that its name gives. -/
+def textIsNum (b : Nat) : Bool := textClass b 0
+/-- mmgr_text_is_alpha(byte). -/
+def textIsAlpha (b : Nat) : Bool := textClass b 1
+/-- mmgr_text_is_alnum(byte). -/
+def textIsAlnum (b : Nat) : Bool := textClass b 2
+/-- mmgr_text_is_upper(byte). -/
+def textIsUpper (b : Nat) : Bool := textClass b 3
+/-- mmgr_text_is_lower(byte). -/
+def textIsLower (b : Nat) : Bool := textClass b 4
+/-- mmgr_text_is_hex(byte). -/
+def textIsHex (b : Nat) : Bool := textClass b 5
+/-- mmgr_text_is_punct(byte). -/
+def textIsPunct (b : Nat) : Bool := textClass b 6
+/-- mmgr_text_is_space(byte). -/
+def textIsSpace (b : Nat) : Bool := textClass b 7
+/-- mmgr_text_is_ctrl(byte). -/
+def textIsCtrl (b : Nat) : Bool := textClass b 8
+/-- mmgr_text_is_print(byte). -/
+def textIsPrint (b : Nat) : Bool := textClass b 9
+
+/-- The decimal class of the face is the digit test of the number read. -/
+theorem textIsNum_digit (b : Nat) : textIsNum b = isDigit b := by
+  unfold textIsNum textClass classHolds isDigit
+  by_cases h1 : 48 ≤ b <;> by_cases h2 : b ≤ 57 <;> simp [h1, h2] <;> omega
+
+/-- The space class of the face is the white space that the number read skips. -/
+theorem textIsSpace_space (b : Nat) : textIsSpace b = isSpace b := by
+  unfold textIsSpace textClass classHolds isSpace
+  by_cases h1 : b = 32 <;> by_cases h2 : 9 ≤ b <;> by_cases h3 : b ≤ 13 <;> simp [h1, h2, h3] <;> omega
 
 /-- mmgr_text_lower(byte). -/
 def textLower (b : Nat) : Nat := if 65 ≤ b ∧ b ≤ 90 then b + 32 else b

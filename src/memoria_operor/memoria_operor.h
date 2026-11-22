@@ -25,20 +25,24 @@ EMBED_BEGIN_DECLS
  *
  * @note cpy and the two moves read dst, src and bytes. cmp reads src, other and bytes.
  * @note chr reads src, bytes and val. set reads dst, bytes and val.
+ * @note sort reads dst, scratch, count, bytes and order. bytes is then the size of one element.
  */
 typedef struct
 {
-    void *const dst;         /**< Destination for cpy, the moves and set [BORROWS]. */
+    void *const dst;         /**< Destination for cpy, the moves and set, and the elements of sort [BORROWS]. */
     const void *const src;   /**< Source for cpy and the moves, region for cmp and chr [BORROWS]. */
     const void *const other; /**< Second region for cmp [BORROWS]. */
-    const size_t bytes;      /**< Bytes the call moves, examines or writes. */
+    const size_t bytes;      /**< Bytes the call moves, examines or writes, or the bytes of one element of sort. */
     const uint8_t val;       /**< Byte chr looks for, or the byte set writes. */
+    void *const scratch;     /**< Room for every element of sort, which its merges write [BORROWS]. */
+    const size_t count;      /**< Elements sort orders. */
+    int (*const order)(const void *left, const void *right); /**< 0 or less where left comes at or before right. */
 } MemoriaCfg;
 
 /**
  * @brief Type of the memor dispatch table.
  *
- * @note EMBED_TABLE_LAYOUT asserts the six members sit at consecutive EMBED_FUNCTION_POINTER_BYTES
+ * @note EMBED_TABLE_LAYOUT asserts the seven members sit at consecutive EMBED_FUNCTION_POINTER_BYTES
  *       offsets, with nothing else.
  * @note cpy, move_down and move_up all copy, and differ in the overlap each one allows.
  */
@@ -50,8 +54,9 @@ typedef struct
     embed_iword (*cmp)(const MemoriaCfg *args); /**< Orders two regions by their first difference. */
     const void *(*chr)(const MemoriaCfg *args); /**< Finds the first byte equal to val. */
     void (*set)(const MemoriaCfg *args);        /**< Fills a region with val. */
+    embed_bool (*sort)(const MemoriaCfg *args); /**< Puts elements in the order of a compare. */
 } MemoriaOperorNs;
-EMBED_TABLE_LAYOUT(MemoriaOperorNs, cpy, move_down, move_up, cmp, chr, set);
+EMBED_TABLE_LAYOUT(MemoriaOperorNs, cpy, move_down, move_up, cmp, chr, set, sort);
 
 /**
  * @brief Copies args->bytes from args->src to args->dst, on an upward walk.
@@ -104,6 +109,22 @@ const void *mmgr_memor_chr(const MemoriaCfg *args);
 void mmgr_memor_set(const MemoriaCfg *args);
 
 /**
+ * @brief Sorts args->count elements of args->bytes bytes each at args->dst in the order of args->order.
+ *
+ * @param[in] args The elements, the room, the count, the size of one element and the order [BORROWS].
+ * @return         EMBED_TRUE where the elements are in order. EMBED_FALSE where args->bytes is 0 or a pointer is NULL,
+ *                 which leaves the elements as they were. Fewer than two elements are in order already.
+ * @note args->order answers 0 or less where its left element comes at or before its right one, as the compare of
+ *       qsort answers. Two elements that order as equal keep the order that they had.
+ * @note A bottom-up merge sort: each pass merges runs of twice the width of the pass before, from args->dst into
+ *       args->scratch and back. Every element moves log2 of args->count times, and MMgr takes no memory of its own.
+ * @note theory/linea/Linea/Sort.lean proves that the sort keeps the elements and leaves them in order, where the
+ *       order is transitive and total.
+ * @warning args->dst and args->scratch must each hold args->count times args->bytes bytes, and must not overlap.
+ */
+embed_bool mmgr_memor_sort(const MemoriaCfg *args);
+
+/**
  * @brief Dispatch table instance named memor.
  *
  * @note cpy and move_down both point at mmgr_memor_cpy. Every other member has its own function.
@@ -117,6 +138,7 @@ EMBED_TABLE_STORAGE MemoriaOperorNs memor EMBED_UNUSED = {
     .cmp = mmgr_memor_cmp,
     .chr = mmgr_memor_chr,
     .set = mmgr_memor_set,
+    .sort = mmgr_memor_sort,
 };
 
 EMBED_END_DECLS

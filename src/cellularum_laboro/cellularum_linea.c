@@ -14,6 +14,7 @@
  * and the call that the entry makes does not read them. A zero ci is the compare with no fold.
  */
 #include "cellularum_laboro/cellularum_linea.h"
+#include "ascii_persona_bitorum/ascii_persona_bitorum.h"
 #include "cellularum_laboro/cellularum_laboro.h"
 
 size_t mmgr_text_length(const char *text, size_t cap)
@@ -90,9 +91,54 @@ const char *mmgr_text_char_last(const char *text, uint8_t value, size_t cap)
     return EMBED_CALL(cellul.chr_last, CatenaFinitaCfg, .src = text, .cap = cap, .byte = value);
 }
 
-embed_bool mmgr_text_class(uint8_t value, MmgrAsciiClass type)
+embed_bool mmgr_text_is_num(uint8_t value)
 {
-    return EMBED_CALL(ascii.in, AsciiCfg, .type = type, .byte = value);
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_NUM, .byte = value);
+}
+
+embed_bool mmgr_text_is_alpha(uint8_t value)
+{
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_ALPHA, .byte = value);
+}
+
+embed_bool mmgr_text_is_alnum(uint8_t value)
+{
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_ALNUM, .byte = value);
+}
+
+embed_bool mmgr_text_is_upper(uint8_t value)
+{
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_UPPER, .byte = value);
+}
+
+embed_bool mmgr_text_is_lower(uint8_t value)
+{
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_LOWER, .byte = value);
+}
+
+embed_bool mmgr_text_is_hex(uint8_t value)
+{
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_HEX, .byte = value);
+}
+
+embed_bool mmgr_text_is_punct(uint8_t value)
+{
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_PUNCT, .byte = value);
+}
+
+embed_bool mmgr_text_is_space(uint8_t value)
+{
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_SPACE, .byte = value);
+}
+
+embed_bool mmgr_text_is_ctrl(uint8_t value)
+{
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_CTRL, .byte = value);
+}
+
+embed_bool mmgr_text_is_print(uint8_t value)
+{
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = MMGR_ASCII_PRINT, .byte = value);
 }
 
 uint8_t mmgr_text_lower(uint8_t value)

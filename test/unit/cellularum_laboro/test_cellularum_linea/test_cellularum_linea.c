@@ -176,11 +176,19 @@ void test_char_last_answers_the_last_byte_before_the_terminator(void)
 
 void test_class_tests_a_byte_against_its_class(void)
 {
-    TEST_ASSERT_TRUE(mmgr_text_class((uint8_t)'7', MMGR_ASCII_NUM));
-    TEST_ASSERT_FALSE(mmgr_text_class((uint8_t)'x', MMGR_ASCII_NUM));
-    TEST_ASSERT_TRUE(mmgr_text_class((uint8_t)'Q', MMGR_ASCII_ALNUM));
-    TEST_ASSERT_TRUE(mmgr_text_class((uint8_t)'\t', MMGR_ASCII_SPACE));
-    TEST_ASSERT_FALSE_MESSAGE(mmgr_text_class(0xC3u, MMGR_ASCII_ALPHA), "a byte past 0x7F is in no class");
+    TEST_ASSERT_TRUE(mmgr_text_is_num((uint8_t)'7'));
+    TEST_ASSERT_FALSE(mmgr_text_is_num((uint8_t)'x'));
+    TEST_ASSERT_TRUE(mmgr_text_is_alnum((uint8_t)'Q'));
+    TEST_ASSERT_TRUE(mmgr_text_is_space((uint8_t)'\t'));
+    TEST_ASSERT_TRUE(mmgr_text_is_upper((uint8_t)'K'));
+    TEST_ASSERT_TRUE(mmgr_text_is_lower((uint8_t)'k'));
+    TEST_ASSERT_TRUE(mmgr_text_is_hex((uint8_t)'f'));
+    TEST_ASSERT_FALSE(mmgr_text_is_hex((uint8_t)'g'));
+    TEST_ASSERT_TRUE(mmgr_text_is_punct((uint8_t)'['));
+    TEST_ASSERT_TRUE(mmgr_text_is_ctrl(0x7Fu));
+    TEST_ASSERT_TRUE(mmgr_text_is_print((uint8_t)' '));
+    TEST_ASSERT_FALSE(mmgr_text_is_print(0x7Fu));
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_text_is_alpha(0xC3u), "a byte past 0x7F is in no class");
 }
 
 void test_lower_and_upper_fold_the_letters_alone(void)

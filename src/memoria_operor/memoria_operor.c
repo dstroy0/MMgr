@@ -495,6 +495,111 @@ EMBED_INLINE void memor_set(MemorSetCtx *args)
 }
 
 /**
+ * @brief Arguments for the sort.
+ *
+ * @note base and scratch are two regions of count elements, size bytes each, that must not overlap.
+ */
+typedef struct
+{
+    uint8_t *base;                                     /**< The elements, sorted in place [BORROWS]. */
+    uint8_t *scratch;                                  /**< Room for every element, which the merges write [BORROWS]. */
+    size_t count;                                      /**< Elements to sort. */
+    size_t size;                                       /**< Bytes of one element. */
+    int (*order)(const void *left, const void *right); /**< 0 or less where left comes at or before right. */
+} MemorSortCtx;
+
+/**
+ * @brief Merges the run from left to middle with the run from middle to right, element offsets of from, into the
+ *        same offsets of to.
+ *
+ * @param[in] args   The element size and the order [BORROWS].
+ * @param[in] from   The runs [BORROWS].
+ * @param[out] to    The merged run [BORROWS].
+ * @param[in] left   The first element of the left run.
+ * @param[in] middle The first element of the right run, and the end of the left one.
+ * @param[in] right  The end of the right run.
+ * @note The left element goes first where the order of the two is 0 or less, and the right one otherwise, and so two
+ *       equal elements keep the order that they had. theory/linea/Linea/Sort.lean models the merge as List.merge.
+ */
+EMBED_INLINE void memor_sort_merge(const MemorSortCtx *args, const uint8_t *from, uint8_t *to, size_t left,
+                                   size_t middle, size_t right)
+{
+    size_t taken_left = left;
+    size_t taken_right = middle;
+    size_t written = left;
+    while ((taken_left < middle) && (taken_right < right))
+    {
+        const uint8_t *const left_element = &from[taken_left * args->size];
+        const uint8_t *const right_element = &from[taken_right * args->size];
+        const embed_bool left_first = (args->order(left_element, right_element) <= 0) ? EMBED_TRUE : EMBED_FALSE;
+        memor_cpy(&(MemorCpyCtx){
+            .dst = &to[written * args->size], .src = left_first ? left_element : right_element, .bytes = args->size});
+        taken_left += left_first ? 1u : 0u;
+        taken_right += left_first ? 0u : 1u;
+        written += 1u;
+    }
+    // what is left of either run goes after the merge as it lies, and the other run has nothing left
+    memor_cpy(&(MemorCpyCtx){.dst = &to[written * args->size],
+                             .src = &from[taken_left * args->size],
+                             .bytes = (middle - taken_left) * args->size});
+    written += middle - taken_left;
+    memor_cpy(&(MemorCpyCtx){.dst = &to[written * args->size],
+                             .src = &from[taken_right * args->size],
+                             .bytes = (right - taken_right) * args->size});
+}
+
+/**
+ * @brief Sorts args->count elements of args->size bytes at args->base in the order of args->order.
+ *
+ * @param[in,out] args The elements, the room, the count, the size and the order [BORROWS].
+ * @return             EMBED_TRUE where the elements are in order, and EMBED_FALSE where the size is 0 or a pointer is
+ *                     NULL, which leaves the elements as they were. Fewer than two elements are in order already.
+ * @note A pass of width w merges the runs of w elements from the low end, two at a time, into runs of 2 w, from one
+ *       region into the other. The first pass has width 1, and the passes stop at the first width that is the count
+ *       or more. The elements then lie in base, or in scratch and a copy takes them back to base.
+ * @note A width that a doubling would carry past the count becomes the count, which ends the passes as the doubling
+ *       would, and so no width passes what a size_t holds. Each run end is a count less what lies before it, for the
+ *       same reason.
+ * @note theory/linea/Linea/Sort.lean proves the passes of this sort keep the elements and leave them in order, where
+ *       the order is transitive and total.
+ * @warning base and scratch must each hold args->count times args->size bytes, and must not overlap.
+ */
+EMBED_INLINE embed_bool memor_sort(const MemorSortCtx *args)
+{
+    if (args->count < 2u)
+    {
+        return EMBED_TRUE;
+    }
+    if ((args->size == 0u) || (args->order == NULL) || (args->base == NULL) || (args->scratch == NULL))
+    {
+        return EMBED_FALSE;
+    }
+    uint8_t *from = args->base;
+    uint8_t *to = args->scratch;
+    size_t width = 1u;
+    while (width < args->count)
+    {
+        size_t left = 0u;
+        while (left < args->count)
+        {
+            const size_t middle = left + (((args->count - left) < width) ? (args->count - left) : width);
+            const size_t right = middle + (((args->count - middle) < width) ? (args->count - middle) : width);
+            memor_sort_merge(args, from, to, left, middle, right);
+            left = right;
+        }
+        uint8_t *const swapped = from;
+        from = to;
+        to = swapped;
+        width = (width > (args->count - width)) ? args->count : (width + width);
+    }
+    if (from != args->base)
+    {
+        memor_cpy(&(MemorCpyCtx){.dst = args->base, .src = from, .bytes = args->count * args->size});
+    }
+    return EMBED_TRUE;
+}
+
+/**
  * @brief Binds this module's fixed arguments to EMBED_ENTRY, with the context type per entry.
  *
  * @param[in] ReturnType_ Return type of the entry point.
@@ -532,3 +637,5 @@ MEMOR_ENTRY(embed_iword, MemorScanCtx, cmp, .src = (const uint8_t *)args->src, .
             .bytes = args->bytes)
 MEMOR_ENTRY(const void *, MemorScanCtx, chr, .src = (const uint8_t *)args->src, .bytes = args->bytes, .val = args->val)
 MEMOR_ENTRY_V(MemorSetCtx, set, .dst = (uint8_t *)args->dst, .bytes = args->bytes, .val = args->val)
+MEMOR_ENTRY(embed_bool, MemorSortCtx, sort, .base = (uint8_t *)args->dst, .scratch = (uint8_t *)args->scratch,
+            .count = args->count, .size = args->bytes, .order = args->order)

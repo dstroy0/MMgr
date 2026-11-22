@@ -11,7 +11,7 @@
  * @date 2026-11-21
  *
  * @note The calls are a length, an equal test, a prefix test and two searches. A copy and two number reads follow
- *       them. Two counts of a span and a search for the last place of a byte come next. A class test and two case
+ *       them. Two counts of a span and a search for the last place of a byte come next. Ten class tests and two case
  *       folds of one byte, which ascii gives, come last.
  * @note Every entry takes its arguments by value, and therefore a C++ translation unit calls them as they are. Each
  *       entry fills the members of CatenaFinitaCfg or TransfiguroCfg that its call reads. It leaves every other
@@ -25,7 +25,6 @@
 /** @addtogroup mod_cellul
  *  @{ */
 
-#include "ascii_persona_bitorum/ascii_persona_bitorum.h"
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -177,14 +176,96 @@ size_t mmgr_text_span_not(const char *text, const char *set, size_t cap);
 const char *mmgr_text_char_last(const char *text, uint8_t value, size_t cap);
 
 /**
- * @brief Tests one byte against an ASCII class, as the is calls of ctype.h test it.
+ * @brief Tests whether a byte is '0' to '9', as the is calls of ctype.h test it.
  *
  * @param[in] value The byte.
- * @param[in] type  The class, below MMGR_ASCII_CLASSES.
- * @return          EMBED_TRUE where the class holds the byte. A byte of 0x80 or above is in no class.
- * @note ascii.in with type and byte.
+ * @return          EMBED_TRUE for '0' to '9'. A byte of 0x80 or above is in no class.
+ * @note ascii.in with byte and MMGR_ASCII_NUM.
  */
-embed_bool mmgr_text_class(uint8_t value, MmgrAsciiClass type);
+embed_bool mmgr_text_is_num(uint8_t value);
+
+/**
+ * @brief Tests whether a byte is 'A' to 'Z' and 'a' to 'z', as the is calls of ctype.h test it.
+ *
+ * @param[in] value The byte.
+ * @return          EMBED_TRUE for 'A' to 'Z' and 'a' to 'z'. A byte of 0x80 or above is in no class.
+ * @note ascii.in with byte and MMGR_ASCII_ALPHA.
+ */
+embed_bool mmgr_text_is_alpha(uint8_t value);
+
+/**
+ * @brief Tests whether a byte is '0' to '9', 'A' to 'Z' and 'a' to 'z', as the is calls of ctype.h test it.
+ *
+ * @param[in] value The byte.
+ * @return          EMBED_TRUE for '0' to '9', 'A' to 'Z' and 'a' to 'z'. A byte of 0x80 or above is in no class.
+ * @note ascii.in with byte and MMGR_ASCII_ALNUM.
+ */
+embed_bool mmgr_text_is_alnum(uint8_t value);
+
+/**
+ * @brief Tests whether a byte is 'A' to 'Z', as the is calls of ctype.h test it.
+ *
+ * @param[in] value The byte.
+ * @return          EMBED_TRUE for 'A' to 'Z'. A byte of 0x80 or above is in no class.
+ * @note ascii.in with byte and MMGR_ASCII_UPPER.
+ */
+embed_bool mmgr_text_is_upper(uint8_t value);
+
+/**
+ * @brief Tests whether a byte is 'a' to 'z', as the is calls of ctype.h test it.
+ *
+ * @param[in] value The byte.
+ * @return          EMBED_TRUE for 'a' to 'z'. A byte of 0x80 or above is in no class.
+ * @note ascii.in with byte and MMGR_ASCII_LOWER.
+ */
+embed_bool mmgr_text_is_lower(uint8_t value);
+
+/**
+ * @brief Tests whether a byte is '0' to '9', 'A' to 'F' and 'a' to 'f', as the is calls of ctype.h test it.
+ *
+ * @param[in] value The byte.
+ * @return          EMBED_TRUE for '0' to '9', 'A' to 'F' and 'a' to 'f'. A byte of 0x80 or above is in no class.
+ * @note ascii.in with byte and MMGR_ASCII_HEX.
+ */
+embed_bool mmgr_text_is_hex(uint8_t value);
+
+/**
+ * @brief Tests whether a byte is the ASCII punctuation, '!' to '/', ':' to '@', '[' to '\`' and '{' to '~', as the is
+ * calls of ctype.h test it.
+ *
+ * @param[in] value The byte.
+ * @return          EMBED_TRUE for the ASCII punctuation, '!' to '/', ':' to '@', '[' to '\`' and '{' to '~'. A byte of
+ * 0x80 or above is in no class.
+ * @note ascii.in with byte and MMGR_ASCII_PUNCT.
+ */
+embed_bool mmgr_text_is_punct(uint8_t value);
+
+/**
+ * @brief Tests whether a byte is the bytes 9 to 13, and 32, as the is calls of ctype.h test it.
+ *
+ * @param[in] value The byte.
+ * @return          EMBED_TRUE for the bytes 9 to 13, and 32. A byte of 0x80 or above is in no class.
+ * @note ascii.in with byte and MMGR_ASCII_SPACE.
+ */
+embed_bool mmgr_text_is_space(uint8_t value);
+
+/**
+ * @brief Tests whether a byte is the bytes 0 to 31, and 127, as the is calls of ctype.h test it.
+ *
+ * @param[in] value The byte.
+ * @return          EMBED_TRUE for the bytes 0 to 31, and 127. A byte of 0x80 or above is in no class.
+ * @note ascii.in with byte and MMGR_ASCII_CTRL.
+ */
+embed_bool mmgr_text_is_ctrl(uint8_t value);
+
+/**
+ * @brief Tests whether a byte is the bytes 32 to 126, as the is calls of ctype.h test it.
+ *
+ * @param[in] value The byte.
+ * @return          EMBED_TRUE for the bytes 32 to 126. A byte of 0x80 or above is in no class.
+ * @note ascii.in with byte and MMGR_ASCII_PRINT.
+ */
+embed_bool mmgr_text_is_print(uint8_t value);
 
 /**
  * @brief Folds one byte to its lower case, as tolower folds it.
