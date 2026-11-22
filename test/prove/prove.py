@@ -17,7 +17,7 @@ A third prover holds the threads:
 
   genmc     each client under test/prove named *_genmc.c, two or three threads on the real translation unit, run
             by GenMC under every memory model in GENMC_MODELS. GenMC explores every execution the model allows and
-            reports a failed assertion, a data race, or a thread blocked in a sleep no wake ends (genmc_host.h). A
+            reports a failed assertion, a data race, or a sleep that no wake ends (genmc_host.h, --check-liveness). A
             client that passes under one model and fails under another names the ordering the code needs.
 
 All three run in WSL on a Windows host and directly on Linux. CBMC comes from the distribution and the executor
@@ -64,11 +64,15 @@ EXECUTOR = "~/.venvs/angr/bin/python"
 # The memory models of the genmc arm: sequential consistency, x86, C11, the hardware model under C11, and Armv8.
 GENMC = "~/.local/bin/genmc"
 GENMC_MODELS = ["--sc", "--tso", "--rc11", "--imm", "--arm8"]
-# The wall clock of a run under each model that RUN_SECONDS does not hold. The writers client takes about 24 minutes
-# under rc11 and passes 30 under imm and arm8, where GenMC's revisiting and symmetry reductions have no effect. A run
-# under those three gets 330 minutes, inside the 360 of a job of CI with the build of GenMC and the trim client.
-# GenMC's --nthreads stops in its own allocator on this client, and so each run uses one thread.
-GENMC_SECONDS = {"--rc11": 19800, "--imm": 19800, "--arm8": 19800}
+# The wall clock of a run under each model that RUN_SECONDS does not hold. On a hosted runner the writers client takes
+# about 26 minutes under rc11 and about 150 under arm8, where GenMC's revisiting and symmetry reductions have no effect.
+# A run under those two gets 330 minutes, inside the 360 of a job of CI with the build of GenMC and the trim client.
+# Under imm it passes the 330, and a run there has no limit: 0 is no limit to coreutils timeout. GenMC's --nthreads
+# stops in its own allocator on this client, and so each run uses one thread.
+GENMC_SECONDS = {"--rc11": 19800, "--imm": 0, "--arm8": 19800}
+# The clients and models that need more time than a job of a hosted runner has. prove --hosted names each and does not
+# run it.
+GENMC_NOT_HOSTED = {("locus_carcerum_writers", "--imm")}
 # There is no unroll bound: each loop of a client ends by its finite passes and by the wakes of genmc_host.h. The wait
 # of genmc_host.h is a loop that reads only the count of wakes. GenMC's spin-assume takes it as a wait, and
 # --check-liveness reports an execution where no later wake ends it. GenMC's loop jump threading stops on a constant
@@ -206,12 +210,12 @@ def genmc(root, client, model, run_root, name):
     if stopped:
         return "FAILED: timed out after %d s" % limit
     explored = [line for line in text.splitlines() if line.startswith("Number of complete executions explored")]
-    blocked = [line for line in text.splitlines() if "blocked" in line.lower() and any(c.isdigit() and c != "0"
-                                                                                     for c in line.split(":")[-1])]
-    if "No errors were detected" in text and not blocked:
+    # A blocked execution is a branch where a read took a value that an assume refused, which GenMC drops: it is not a
+    # fault. A wait that no wake ends is a liveness error, which --check-liveness reports among the errors
+    if "No errors were detected" in text and r.returncode == 0:
         return "proved, %s executions (%.0f s)" % (explored[-1].split(":")[-1].strip() if explored else "?", seconds)
     faults = [line.strip() for line in text.splitlines()
-              if line.startswith(("Error", "Assertion violation", "INTERNAL", "LLVM ERROR"))] + blocked
+              if line.startswith(("Error", "Assertion violation", "INTERNAL", "LLVM ERROR", "Liveness"))]
     return "FAILED: " + (faults[0] if faults else text.strip()[-200:])
 
 
@@ -236,6 +240,10 @@ def prove(root, run_root, names, arms, hosted=False, wanted_models=None):
             client = os.path.relpath(path, root).replace("\\", "/")
             print("== %s" % name, flush=True)
             for model in models:
+                if hosted and (name, model) in GENMC_NOT_HOSTED:
+                    print("  genmc %-6s not run: it needs more time than a hosted runner has" % model.lstrip("-"),
+                          flush=True)
+                    continue
                 answer = genmc(root, client, model, run_root, name)
                 print("  genmc %-6s %s" % (model.lstrip("-"), answer), flush=True)
                 if not answer.startswith("proved"):

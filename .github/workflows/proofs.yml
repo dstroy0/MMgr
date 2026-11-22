@@ -114,7 +114,8 @@ jobs:
   # One GenMC job runs each memory model, so the five models run side by side. A cache retains the GenMC build between
   # runs, with the hash of the prove tool as its key. An edit to the tool makes a new build, and the tag of GenMC is
   # among its contents.
-  # A job gets the 360 minutes of a hosted runner: prove.py gives a writers run under rc11, imm and arm8 330 of them.
+  # A job gets the 360 minutes of a hosted runner: prove.py gives a writers run under rc11 and arm8 330 of them. Under
+  # imm the writers client needs more, and prove --hosted names it and does not run it.
   genmc:
     name: GenMC ${{ matrix.model }}
     runs-on: ubuntu-24.04
@@ -142,7 +143,7 @@ jobs:
       - name: Run each thread client under the model
         # The first run on a host installs the packages of GenMC, then builds and installs the tag that prove.py
         # names. A run with the build from the cache installs the packages alone.
-        run: python3 test/harness.py prove --arm genmc --model ${{ matrix.model }}
+        run: python3 test/harness.py prove --arm genmc --model ${{ matrix.model }} --hosted
 
       - name: Retain the run
         if: always()
