@@ -4,8 +4,8 @@ name: Proofs
 # harness, and GenMC on each thread client. The harness test/harness.py runs each one, with the flags it retains. A flag that
 # this file also writes is a second copy of that flag.
 #
-# A hosted runner has 16 GB of memory. The prove --hosted command does not run a harness whose bound needs more, and the run
-# names each harness that it does not run.
+# A hosted runner has 16 GB of memory. The prove --hosted command does not run a harness whose bound needs more memory
+# or more time than a run has, and the run names each harness that it does not run.
 
 on:
   push:
@@ -114,10 +114,11 @@ jobs:
   # One GenMC job runs each memory model, so the five models run side by side. A cache retains the GenMC build between
   # runs, with the hash of the prove tool as its key. An edit to the tool makes a new build, and the tag of GenMC is
   # among its contents.
+  # A job gets the 360 minutes of a hosted runner: prove.py gives a writers run under rc11, imm and arm8 330 of them.
   genmc:
     name: GenMC ${{ matrix.model }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 360
     strategy:
       fail-fast: false
       matrix:

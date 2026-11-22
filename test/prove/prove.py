@@ -39,15 +39,16 @@ RUN_SECONDS = 1800
 TIMED_OUT = 124
 
 # Each harness's bound: the steps its sequence runs, and the loop unwind CBMC holds it to. A bound with hosted
-# False needs more memory than a hosted runner has, and prove --hosted names it and does not run it. The movable
-# harness uses more than 27 GB under CBMC, and a hosted runner has 16 GB. A bound with an included list names the
+# False needs more memory or time than a hosted runner has, and prove --hosted names it and does not run it. The
+# movable harness uses more than 27 GB under CBMC, and a hosted runner has 16 GB. The sequence harness passes 7 GB
+# and runs past the time limit of a run. A bound with an included list names the
 # library sources that the harness includes whole. The link leaves those out, and so each definition occurs once.
 # The entry of host_wait.c in that list leaves out the host's wait, wake and clock, for a harness that defines them.
 BOUNDS = {
     "locus_carcerum_fragmentation": {"defines": [], "unwind": 0, "hosted": True},
     "locus_carcerum_lowest": {"defines": [], "unwind": 2, "hosted": True,
                               "included": ["src/locus_carcerum/locus_carcerum.c"]},
-    "locus_carcerum_sequence": {"defines": ["PROVE_STEPS=2u"], "unwind": 12, "hosted": True},
+    "locus_carcerum_sequence": {"defines": ["PROVE_STEPS=2u"], "unwind": 12, "hosted": False},
     "locus_carcerum_sleep": {"defines": [], "unwind": 5, "hosted": True,
                              "included": ["src/locus_carcerum/locus_carcerum.c", "test/support/host_wait.c"]},
     "locus_carcerum_movable": {"defines": ["PROVE_STEPS=2u"], "unwind": 12, "hosted": False},
@@ -63,6 +64,11 @@ EXECUTOR = "~/.venvs/angr/bin/python"
 # The memory models of the genmc arm: sequential consistency, x86, C11, the hardware model under C11, and Armv8.
 GENMC = "~/.local/bin/genmc"
 GENMC_MODELS = ["--sc", "--tso", "--rc11", "--imm", "--arm8"]
+# The wall clock of a run under each model that RUN_SECONDS does not hold. The writers client takes about 24 minutes
+# under rc11 and passes 30 under imm and arm8, where GenMC's revisiting and symmetry reductions have no effect. A run
+# under those three gets 330 minutes, inside the 360 of a job of CI with the build of GenMC and the trim client.
+# GenMC's --nthreads stops in its own allocator on this client, and so each run uses one thread.
+GENMC_SECONDS = {"--rc11": 19800, "--imm": 19800, "--arm8": 19800}
 # There is no unroll bound: each loop of a client ends by its finite passes and by the wakes of genmc_host.h. The wait
 # of genmc_host.h is a loop that reads only the count of wakes. GenMC's spin-assume takes it as a wait, and
 # --check-liveness reports an execution where no later wake ends it. GenMC's loop jump threading stops on a constant
@@ -192,13 +198,13 @@ def genmc_ready(root):
 def genmc(root, client, model, run_root, name):
     """One client under one memory model: proved with its count of executions, or the first fault GenMC names."""
     flags = GENMC_FLAGS + ["--"] + ["-I " + i for i in INCLUDES] + ["-D" + d for d in GENMC_DEFINES]
-    r, stopped, seconds = bounded(root, "%s %s %s %s" % (GENMC, model, " ".join(flags), shlex.quote(client)),
-                                  RUN_SECONDS)
+    limit = GENMC_SECONDS.get(model, RUN_SECONDS)
+    r, stopped, seconds = bounded(root, "%s %s %s %s" % (GENMC, model, " ".join(flags), shlex.quote(client)), limit)
     text = r.stdout + r.stderr
     with open(os.path.join(run_root, "%s_genmc_%s.txt" % (name, model.lstrip("-"))), "w", encoding="utf-8") as log:
         log.write(text)
     if stopped:
-        return "FAILED: timed out after %d s" % RUN_SECONDS
+        return "FAILED: timed out after %d s" % limit
     explored = [line for line in text.splitlines() if line.startswith("Number of complete executions explored")]
     blocked = [line for line in text.splitlines() if "blocked" in line.lower() and any(c.isdigit() and c != "0"
                                                                                      for c in line.split(":")[-1])]
@@ -243,7 +249,7 @@ def prove(root, run_root, names, arms, hosted=False, wanted_models=None):
             continue
         print("== %s" % name, flush=True)
         if hosted and not bound["hosted"]:
-            print("  not run: its bound needs more memory than a hosted runner has", flush=True)
+            print("  not run: its bound needs more memory or time than a hosted runner has", flush=True)
             continue
         if "cbmc" in arms:
             held, failed, text, seconds = cbmc(root, harness, bound, reach=False)

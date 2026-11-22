@@ -2303,7 +2303,7 @@ def main():
     p = sub.add_parser("prove", help="each proof harness proved on the C with CBMC and on each toolchain's machine code, and each thread client under every memory model with GenMC")
     p.add_argument("--harness", action="append", help="a harness by name, without _prove.c, any number of times")
     p.add_argument("--arm", action="append", choices=["cbmc", "machine", "genmc"], help="one prover only, any number of times")
-    p.add_argument("--hosted", action="store_true", help="leave out each harness whose bound needs more memory than a hosted runner has")
+    p.add_argument("--hosted", action="store_true", help="leave out each harness whose bound needs more memory or time than a hosted runner has")
     p.add_argument("--model", action="append", help="one GenMC memory model only, as sc, tso, rc11, imm or arm8, any number of times")
     p.set_defaults(fn=cmd_prove)
 
