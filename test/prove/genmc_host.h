@@ -6,22 +6,24 @@
  */
 /**
  * @file genmc_host.h
- * @brief The host a GenMC client runs on. No processor pause, a clock that is stationary, and the address wait and
- *        wake as theory/locus_carcerum/LocusCarcerum/Futex.lean models them.
+ * @brief The host that a GenMC client runs on. It has no processor pause, a clock for each thread that moves forward
+ *        one unit at each read, and the address wait and wake of the futex contract.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-07
  *
- * @note Included first in a client, before any MMgr or embedded_types header, and once.
- * @note The wait is the model of Futex.lean, step for step. It reads the count of wakes, then the word, and returns
- *       where the low 32 bits of the word moved. A timed wait returns at once, and a wait with no end returns at
- *       once on one branch, the spurious return. On the other it waits until the count moves past the one it read.
- *       Futex.lean proves the model reaches every state the futex contract reaches and no other. A blocked
- *       execution is a sleep a real waiter can stay in forever: a lost wake.
- * @note The compare reads 32 bits, the bits the Linux futex compares. Futex.lean proves a wait that compares the
- *       whole word, as WaitOnAddress and the 64-bit compare-and-wait do, reaches no state the 32-bit wait does
- *       not. The one model holds every host.
- * @note A wake adds one to the count, and every wait the count moves past ends. That is a wake that ends every
- *       sleep, as the host's wakes do. One count serves every word, a spurious wake the contract allows.
+ * @note Include it first in a client, before any MMgr or embedded_types header, and one time.
+ * @note The client defines genmc_host_wake_count over each word that a thread sleeps on. Each word has a count of its
+ *       own, as a futex has, so a wake on one word ends no sleep on another.
+ * @note The clock moves one unit at each read, so each backoff step after the first read waits. A step inside the first
+ *       unit only pauses and reads the word again, which changes no shared word.
+ * @note The clock of a thread is a word of that thread alone. A backoff takes the difference of two reads of one
+ *       thread, so no other thread reads the clock, and no order of the reads of two threads changes a result.
+ * @note The wait reads the count of wakes of its word, then the word, and returns where the low 32 bits of the word
+ *       moved. A wait of 0 ns returns at once, as the host's does. Each other wait ends only where the count moves
+ *       past the one it read. A wait that returns at once does what a step inside the first unit does, and so the
+ *       client covers that band.
+ * @note The end of the wait is a loop that reads only the count. GenMC takes the loop as a wait, and its liveness check
+ *       reports a sleep that no wake ends: a lost wake.
  */
 #ifndef MMGR_TEST_GENMC_HOST_H
 #define MMGR_TEST_GENMC_HOST_H
@@ -34,13 +36,39 @@
 
 #include "embed_turnstile.h"
 
-/** @brief The wakes issued, every word's. */
-static embed_atomic_word s_genmc_wakes;
+/** @brief The count of the wakes of word. The client defines it over each word that a thread sleeps on. */
+static embed_atomic_word *genmc_host_wake_count(const embed_atomic_word *word);
+
+/**
+ * @brief Defines genmc_host_wake_count over the words of one cellblock that a thread sleeps on: each turnstile lane,
+ *        and the closed word.
+ *
+ * @param[in] block_ The cellblock [BORROWS].
+ * @note The lane comes from the address of the word and not from a walk of the lanes. A walk of 64 lanes passes the
+ *       unroll bound of the GenMC run, and GenMC blocks each execution past that bound.
+ */
+#define GENMC_HOST_WAKE_COUNTS(block_)                                                                                 \
+    static embed_atomic_word s_genmc_host_wake_counts[EMBED_TURNSTILE_LANES + 1u];                                     \
+    static embed_atomic_word *genmc_host_wake_count(const embed_atomic_word *word)                                     \
+    {                                                                                                                  \
+        const uintptr_t first = (uintptr_t)&(block_)->turnstiles.lanes[0].word;                                        \
+        const uintptr_t lane = ((uintptr_t)word - first) / (uintptr_t)sizeof(EmbedTurnstileLane);                      \
+                                                                                                                       \
+        if (word == &(block_)->closed)                                                                                 \
+        {                                                                                                              \
+            return &s_genmc_host_wake_counts[EMBED_TURNSTILE_LANES];                                                   \
+        }                                                                                                              \
+        assert(lane < EMBED_TURNSTILE_LANES);                                                                          \
+        return &s_genmc_host_wake_counts[lane];                                                                        \
+    }
+/** @brief The clock of each thread, in nanoseconds. */
+static _Thread_local embed_word t_genmc_host_clock;
 
 int embed_word_wait(const EmbedWordWaitCfg *args)
 {
-    const embed_atomic_word_value epoch =
-        EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &s_genmc_wakes);
+    embed_atomic_word *const wakes = genmc_host_wake_count(args->word);
+    const embed_atomic_word_value wake_count =
+        EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = wakes);
 
     // Explicit casts retain the low 32 bits of each value, the bits the futex compares
     if ((uint32_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = args->word) !=
@@ -48,29 +76,29 @@ int embed_word_wait(const EmbedWordWaitCfg *args)
     {
         return 1;
     }
-    if (args->nanoseconds != EMBED_WAIT_INFINITE)
+    if (args->nanoseconds == 0u)
     {
         return 0;
     }
-    if (__VERIFIER_nondet_int() != 0)
+    // A loop that reads only the count of wakes. The spin-assume of GenMC takes it as a wait, and its liveness check
+    // reports an execution in which no wake ever ends the wait
+    while (EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = wakes) == wake_count)
     {
-        return 0;
+        // The condition reads the count of wakes, and the loop has no other step
     }
-    __VERIFIER_assume(EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &s_genmc_wakes) !=
-                      epoch);
     return 0;
 }
 
 void embed_word_wake(const EmbedWordWakeCfg *args)
 {
-    (void)args;
-    (void)EMBED_CALL(embed_atomic_word_table.fetch_add, EmbedAtomicWordFetchAddCfg, .word = &s_genmc_wakes,
-                     .value = 1u);
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_add, EmbedAtomicWordFetchAddCfg,
+                     .word = genmc_host_wake_count(args->word), .value = 1u);
 }
 
 embed_word embed_clock_ns(void)
 {
-    return 0u;
+    t_genmc_host_clock += (embed_word)1u << EMBED_TURNSTILE_UNIT_SHIFT;
+    return t_genmc_host_clock;
 }
 
 /**

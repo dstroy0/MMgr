@@ -14,7 +14,7 @@
  * @date 2026-11-07
  *
  * @note A client for GenMC, run by harness.py prove --arm genmc. The host's waits are the futex contract of
- *       genmc_host.h: a sleep no wake ends leaves its thread blocked, which GenMC reports.
+ *       genmc_host.h: GenMC's liveness check reports a sleep that no wake ends.
  */
 #include "genmc_host.h"
 
@@ -51,6 +51,8 @@ static void *s_temporary[2];
 static void *s_persistent[GENMC_PERSISTENT_MAX];
 static unsigned int s_persistent_count;
 static void *s_spilled;
+
+GENMC_HOST_WAKE_COUNTS(GENMC_BLOCK)
 
 /** @brief The take only a spill can meet. */
 static void *spilled(void *unused)

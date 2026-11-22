@@ -46,6 +46,8 @@ LocusCarcerum(raced_cells, MMGR_MINIMUM_SECURITY(raced));
 
 static void *s_cells[2];
 
+GENMC_HOST_WAKE_COUNTS(GENMC_BLOCK)
+
 /** @brief One thread's give: the cell its argument names. */
 static void *given(void *index)
 {

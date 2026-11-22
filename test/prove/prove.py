@@ -63,17 +63,20 @@ EXECUTOR = "~/.venvs/angr/bin/python"
 # The memory models of the genmc arm: sequential consistency, x86, C11, the hardware model under C11, and Armv8.
 GENMC = "~/.local/bin/genmc"
 GENMC_MODELS = ["--sc", "--tso", "--rc11", "--imm", "--arm8"]
-# GenMC's load annotation, spin-assume and loop jump threading read each address in a loop's condition. They stop
-# on a constant address other than NULL, the sink a branch-free pick names. With the three off, every loop runs to
-# the unroll bound, which covers the clients' loops whole, and a spin's end has no proof.
-GENMC_FLAGS = ["--disable-estimation", "--unroll=8", "--disable-load-annotation", "--disable-spin-assume",
-               "--disable-loop-jump-threading"]
+# There is no unroll bound: each loop of a client ends by its finite passes and by the wakes of genmc_host.h. The wait
+# of genmc_host.h is a loop that reads only the count of wakes. GenMC's spin-assume takes it as a wait, and
+# --check-liveness reports an execution where no later wake ends it. GenMC's loop jump threading stops on a constant
+# address other than NULL in a loop's condition: the none record that a branch-free pick names, as in
+# carcer_entry_highest. So that pass is off.
+GENMC_FLAGS = ["--disable-estimation", "--check-liveness", "--disable-loop-jump-threading"]
 GENMC_DEFINES = ["MMGR_ENABLE_DMA=0", "MMGR_ENABLE_EXTRAM=0", "MMGR_CARCER_OWNERS=8u"]
 GENMC_SOURCE = "https://github.com/MPI-SWS/genmc.git"
 # The release the clients use. Each host builds this tag. Thus, each host runs the same checker.
 GENMC_TAG = "v0.20.0"
 # The packages GenMC builds against, LLVM 20 among those its source supports
 GENMC_PACKAGES = "cmake llvm-20-dev clang-20 libffi-dev zlib1g-dev libedit-dev bc g++-14 libzstd-dev libxml2-dev"
+# The clang that GenMC runs on a client, from GENMC_PACKAGES
+GENMC_CLANG = "/usr/lib/llvm-20/bin/clang"
 
 
 def library_sources(root, included=()):
@@ -159,12 +162,15 @@ def linux_root(root, command):
 def genmc_ready(root):
     """None where GenMC runs, after a build where it is absent: its packages, its source, its install. The reason
     where a step failed."""
-    if linux(root, "test -x %s" % GENMC).returncode == 0:
+    built = linux(root, "test -x %s" % GENMC).returncode == 0
+    # A build from the cache of CI still needs the packages: GenMC runs clang and links LLVM at run time
+    if not built or linux(root, "test -x %s" % GENMC_CLANG).returncode != 0:
+        r = linux_root(root, "env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq %s" % GENMC_PACKAGES)
+        if r.returncode != 0:
+            return "its packages did not install: " + (r.stdout + r.stderr).strip()[-200:]
+    if built:
         return None
-    print("  genmc     building at ~/src/genmc, installing to ~/.local")
-    r = linux_root(root, "env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq %s" % GENMC_PACKAGES)
-    if r.returncode != 0:
-        return "its packages did not install: " + (r.stdout + r.stderr).strip()[-200:]
+    print("  genmc     building at ~/src/genmc, installing to ~/.local", flush=True)
     steps = [
         "mkdir -p ~/src",
         "test -d ~/src/genmc/.git || git clone --depth 1 --branch %s %s ~/src/genmc" % (GENMC_TAG, GENMC_SOURCE),
@@ -203,14 +209,15 @@ def genmc(root, client, model, run_root, name):
     return "FAILED: " + (faults[0] if faults else text.strip()[-200:])
 
 
-def prove(root, run_root, names, arms, hosted=False):
+def prove(root, run_root, names, arms, hosted=False, wanted_models=None):
     harnesses = sorted(glob.glob(os.path.join(root, "test", "prove", "*_prove.c")))
     chosen = [h for h in harnesses if not names or os.path.basename(h)[:-len("_prove.c")] in names]
     if not ({"cbmc", "machine"} & set(arms)):
         chosen = []
     os.makedirs(run_root, exist_ok=True)
     out = os.path.relpath(run_root, root).replace("\\", "/")
-    failures = []
+    failures = ["no model named %s" % w for w in (wanted_models or []) if "--" + w not in GENMC_MODELS]
+    models = [m for m in GENMC_MODELS if not wanted_models or m.lstrip("-") in wanted_models]
     if "genmc" in arms:
         clients = sorted(glob.glob(os.path.join(root, "test", "prove", "*_genmc.c")))
         clients = [c for c in clients if not names or os.path.basename(c)[:-len("_genmc.c")] in names]
@@ -222,7 +229,7 @@ def prove(root, run_root, names, arms, hosted=False):
             name = os.path.basename(path)[:-len("_genmc.c")]
             client = os.path.relpath(path, root).replace("\\", "/")
             print("== %s" % name, flush=True)
-            for model in GENMC_MODELS:
+            for model in models:
                 answer = genmc(root, client, model, run_root, name)
                 print("  genmc %-6s %s" % (model.lstrip("-"), answer), flush=True)
                 if not answer.startswith("proved"):

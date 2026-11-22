@@ -82,6 +82,7 @@ jobs:
   prove:
     name: CBMC and machine code
     runs-on: ubuntu-24.04
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v7
 
@@ -110,9 +111,17 @@ jobs:
           path: build/prove-*
           if-no-files-found: ignore
 
+  # One GenMC job runs each memory model, so the five models run side by side. A cache retains the GenMC build between
+  # runs, with the hash of the prove tool as its key. An edit to the tool makes a new build, and the tag of GenMC is
+  # among its contents.
   genmc:
-    name: GenMC
+    name: GenMC ${{ matrix.model }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        model: [sc, tso, rc11, imm, arm8]
     steps:
       - uses: actions/checkout@v7
 
@@ -120,15 +129,24 @@ jobs:
       - name: Fetch embedded_types
         run: cmake -S . -B build/fetch -DMMGR_BUILD_TESTS=OFF
 
-      - name: Run each thread client under each memory model
+      - name: Retain the GenMC build between runs
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.local/bin/genmc
+            ~/.local/include/genmc
+            ~/.local/lib/genmc
+          key: genmc-${{ runner.os }}-${{ hashFiles('test/prove/prove.py') }}
+
+      - name: Run each thread client under the model
         # The first run on a host installs the packages of GenMC, then builds and installs the tag that prove.py
-        # names.
-        run: python3 test/harness.py prove --arm genmc --hosted
+        # names. A run with the build from the cache installs the packages alone.
+        run: python3 test/harness.py prove --arm genmc --model ${{ matrix.model }}
 
       - name: Retain the run
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: genmc-${{ github.run_id }}
+          name: genmc-${{ matrix.model }}-${{ github.run_id }}
           path: build/prove-*
           if-no-files-found: ignore
