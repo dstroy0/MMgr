@@ -112,6 +112,7 @@ foreach(pair IN LISTS MMGR_FUZZ_ANCORAE)
     list(GET parts 1 barred)
     mmgr_fuzz_harness(impensa_ancorae_acus_${forma}
         SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/impensa_ancorae_acus_fuzz.c"
+                "${MMGR_INCLUDE_DIR}/impensa_ancorae_acus/impensa_ancorae_acus.c"
                 "${MMGR_INCLUDE_DIR}/impensa_ancorae_acus/impensa_ancorae_acus_${forma}.c"
         DEFINITIONS FUZZ_ANCORAE_BARRED=${barred}u MMGR_ENABLE_DMA=0 MMGR_ENABLE_EXTRAM=0)
 endforeach()
