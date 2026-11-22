@@ -7,6 +7,7 @@
 mmgr_add_module(cellularum_laboro
   SOURCES cellularum_laboro.c cellularum_linea.c
   DEPS
+    ascii_persona_bitorum
     transformo
     verbum_scrutor
     impensa_ancorae_acus

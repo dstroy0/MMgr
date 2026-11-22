@@ -12,7 +12,11 @@ terminator inside the bound. The equal test answers true only where both texts e
 difference before the end. The prefix test answers true only where the prefix ends with no difference before
 its end. The byte search and the text search answer the first place that holds what they seek. The copy writes
 the bytes of the source before its terminator and then a terminator, inside the bound. The number read takes
-digits alone, and it stops at the first byte that is not a digit.
+digits alone, and it stops at the first byte that is not a digit. The number read in a base takes the digits of a
+base from 2 to 36 alone, and it stops at the first byte that is not one. The two span counts answer the bytes at the
+start of the text in the set, or outside it, each before the terminator. The search for the last place of a byte
+answers the last place before the end that holds it. No class holds a byte of 128 or above. The fold to lower case is
+the fold of a compare that folds case, and the fold to upper case undoes it on a lower case letter.
 -/
 
 namespace Linea.Text
@@ -378,10 +382,11 @@ def digitsFrom (m : Mem) (s w : Nat) : Nat → Nat → Nat → Nat × Nat
   | k + 1, i, v =>
     if isDigit (m (s + i)) then digitsFrom m s w k (i + 1) ((v * 10 + (m (s + i) - 48)) % 2 ^ w) else (v, i)
 
-/-- The members of TransfiguroCfg: the text, and the target of the end, as an address. -/
+/-- The members of TransfiguroCfg: the text, the target of the end, as an address, and the base of to_ulong_in. -/
 structure TransfiguroCfg where
   src : Nat
   «end» : Nat
+  base : Nat := 0
   deriving DecidableEq, Repr
 
 /-- to_ulong: leading whitespace skipped, one optional '+' taken, then the digits, in a word of `w` bits. The answer
@@ -439,5 +444,302 @@ theorem textUnsigned_spec (w k t e : Nat) (m : Mem) :
   · right
     rw [ite_eq_right he]
     exact ⟨i1, by omega, h3, h4⟩
+
+/-! ## The number read in a base -/
+
+/-- The value of a digit in a base up to 36: '0' to '9', then a letter of either case for 10 to 35, and 36 for any
+other byte. -/
+def digitValue (b : Nat) : Nat :=
+  if 48 ≤ b ∧ b ≤ 57 then b - 48 else if 65 ≤ b ∧ b ≤ 90 then b - 55 else if 97 ≤ b ∧ b ≤ 122 then b - 87 else 36
+
+/-- The scan of the digits of a base: from offset `i` with the value `v` so far, at max `k` more bytes. The value is
+the number that the digits write, with no wrap. The answer is the value and the offset past the last digit. -/
+def digitsInFrom (m : Mem) (s base : Nat) : Nat → Nat → Nat → Nat × Nat
+  | 0, i, v => (v, i)
+  | k + 1, i, v =>
+    if digitValue (m (s + i)) < base then digitsInFrom m s base k (i + 1) (v * base + digitValue (m (s + i)))
+    else (v, i)
+
+/-- The offset past the whitespace and one optional sign, a '+' or a '-'. -/
+def signEnd (m : Mem) (s k : Nat) : Nat :=
+  if m (s + spaceFrom m s k 0) = 43 ∨ m (s + spaceFrom m s k 0) = 45 then spaceFrom m s k 0 + 1
+  else spaceFrom m s k 0
+
+/-- Whether the sign after the whitespace is a '-'. -/
+def negative (m : Mem) (s k : Nat) : Bool := m (s + spaceFrom m s k 0) = 45
+
+/-- Whether a 0, then an x or an X, then a hex digit, lie at offset `i`. -/
+def prefixed (m : Mem) (s i : Nat) : Bool :=
+  m (s + i) = 48 ∧ (m (s + i + 1) = 120 ∨ m (s + i + 1) = 88) ∧ digitValue (m (s + i + 2)) < 16
+
+/-- The base the read takes: 16 after a prefix for a base of 0 or 16, 8 after a leading 0 or 10 for a base of 0,
+and the base asked for otherwise. -/
+def baseOf (base : Nat) (m : Mem) (s i : Nat) : Nat :=
+  if (base = 0 ∨ base = 16) ∧ prefixed m s i = true then 16
+  else if base = 0 then (if m (s + i) = 48 then 8 else 10) else base
+
+/-- The offset of the first digit: past the prefix where the read takes it. -/
+def digitsStart (base : Nat) (m : Mem) (s i : Nat) : Nat :=
+  if (base = 0 ∨ base = 16) ∧ prefixed m s i = true then i + 2 else i
+
+/-- to_ulong_in: leading whitespace skipped, one optional sign taken, then the base and its prefix, then the digits,
+in a word of `w` bits. A value past the word answers all ones, and a '-' negates the value in the word. The answer is
+the value and the offset of the end from `src`: past the last digit, or 0 where no digit came or the base is outside
+2 to 36, with the value 0 there. `k` bounds the scan past the end of the number. -/
+def toUlongIn (w k : Nat) (c : TransfiguroCfg) (m : Mem) : Nat × Nat :=
+  if baseOf c.base m c.src (signEnd m c.src k) < 2 ∨ 36 < baseOf c.base m c.src (signEnd m c.src k) then (0, 0)
+  else if (digitsInFrom m c.src (baseOf c.base m c.src (signEnd m c.src k)) k
+      (digitsStart c.base m c.src (signEnd m c.src k)) 0).2 = digitsStart c.base m c.src (signEnd m c.src k) then (0, 0)
+  else
+    let r := digitsInFrom m c.src (baseOf c.base m c.src (signEnd m c.src k)) k
+      (digitsStart c.base m c.src (signEnd m c.src k)) 0
+    (if 2 ^ w ≤ r.1 then 2 ^ w - 1 else if negative m c.src k = true then (2 ^ w - r.1) % 2 ^ w else r.1, r.2)
+
+theorem toUlongIn_reads (w k : Nat) (c d : TransfiguroCfg) (m : Mem) (hs : c.src = d.src) (hb : c.base = d.base) :
+    toUlongIn w k c m = toUlongIn w k d m := by
+  unfold toUlongIn
+  rw [hs, hb]
+
+/-- mmgr_text_unsigned_in(text, end, base). -/
+def textUnsignedIn (w k t e base : Nat) (m : Mem) : Nat × Nat := toUlongIn w k { src := t, «end» := e, base := base } m
+
+theorem digitsInFrom_spec (m : Mem) (s base : Nat) :
+    ∀ (k i v : Nat), i ≤ (digitsInFrom m s base k i v).2 ∧ (digitsInFrom m s base k i v).2 ≤ i + k ∧
+      (∀ j, i ≤ j → j < (digitsInFrom m s base k i v).2 → digitValue (m (s + j)) < base) ∧
+      ((digitsInFrom m s base k i v).2 < i + k → base ≤ digitValue (m (s + (digitsInFrom m s base k i v).2)))
+  | 0, i, v => by simp [digitsInFrom]; intro j h1 h2; omega
+  | k + 1, i, v => by
+    simp only [digitsInFrom]
+    by_cases hd : digitValue (m (s + i)) < base
+    · rw [ite_eq_left hd]
+      obtain ⟨h1, h2, h3, h4⟩ := digitsInFrom_spec m s base k (i + 1) (v * base + digitValue (m (s + i)))
+      refine ⟨by omega, by omega, ?_, fun hl => h4 (by omega)⟩
+      intro j hj1 hj2
+      by_cases hji : j = i
+      · subst hji; exact hd
+      · exact h3 j (by omega) hj2
+    · rw [ite_eq_right hd]
+      refine ⟨Nat.le_refl i, by omega, fun j h1 h2 => by omega, fun _ => Nat.le_of_not_lt hd⟩
+
+/-- The number read in a base takes digits of its base alone. Where it took any, the base is 2 to 36, every byte from
+its first digit to its end is a digit of the base, and the byte at the end is not one, unless the scan bound came
+first. Where it took none, or the base is outside 2 to 36, the end is the start and the value is 0. -/
+theorem textUnsignedIn_spec (w k t e base : Nat) (m : Mem) :
+    let r := textUnsignedIn w k t e base m
+    (r.2 = 0 ∧ r.1 = 0) ∨
+      ∃ b i2, 2 ≤ b ∧ b ≤ 36 ∧ i2 < r.2 ∧ (∀ j, i2 ≤ j → j < r.2 → digitValue (m (t + j)) < b) ∧
+        (r.2 < i2 + k → b ≤ digitValue (m (t + r.2))) := by
+  unfold textUnsignedIn toUlongIn
+  simp only
+  generalize baseOf base m t (signEnd m t k) = b
+  generalize digitsStart base m t (signEnd m t k) = i2
+  by_cases hb : b < 2 ∨ 36 < b
+  · left
+    rw [ite_eq_left hb]
+    exact ⟨rfl, rfl⟩
+  · rw [ite_eq_right hb]
+    obtain ⟨h1, h2, h3, h4⟩ := digitsInFrom_spec m t b k i2 0
+    by_cases he : (digitsInFrom m t b k i2 0).2 = i2
+    · left
+      rw [ite_eq_left he]
+      exact ⟨rfl, rfl⟩
+    · right
+      rw [ite_eq_right he]
+      exact ⟨b, i2, by omega, by omega, by omega, h3, h4⟩
+
+/-! ## The span counts -/
+
+/-- Whether the set at `o` holds the byte `b`: a byte of the set before its terminator, inside a scan of `k`. -/
+def inSet (k : Nat) (m : Mem) (o b : Nat) : Bool := (List.range (lenFrom m o k 0)).any fun j => m (o + j) = b
+
+/-- The scan of a span: from offset `i`, at max `n` more bytes, each before the terminator and each that `held`
+keeps. -/
+def spanFrom (held : Nat → Bool) (m : Mem) (s : Nat) : Nat → Nat → Nat
+  | 0, i => i
+  | n + 1, i => if m (s + i) = 0 then i else if held (m (s + i)) = true then spanFrom held m s n (i + 1) else i
+
+/-- span: the bytes at the start of `src` that the set `other` holds, before the terminator, inside `cap`. -/
+def span (k : Nat) (c : CatenaFinitaCfg) (m : Mem) : Nat := spanFrom (inSet k m c.other) m c.src c.cap 0
+
+/-- span_not: the bytes at the start of `src` that the set `other` does not hold, before the terminator, inside
+`cap`. -/
+def spanNot (k : Nat) (c : CatenaFinitaCfg) (m : Mem) : Nat :=
+  spanFrom (fun b => !inSet k m c.other b) m c.src c.cap 0
+
+theorem span_reads (k : Nat) (c d : CatenaFinitaCfg) (m : Mem) (hs : c.src = d.src) (ho : c.other = d.other)
+    (hc : c.cap = d.cap) : span k c m = span k d m := by
+  unfold span
+  rw [hs, ho, hc]
+
+theorem spanNot_reads (k : Nat) (c d : CatenaFinitaCfg) (m : Mem) (hs : c.src = d.src) (ho : c.other = d.other)
+    (hc : c.cap = d.cap) : spanNot k c m = spanNot k d m := by
+  unfold spanNot
+  rw [hs, ho, hc]
+
+theorem spanFrom_spec (held : Nat → Bool) (m : Mem) (s : Nat) :
+    ∀ (n i : Nat), i ≤ spanFrom held m s n i ∧ spanFrom held m s n i ≤ i + n ∧
+      (∀ j, i ≤ j → j < spanFrom held m s n i → m (s + j) ≠ 0 ∧ held (m (s + j)) = true) ∧
+      (spanFrom held m s n i < i + n →
+        m (s + spanFrom held m s n i) = 0 ∨ held (m (s + spanFrom held m s n i)) = false)
+  | 0, i => by simp [spanFrom]; intro j h1 h2; omega
+  | n + 1, i => by
+    simp only [spanFrom]
+    by_cases hz : m (s + i) = 0
+    · rw [ite_eq_left hz]
+      exact ⟨Nat.le_refl i, by omega, fun j h1 h2 => by omega, fun _ => Or.inl hz⟩
+    · rw [ite_eq_right hz]
+      by_cases hh : held (m (s + i)) = true
+      · rw [ite_eq_left hh]
+        obtain ⟨h1, h2, h3, h4⟩ := spanFrom_spec held m s n (i + 1)
+        refine ⟨by omega, by omega, ?_, fun hl => h4 (by omega)⟩
+        intro j hj1 hj2
+        by_cases hji : j = i
+        · subst hji; exact ⟨hz, hh⟩
+        · exact h3 j (by omega) hj2
+      · rw [ite_eq_right hh]
+        exact ⟨Nat.le_refl i, by omega, fun j h1 h2 => by omega, fun _ => Or.inr (by simpa using hh)⟩
+
+/-- mmgr_text_span(text, set, cap). -/
+def textSpan (k t o cap : Nat) (m : Mem) : Nat := span k { CatenaFinitaCfg.none with src := t, other := o, cap := cap } m
+
+/-- mmgr_text_span_not(text, set, cap). -/
+def textSpanNot (k t o cap : Nat) (m : Mem) : Nat :=
+  spanNot k { CatenaFinitaCfg.none with src := t, other := o, cap := cap } m
+
+theorem textSpan_eq (k t o cap : Nat) (m : Mem) : textSpan k t o cap m = spanFrom (inSet k m o) m t cap 0 := rfl
+
+theorem textSpanNot_eq (k t o cap : Nat) (m : Mem) :
+    textSpanNot k t o cap m = spanFrom (fun b => !inSet k m o b) m t cap 0 := rfl
+
+/-- The span count answers the bytes at the start of the text that the set holds, each before the terminator. The
+byte at the count ends the text or lies outside the set, unless the bound came first. -/
+theorem textSpan_spec (k t o cap : Nat) (m : Mem) :
+    textSpan k t o cap m ≤ cap ∧
+      (∀ j, j < textSpan k t o cap m → m (t + j) ≠ 0 ∧ inSet k m o (m (t + j)) = true) ∧
+      (textSpan k t o cap m < cap →
+        m (t + textSpan k t o cap m) = 0 ∨ inSet k m o (m (t + textSpan k t o cap m)) = false) := by
+  rw [textSpan_eq]
+  obtain ⟨_, h2, h3, h4⟩ := spanFrom_spec (inSet k m o) m t cap 0
+  exact ⟨by omega, fun j hj => h3 j (Nat.zero_le j) hj, fun hl => h4 (by omega)⟩
+
+/-- The count of a span outside the set answers the bytes at the start of the text that the set does not hold,
+each before the terminator. The byte at the count ends the text or lies in the set, unless the bound came first. -/
+theorem textSpanNot_spec (k t o cap : Nat) (m : Mem) :
+    textSpanNot k t o cap m ≤ cap ∧
+      (∀ j, j < textSpanNot k t o cap m → m (t + j) ≠ 0 ∧ inSet k m o (m (t + j)) = false) ∧
+      (textSpanNot k t o cap m < cap →
+        m (t + textSpanNot k t o cap m) = 0 ∨ inSet k m o (m (t + textSpanNot k t o cap m)) = true) := by
+  rw [textSpanNot_eq]
+  obtain ⟨_, h2, h3, h4⟩ := spanFrom_spec (fun b => !inSet k m o b) m t cap 0
+  refine ⟨by omega, fun j hj => ?_, fun hl => ?_⟩
+  · obtain ⟨h5, h6⟩ := h3 j (Nat.zero_le j) hj
+    exact ⟨h5, by simpa using h6⟩
+  · rcases h4 (by omega) with h5 | h5
+    · exact Or.inl h5
+    · exact Or.inr (by simpa using h5)
+
+/-! ## The search for the last place of a byte -/
+
+/-- The search back for a byte: the last of the first `n` bytes of `s` that equals `v`. -/
+def lastIn (m : Mem) (s v : Nat) : Nat → Option Nat
+  | 0 => none
+  | n + 1 => if m (s + n) = v then some (s + n) else lastIn m s v n
+
+/-- chr_last: the address of the last byte of `src` equal to `byte`, before the terminator, inside `cap`. A byte of 0
+answers the terminator, or `src + cap` where none lies in range. -/
+def chrLast (c : CatenaFinitaCfg) (m : Mem) : Option Nat :=
+  if c.byte = 0 then some (c.src + lenFrom m c.src c.cap 0) else lastIn m c.src c.byte (lenFrom m c.src c.cap 0)
+
+theorem chrLast_reads (c d : CatenaFinitaCfg) (m : Mem) (hs : c.src = d.src) (hc : c.cap = d.cap)
+    (hb : c.byte = d.byte) : chrLast c m = chrLast d m := by
+  unfold chrLast
+  rw [hs, hc, hb]
+
+theorem lastIn_some (m : Mem) (s v : Nat) :
+    ∀ (n a : Nat), lastIn m s v n = some a →
+      ∃ j, j < n ∧ a = s + j ∧ m (s + j) = v ∧ ∀ j', j < j' → j' < n → m (s + j') ≠ v
+  | 0, a, h => by simp [lastIn] at h
+  | n + 1, a, h => by
+    simp only [lastIn] at h
+    by_cases hv : m (s + n) = v
+    · rw [ite_eq_left hv] at h
+      simp only [Option.some.injEq] at h
+      exact ⟨n, by omega, h.symm, hv, fun j' h1 h2 => by omega⟩
+    · rw [ite_eq_right hv] at h
+      obtain ⟨j, h1, h2, h3, h4⟩ := lastIn_some m s v n a h
+      refine ⟨j, by omega, h2, h3, ?_⟩
+      intro j' hj1 hj2
+      by_cases hjn : j' = n
+      · subst hjn; exact hv
+      · exact h4 j' hj1 (by omega)
+
+/-- mmgr_text_char_last(text, byte, cap). -/
+def textCharLast (t v cap : Nat) (m : Mem) : Option Nat :=
+  chrLast { CatenaFinitaCfg.none with src := t, cap := cap, byte := v } m
+
+theorem textCharLast_eq (t v cap : Nat) (m : Mem) :
+    textCharLast t v cap m =
+      if v = 0 then some (t + lenFrom m t cap 0) else lastIn m t v (lenFrom m t cap 0) := rfl
+
+/-- The search for the last place of a byte answers a place before the end of the text that holds the byte, past
+which no byte before the end holds it. -/
+theorem textCharLast_some (t v cap : Nat) (m : Mem) (a : Nat) (hv : v ≠ 0) (h : textCharLast t v cap m = some a) :
+    ∃ j, j < lenFrom m t cap 0 ∧ a = t + j ∧ m (t + j) = v ∧
+      ∀ j', j < j' → j' < lenFrom m t cap 0 → m (t + j') ≠ v := by
+  rw [textCharLast_eq, ite_eq_right hv] at h
+  exact lastIn_some m t v _ a h
+
+/-- A byte of 0 answers the end of the text: the terminator, or the end of the bound. -/
+theorem textCharLast_zero (t cap : Nat) (m : Mem) : textCharLast t 0 cap m = some (t + lenFrom m t cap 0) := by
+  rw [textCharLast_eq, ite_eq_left rfl]
+
+/-! ## The class test and the case folds -/
+
+/-- The classes of MmgrAsciiClass in their order, each as the bytes it holds below 128. -/
+def classHolds : Nat → Nat → Bool
+  | 0, b => 48 ≤ b ∧ b ≤ 57
+  | 1, b => (65 ≤ b ∧ b ≤ 90) ∨ (97 ≤ b ∧ b ≤ 122)
+  | 2, b => (48 ≤ b ∧ b ≤ 57) ∨ (65 ≤ b ∧ b ≤ 90) ∨ (97 ≤ b ∧ b ≤ 122)
+  | 3, b => 65 ≤ b ∧ b ≤ 90
+  | 4, b => 97 ≤ b ∧ b ≤ 122
+  | 5, b => (48 ≤ b ∧ b ≤ 57) ∨ (65 ≤ b ∧ b ≤ 70) ∨ (97 ≤ b ∧ b ≤ 102)
+  | 6, b => (33 ≤ b ∧ b ≤ 47) ∨ (58 ≤ b ∧ b ≤ 64) ∨ (91 ≤ b ∧ b ≤ 96) ∨ (123 ≤ b ∧ b ≤ 126)
+  | 7, b => (9 ≤ b ∧ b ≤ 13) ∨ b = 32
+  | 8, b => b ≤ 31 ∨ b = 127
+  | 9, b => 32 ≤ b ∧ b ≤ 126
+  | _, _ => false
+
+/-- mmgr_text_class(byte, class). -/
+def textClass (b type : Nat) : Bool := b < 128 ∧ classHolds type b = true
+
+/-- mmgr_text_lower(byte). -/
+def textLower (b : Nat) : Nat := if 65 ≤ b ∧ b ≤ 90 then b + 32 else b
+
+/-- mmgr_text_upper(byte). -/
+def textUpper (b : Nat) : Nat := if 97 ≤ b ∧ b ≤ 122 then b - 32 else b
+
+/-- No class holds a byte of 128 or above. -/
+theorem textClass_ascii (b type : Nat) (h : textClass b type = true) : b < 128 := by
+  simp [textClass] at h
+  exact h.1
+
+/-- The fold to lower case is the fold that a compare with `ci` set reads each byte through. -/
+theorem textLower_fold (b : Nat) : textLower b = fold true b := by
+  simp [textLower, fold]
+
+/-- The fold to upper case takes a lower case letter to the upper case letter whose lower case it is. -/
+theorem textLower_upper (b : Nat) (h : 97 ≤ b ∧ b ≤ 122) : textLower (textUpper b) = b := by
+  unfold textUpper
+  rw [ite_eq_left h]
+  unfold textLower
+  rw [ite_eq_left (show 65 ≤ b - 32 ∧ b - 32 ≤ 90 by omega)]
+  omega
+
+/-- A byte that is no letter stays as it is under both folds. -/
+theorem textFold_other (b : Nat) (h1 : ¬ (65 ≤ b ∧ b ≤ 90)) (h2 : ¬ (97 ≤ b ∧ b ≤ 122)) :
+    textLower b = b ∧ textUpper b = b := by
+  unfold textLower textUpper
+  rw [ite_eq_right h1, ite_eq_right h2]
+  exact ⟨rfl, rfl⟩
 
 end Linea.Text

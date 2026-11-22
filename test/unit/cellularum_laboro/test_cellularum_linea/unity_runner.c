@@ -24,6 +24,8 @@ extern void test_unsigned_in_negates_saturates_and_refuses_a_base(void);
 extern void test_span_counts_the_bytes_the_set_holds(void);
 extern void test_span_not_counts_the_bytes_before_the_set(void);
 extern void test_char_last_answers_the_last_byte_before_the_terminator(void);
+extern void test_class_tests_a_byte_against_its_class(void);
+extern void test_lower_and_upper_fold_the_letters_alone(void);
 
 
 /*=======Mock Management=====*/
@@ -84,7 +86,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/cellularum_laboro/test_cellularum_linea/test_cellularum_linea.c");
+  UnityBegin("test/unit/cellularum_laboro/test_cellularum_linea\\test_cellularum_linea.c");
   run_test(test_length_counts_the_bytes_before_the_terminator, "test_length_counts_the_bytes_before_the_terminator", 21);
   run_test(test_equal_answers_true_only_where_both_end_together, "test_equal_answers_true_only_where_both_end_together", 29);
   run_test(test_order_orders_as_strcmp_does, "test_order_orders_as_strcmp_does", 37);
@@ -101,6 +103,8 @@ int main(void)
   run_test(test_span_counts_the_bytes_the_set_holds, "test_span_counts_the_bytes_the_set_holds", 149);
   run_test(test_span_not_counts_the_bytes_before_the_set, "test_span_not_counts_the_bytes_before_the_set", 158);
   run_test(test_char_last_answers_the_last_byte_before_the_terminator, "test_char_last_answers_the_last_byte_before_the_terminator", 167);
+  run_test(test_class_tests_a_byte_against_its_class, "test_class_tests_a_byte_against_its_class", 177);
+  run_test(test_lower_and_upper_fold_the_letters_alone, "test_lower_and_upper_fold_the_letters_alone", 186);
 
   return UNITY_END();
 }

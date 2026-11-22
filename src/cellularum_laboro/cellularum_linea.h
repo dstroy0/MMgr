@@ -10,7 +10,9 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-21
  *
- * @note The calls are a length, an equal test, a prefix test and two searches. A copy and a number read follow them.
+ * @note The calls are a length, an equal test, a prefix test and two searches. A copy and two number reads follow
+ *       them. Two counts of a span and a search for the last place of a byte come next. A class test and two case
+ *       folds of one byte, which ascii gives, come last.
  * @note Every entry takes its arguments by value, and therefore a C++ translation unit calls them as they are. Each
  *       entry fills the members of CatenaFinitaCfg or TransfiguroCfg that its call reads. It leaves every other
  *       member zero, as a compound literal that names those members does. The compares fold no case.
@@ -23,6 +25,7 @@
 /** @addtogroup mod_cellul
  *  @{ */
 
+#include "ascii_persona_bitorum/ascii_persona_bitorum.h"
 #include "mmgr.h"
 
 EMBED_BEGIN_DECLS
@@ -172,6 +175,34 @@ size_t mmgr_text_span_not(const char *text, const char *set, size_t cap);
  * @note cellul.chr_last with src, cap and byte.
  */
 const char *mmgr_text_char_last(const char *text, uint8_t value, size_t cap);
+
+/**
+ * @brief Tests one byte against an ASCII class, as the is calls of ctype.h test it.
+ *
+ * @param[in] value The byte.
+ * @param[in] type  The class, below MMGR_ASCII_CLASSES.
+ * @return          EMBED_TRUE where the class holds the byte. A byte of 0x80 or above is in no class.
+ * @note ascii.in with type and byte.
+ */
+embed_bool mmgr_text_class(uint8_t value, MmgrAsciiClass type);
+
+/**
+ * @brief Folds one byte to its lower case, as tolower folds it.
+ *
+ * @param[in] value The byte.
+ * @return          'a' to 'z' for 'A' to 'Z', and any other byte as it is.
+ * @note ascii.lower with byte.
+ */
+uint8_t mmgr_text_lower(uint8_t value);
+
+/**
+ * @brief Folds one byte to its upper case, as toupper folds it.
+ *
+ * @param[in] value The byte.
+ * @return          'A' to 'Z' for 'a' to 'z', and any other byte as it is.
+ * @note ascii.upper with byte.
+ */
+uint8_t mmgr_text_upper(uint8_t value);
 
 EMBED_END_DECLS
 

@@ -89,3 +89,18 @@ const char *mmgr_text_char_last(const char *text, uint8_t value, size_t cap)
 {
     return EMBED_CALL(cellul.chr_last, CatenaFinitaCfg, .src = text, .cap = cap, .byte = value);
 }
+
+embed_bool mmgr_text_class(uint8_t value, MmgrAsciiClass type)
+{
+    return EMBED_CALL(ascii.in, AsciiCfg, .type = type, .byte = value);
+}
+
+uint8_t mmgr_text_lower(uint8_t value)
+{
+    return EMBED_CALL(ascii.lower, AsciiCfg, .byte = value);
+}
+
+uint8_t mmgr_text_upper(uint8_t value)
+{
+    return EMBED_CALL(ascii.upper, AsciiCfg, .byte = value);
+}

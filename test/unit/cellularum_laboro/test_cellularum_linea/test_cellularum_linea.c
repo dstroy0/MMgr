@@ -173,3 +173,27 @@ void test_char_last_answers_the_last_byte_before_the_terminator(void)
     TEST_ASSERT_EQUAL_PTR_MESSAGE(text + 1, mmgr_text_char_last(text, (uint8_t)'/', 3u), "the bound stops the walk");
     TEST_ASSERT_EQUAL_PTR(text + 2, mmgr_text_char_last(text, 0u, 2u));
 }
+
+void test_class_tests_a_byte_against_its_class(void)
+{
+    TEST_ASSERT_TRUE(mmgr_text_class((uint8_t)'7', MMGR_ASCII_NUM));
+    TEST_ASSERT_FALSE(mmgr_text_class((uint8_t)'x', MMGR_ASCII_NUM));
+    TEST_ASSERT_TRUE(mmgr_text_class((uint8_t)'Q', MMGR_ASCII_ALNUM));
+    TEST_ASSERT_TRUE(mmgr_text_class((uint8_t)'\t', MMGR_ASCII_SPACE));
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_text_class(0xC3u, MMGR_ASCII_ALPHA), "a byte past 0x7F is in no class");
+}
+
+void test_lower_and_upper_fold_the_letters_alone(void)
+{
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'a', mmgr_text_lower((uint8_t)'A'));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'z', mmgr_text_lower((uint8_t)'Z'));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'q', mmgr_text_lower((uint8_t)'q'));
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE((uint8_t)'@', mmgr_text_lower((uint8_t)'@'), "the byte before A stays");
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'[', mmgr_text_lower((uint8_t)'['));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'A', mmgr_text_upper((uint8_t)'a'));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'Z', mmgr_text_upper((uint8_t)'z'));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'Q', mmgr_text_upper((uint8_t)'Q'));
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE((uint8_t)'`', mmgr_text_upper((uint8_t)'`'), "the byte before a stays");
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'{', mmgr_text_upper((uint8_t)'{'));
+    TEST_ASSERT_EQUAL_UINT8(0xE3u, mmgr_text_upper(0xE3u));
+}
