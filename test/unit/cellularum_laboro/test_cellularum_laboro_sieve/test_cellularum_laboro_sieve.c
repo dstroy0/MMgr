@@ -88,3 +88,35 @@ void test_two_rows_find_a_long_needle(void)
     TEST_ASSERT_NOT_NULL(at);
     TEST_ASSERT_EQUAL_PTR(hay + 27, at);
 }
+
+static const char *find_in_cap(const char *hay, size_t cap, const char *needle)
+{
+    return EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = hay, .cap = cap, .other = needle,
+                      .other_cap = strlen(needle) + 1u, .ci = EMBED_FALSE);
+}
+
+void test_two_rows_stop_at_a_terminator_inside_a_word_the_sieve_reads(void)
+{
+    // The cap runs far past the terminator, and so the words the sieve reads hold it. The needle past the
+    // terminator is not part of the haystack
+    static char hay[128] = "a haystack that holds nothing to find at all";
+
+    memcpy(hay + 64, "needle", 6u);
+    TEST_ASSERT_NULL(find_in_cap(hay, sizeof hay, "needle"));
+}
+
+void test_two_rows_read_a_haystack_shorter_than_the_reach_a_byte_at_a_time(void)
+{
+    // On a 64-bit word the cap is below the reach of the word walk, and so every start goes to the byte walk. The
+    // first start fails at its tenth byte, and the start at 10 matches
+    static const char hay[] = "abcdefghiXabcdefghij";
+
+    TEST_ASSERT_EQUAL_PTR(hay + 10, find_in_cap(hay, sizeof hay, "abcdefghij"));
+}
+
+void test_two_rows_stop_at_a_terminator_in_the_byte_walk(void)
+{
+    static const char hay[21] = "abc";
+
+    TEST_ASSERT_NULL(find_in_cap(hay, sizeof hay, "abcdefghij"));
+}

@@ -12,8 +12,8 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-05
  */
-#if !defined(_WIN32)
-/* The GNU feature set declares the futex call and the monotonic clock */
+#if !defined(_WIN32) && !defined(_GNU_SOURCE)
+/* The GNU feature set declares the futex call and the monotonic clock. A build can set it on the command line */
 #define _GNU_SOURCE
 #endif
 #include "host_wait.h"

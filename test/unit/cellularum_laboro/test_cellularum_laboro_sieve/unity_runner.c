@@ -15,6 +15,9 @@ extern void test_two_rows_find_a_needle_ignoring_case(void);
 extern void test_two_rows_find_a_needle_at_the_very_start(void);
 extern void test_two_rows_find_a_needle_of_two_bytes(void);
 extern void test_two_rows_find_a_long_needle(void);
+extern void test_two_rows_stop_at_a_terminator_inside_a_word_the_sieve_reads(void);
+extern void test_two_rows_read_a_haystack_shorter_than_the_reach_a_byte_at_a_time(void);
+extern void test_two_rows_stop_at_a_terminator_in_the_byte_walk(void);
 
 
 /*=======Mock Management=====*/
@@ -84,6 +87,9 @@ int main(void)
   run_test(test_two_rows_find_a_needle_at_the_very_start, "test_two_rows_find_a_needle_at_the_very_start", 67);
   run_test(test_two_rows_find_a_needle_of_two_bytes, "test_two_rows_find_a_needle_of_two_bytes", 74);
   run_test(test_two_rows_find_a_long_needle, "test_two_rows_find_a_long_needle", 83);
+  run_test(test_two_rows_stop_at_a_terminator_inside_a_word_the_sieve_reads, "test_two_rows_stop_at_a_terminator_inside_a_word_the_sieve_reads", 98);
+  run_test(test_two_rows_read_a_haystack_shorter_than_the_reach_a_byte_at_a_time, "test_two_rows_read_a_haystack_shorter_than_the_reach_a_byte_at_a_time", 108);
+  run_test(test_two_rows_stop_at_a_terminator_in_the_byte_walk, "test_two_rows_stop_at_a_terminator_in_the_byte_walk", 117);
 
   return UNITY_END();
 }

@@ -10,7 +10,8 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note One of five files that define mmgr_ancorae_impensa. A build links exactly one of them.
+ * @note One of five files that define mmgr_ancorae_impensa_table. A build links exactly one of them, beside
+ *       impensa_ancorae_acus.c.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
@@ -22,8 +23,9 @@
  * @note The space sits at 1 here, where the two text tables give it 255.
  * @note Every initializer is a plain int constant from 1 to 255, and so the narrow cast to the uint8_t element retains
  * its value.
+ * @note Each cost is 1 through 255.
  */
-static const uint8_t s_impensa[256] = {
+const uint8_t mmgr_ancorae_impensa_table[256] = {
     255, 1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
     1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   107, 1,   155, 107, 188, 199, 107, 107, 107, 107, 163,
     144, 225, 244, 255, 201, 201, 201, 201, 201, 201, 201, 201, 201, 201, 218, 136, 1,   207, 1,   193, 144, 162,
@@ -36,35 +38,3 @@ static const uint8_t s_impensa[256] = {
     1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
     1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,
     1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1,   1};
-
-/**
- * @brief Argument type built by EMBED_CALL in mmgr_ancorae_impensa.
- *
- * @note Mirrors AncoraeCfg without its const qualifier.
- */
-typedef struct
-{
-    uint8_t byte; /**< Byte value to look up. */
-} AncoraeCtx;
-
-/**
- * @brief Returns the table entry for args->byte.
- *
- * @param[in] args Byte to look up [BORROWS].
- * @return         The cost, 1 through 255.
- * @note The table holds 256 entries, and so every uint8_t value indexes it in range.
- */
-EMBED_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
-{
-    return s_impensa[args->byte];
-}
-
-/**
- * @brief Copies args->byte into an AncoraeCtx and returns the table entry.
- *
- * @note Documented at the declaration in impensa_ancorae_acus.h.
- */
-uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args)
-{
-    return EMBED_CALL(ancorae_impensa, AncoraeCtx, .byte = args->byte);
-}

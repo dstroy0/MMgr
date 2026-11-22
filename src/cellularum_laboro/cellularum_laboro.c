@@ -55,16 +55,16 @@ typedef struct
 } CellulCtx;
 
 /**
- * @brief Compares one word pair case sensitively and reports whether the walk continues.
+ * @brief The verdict of one word pair from the lanes in which the pair differs.
  *
- * @param[in] args Words word_left and word_right, with end_wins [BORROWS].
+ * @param[in] args Word word_left, with end_wins [BORROWS].
+ * @param[in] diff Each lane in which the pair differs nonzero, and each lane in which it agrees zero.
  * @return         MMGR_SWAR_GO when the words agree and carry no terminator, MMGR_SWAR_YES or
  *                 MMGR_SWAR_NO otherwise.
  * @note MMGR_SWAR_YES when the terminator lane precedes the first lane that differs, or ties it when end_wins.
  */
-EMBED_INLINE embed_iword cellul_step_word_cs(const CellulCtx *args)
+EMBED_INLINE embed_iword cellul_step_verdict(const CellulCtx *args, embed_word diff)
 {
-    const embed_word diff = args->word_left ^ args->word_right;
     const embed_word term = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = args->word_left);
 
     if ((diff | term) == 0)
@@ -92,41 +92,26 @@ EMBED_INLINE embed_iword cellul_step_word_cs(const CellulCtx *args)
 }
 
 /**
+ * @brief Compares one word pair case sensitively and reports whether the walk continues.
+ *
+ * @param[in] args Words word_left and word_right, with end_wins [BORROWS].
+ * @return         The verdict of cellul_step_verdict on the XOR of the two words.
+ */
+EMBED_INLINE embed_iword cellul_step_word_cs(const CellulCtx *args)
+{
+    return cellul_step_verdict(args, args->word_left ^ args->word_right);
+}
+
+/**
  * @brief Compares one word pair with case folded and reports whether the walk continues.
  *
  * @param[in] args Words word_left and word_right, with end_wins [BORROWS].
- * @return         MMGR_SWAR_GO when the words agree and carry no terminator, MMGR_SWAR_YES or
- *                 MMGR_SWAR_NO otherwise.
- * @note Differs from cellul_step_word_cs only in that it takes the difference through lane.xor_ with ci set.
+ * @return         The verdict of cellul_step_verdict on the difference that lane.xor_ takes with ci set.
  */
 EMBED_INLINE embed_iword cellul_step_word_ci(const CellulCtx *args)
 {
-    const embed_word diff =
-        EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = args->word_left, .val = args->word_right, .ci = EMBED_TRUE);
-    const embed_word term = EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = args->word_left);
-
-    if ((diff | term) == 0)
-    {
-        return MMGR_SWAR_GO;
-    }
-
-    size_t diff_lane = MMGR_SWAR_BYTES;
-    if (diff != 0)
-    {
-        diff_lane =
-            EMBED_CALL(lane.first, ScrutLaneCfg,
-                       .mask = MMGR_VERBUM_SCRUTOR_HIGH & ~EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = diff));
-    }
-    size_t end_lane = MMGR_SWAR_BYTES;
-    if (term != 0)
-    {
-        end_lane = EMBED_CALL(lane.first, ScrutLaneCfg, .mask = term);
-    }
-    if (args->end_wins)
-    {
-        return (end_lane <= diff_lane) ? MMGR_SWAR_YES : MMGR_SWAR_NO;
-    }
-    return (end_lane < diff_lane) ? MMGR_SWAR_YES : MMGR_SWAR_NO;
+    return cellul_step_verdict(
+        args, EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = args->word_left, .val = args->word_right, .ci = EMBED_TRUE));
 }
 
 /**
@@ -857,21 +842,27 @@ EMBED_INLINE size_t cellul_pick_rows(const CellulCtx *args)
 
         for (size_t offset = 0; offset < limit; ++offset)
         {
-            size_t taken = 0;
+            const uint8_t cost = EMBED_CALL(ancorae.impensa, AncoraeCfg,
+                                            .byte = cellul_ancorae_fold(&(CellulCtx){
+                                                .other = args->other, .needle_offset = offset, .ci = args->ci}));
 
 #if MMGR_SIEVE_ROWS > 1u
+            size_t taken = 0;
+
             // Only rows 0 through row - 1 hold a choice so far, and so the scan for an offset already
             // taken stops at row
             for (size_t prior = 0; prior < row; ++prior)
             {
                 taken |= (args->rows[prior] == offset) ? 1u : 0u;
             }
+            // Explicit cast narrows the comparison into the embed_bool container
+            const embed_bool better = (embed_bool)((taken == 0u) && (cost < best_cost));
+#else
+            // One row holds no choice before it, and so no offset is taken. Explicit cast narrows the comparison
+            // into the embed_bool container
+            const embed_bool better = (embed_bool)(cost < best_cost);
 #endif
-
-            const uint8_t cost = EMBED_CALL(ancorae.impensa, AncoraeCfg,
-                                            .byte = cellul_ancorae_fold(&(CellulCtx){
-                                                .other = args->other, .needle_offset = offset, .ci = args->ci}));
-            if (!taken && (cost < best_cost))
+            if (better)
             {
                 best_cost = cost;
                 best = offset;

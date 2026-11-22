@@ -44,7 +44,8 @@ SPECIAL = {
                            ["MMGR_ENABLE_DMA=1", "PRAET_CHANNELS=8u", "PRAET_SETTLE_MICROS=40u",
                             "PRAET_KEEPALIVE_MICROS=250u", "PRAET_RECOVERY=1", "EMBED_CLOCK_HZ=240000000u",
                             "EMBED_CLOCK_SOURCE=EMBED_CLOCK_CALLER"]),
-    "impensa_ancorae_acus": (["src/impensa_ancorae_acus/impensa_ancorae_acus_generic.c"], ["FUZZ_ANCORAE_BARRED=32u"]),
+    "impensa_ancorae_acus": (["src/impensa_ancorae_acus/impensa_ancorae_acus.c",
+                              "src/impensa_ancorae_acus/impensa_ancorae_acus_generic.c"], ["FUZZ_ANCORAE_BARRED=32u"]),
 }
 
 GHIDRA = "~/ghidra/ghidra_12.1.2_PUBLIC/support/analyzeHeadless"
@@ -150,7 +151,10 @@ def library_sources(root):
         for entry in sorted(os.listdir(folder)):
             if not entry.endswith(".c"):
                 continue
-            if module == "impensa_ancorae_acus" and entry != "impensa_ancorae_acus_generic.c":
+            if module == "impensa_ancorae_acus" and entry not in (
+                "impensa_ancorae_acus.c",
+                "impensa_ancorae_acus_generic.c",
+            ):
                 continue
             sources.append(os.path.join(folder, entry))
     sources.append(os.path.join(root, "test", "support", "host_wait.c"))

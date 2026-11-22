@@ -765,6 +765,36 @@ EMBED_INLINE size_t mmgr_series_cellularum_temporary_hw(const SeriesCellularum *
 }
 
 /**
+ * @brief The two movable members both guards hold ahead of their movable release.
+ *
+ * @note movable_init assigns the movable option, once. movable_buf_alloc takes a cell a move may move: its identity,
+ *       NULL where refused.
+ */
+#define MMGR_GUARD_MOVABLE_TAKE_MEMBERS                                                                                \
+    embed_bool (*movable_init)(const CarcerMovableInitCfg *args);                                                      \
+    const CarcerMovableEntry *(*movable_buf_alloc)(size_t size, const CellOwner *owner);
+
+/**
+ * @brief The four movable members both guards hold after their movable release.
+ *
+ * @note movable_buf_read copies out of a movable cell, and movable_buf_write copies into it. movable_buf_compare
+ *       orders a movable cell's bytes. movable_buf_measure counts the bytes before a movable cell's next zero.
+ */
+#define MMGR_GUARD_MOVABLE_SPAN_MEMBERS                                                                                \
+    embed_bool (*movable_buf_read)(const CarcerMovableCfg *args);                                                      \
+    embed_bool (*movable_buf_write)(const CarcerMovableCfg *args);                                                     \
+    embed_iword (*movable_buf_compare)(const CarcerMovableCfg *args);                                                  \
+    size_t (*movable_buf_measure)(const CarcerMovableCfg *args);
+
+/**
+ * @brief The thirteen member names of both guards, in their order, for EMBED_TABLE_LAYOUT.
+ */
+#define MMGR_GUARD_MEMBER_NAMES                                                                                        \
+    persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc, who_owns_buf, buf_available, buf_grow,          \
+        movable_init, movable_buf_alloc, movable_buf_release, movable_buf_read, movable_buf_write,                     \
+        movable_buf_compare, movable_buf_measure
+
+/**
  * @brief The minimum security guard over one cellblock: a released cell retains whatever is in it.
  *
  * @note EMBED_TABLE_LAYOUT asserts the thirteen members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets,
@@ -792,19 +822,12 @@ typedef struct
     void *(*buf_grow)(
         void *prisoner, size_t size,
         const CellOwner *owner); /**< Grows the newest cell of its tier to size bytes in place, unzeroed. */
-    embed_bool (*movable_init)(const CarcerMovableInitCfg *args); /**< Assigns the movable option, once. */
-    const CarcerMovableEntry *(*movable_buf_alloc)(
-        size_t size, const CellOwner *owner); /**< Takes a cell a move may move: its identity, NULL where refused. */
+    MMGR_GUARD_MOVABLE_TAKE_MEMBERS
     embed_bool (*movable_buf_release)(const CarcerMovableEntry *cell,
-                                      const CellOwner *owner);     /**< Releases owner's movable cell, left as it is. */
-    embed_bool (*movable_buf_read)(const CarcerMovableCfg *args);  /**< Copies out of a movable cell. */
-    embed_bool (*movable_buf_write)(const CarcerMovableCfg *args); /**< Copies into a movable cell. */
-    embed_iword (*movable_buf_compare)(const CarcerMovableCfg *args); /**< Orders a movable cell's bytes. */
-    size_t (*movable_buf_measure)(const CarcerMovableCfg *args);      /**< Bytes before a movable cell's next zero. */
+                                      const CellOwner *owner); /**< Releases owner's movable cell, left as it is. */
+    MMGR_GUARD_MOVABLE_SPAN_MEMBERS
 } MinimumSecurityGuard;
-EMBED_TABLE_LAYOUT(MinimumSecurityGuard, persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc,
-                   who_owns_buf, buf_available, buf_grow, movable_init, movable_buf_alloc, movable_buf_release,
-                   movable_buf_read, movable_buf_write, movable_buf_compare, movable_buf_measure);
+EMBED_TABLE_LAYOUT(MinimumSecurityGuard, MMGR_GUARD_MEMBER_NAMES);
 
 /**
  * @brief The max security guard over one cellblock: every release zeroes the cell first.
@@ -828,19 +851,12 @@ typedef struct
     void *(*buf_grow)(void *prisoner, size_t size,
                       const CellOwner *owner); /**< Grows the newest cell of its tier to size bytes in place, the added
                                                   bytes zeroed. */
-    embed_bool (*movable_init)(const CarcerMovableInitCfg *args); /**< Assigns the movable option, once. */
-    const CarcerMovableEntry *(*movable_buf_alloc)(
-        size_t size, const CellOwner *owner); /**< Takes a cell a move may move: its identity, NULL where refused. */
+    MMGR_GUARD_MOVABLE_TAKE_MEMBERS
     embed_bool (*movable_buf_release)(const CarcerMovableEntry *cell,
-                                      const CellOwner *owner);    /**< Zeroes owner's movable cell, then releases it. */
-    embed_bool (*movable_buf_read)(const CarcerMovableCfg *args); /**< Copies out of a movable cell. */
-    embed_bool (*movable_buf_write)(const CarcerMovableCfg *args);    /**< Copies into a movable cell. */
-    embed_iword (*movable_buf_compare)(const CarcerMovableCfg *args); /**< Orders a movable cell's bytes. */
-    size_t (*movable_buf_measure)(const CarcerMovableCfg *args);      /**< Bytes before a movable cell's next zero. */
+                                      const CellOwner *owner); /**< Zeroes owner's movable cell, then releases it. */
+    MMGR_GUARD_MOVABLE_SPAN_MEMBERS
 } MaxSecurityGuard;
-EMBED_TABLE_LAYOUT(MaxSecurityGuard, persistent_buf_alloc, persistent_buf_release, temporary_buf_alloc, who_owns_buf,
-                   buf_available, buf_grow, movable_init, movable_buf_alloc, movable_buf_release, movable_buf_read,
-                   movable_buf_write, movable_buf_compare, movable_buf_measure);
+EMBED_TABLE_LAYOUT(MaxSecurityGuard, MMGR_GUARD_MEMBER_NAMES);
 
 /**
  * @brief The movable entries of one cellblock, bound to it through series_cellularum_.

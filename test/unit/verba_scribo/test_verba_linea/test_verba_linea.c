@@ -3,7 +3,9 @@
 #include "guard_page.h"
 #include "unity.h"
 
+#include <math.h>
 #include <stdint.h>
+#include <string.h>
 
 static char s_out[300];
 static char s_passed[512];
@@ -324,6 +326,63 @@ void test_general_aligns_right_and_takes_one_digit_for_none(void)
     mmgr_line_general(&line, 3.5, 1u, 0u, EMBED_TRUE);
     mmgr_line_finish(&line);
     TEST_ASSERT_EQUAL_STRING("     2|+4", s_out);
+}
+
+void test_exponent_of_a_power_of_no_tie_rounds_to_the_nearest(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_exponent(&line, 13.0, 0u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("1e+01", s_out);
+}
+
+void test_exponent_and_general_write_a_subnormal(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_exponent(&line, 5e-324, 2u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_general(&line, 5e-324, 3u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("4.94e-324 4.94e-324", s_out);
+}
+
+void test_general_writes_one_digit_in_exponent_form_and_a_fraction_in_plain_form(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_general(&line, 1e20, 4u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_general(&line, 12.5, 4u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("1e+20 12.5", s_out);
+}
+
+void test_fixed_exponent_and_general_write_an_infinity_as_fixed_writes_it(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_fixed(&line, INFINITY, 2u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_exponent(&line, -INFINITY, 2u, 0u, EMBED_FALSE);
+    mmgr_line_ch(&line, ' ');
+    mmgr_line_general(&line, INFINITY, 4u, 0u, EMBED_TRUE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_EQUAL_STRING("inf -inf inf", s_out);
+}
+
+void test_exponent_and_general_write_a_nan_as_fixed_writes_it(void)
+{
+    VerbaLinea line = line_of(64u);
+
+    mmgr_line_exponent(&line, NAN, 2u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_NOT_NULL_MESSAGE(strstr(s_out, "nan"), "the exponent form writes a nan as fixed writes it");
+    line = line_of(64u);
+    mmgr_line_general(&line, NAN, 4u, 0u, EMBED_FALSE);
+    mmgr_line_finish(&line);
+    TEST_ASSERT_NOT_NULL_MESSAGE(strstr(s_out, "nan"), "the general form writes a nan as fixed writes it");
 }
 
 void test_ch_writes_one_character(void)

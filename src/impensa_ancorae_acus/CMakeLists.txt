@@ -4,8 +4,8 @@
 # Every use falls under AGPL-3.0-or-later unless you hold explicit permission, which is either a
 # negotiated commercial licensing contract or an educator's license issued to you personally.
 
-# One profile, one translation unit. The table is file local to whichever of these builds.
-# The four not in use are not in the image. None of the five puts a 256 byte
+# The lookup and one profile. impensa_ancorae_acus.c holds the lookup, and the profile file holds the table it
+# reads. The four not in use are not in the image. None of the five puts a 256 byte
 # copy of itself into every module that asks what a byte costs.
 if(DEFINED MMGR_ANCORAE_FORMA)
   string(TOLOWER "${MMGR_ANCORAE_FORMA}" _forma)
@@ -14,5 +14,5 @@ else()
 endif()
 
 mmgr_add_module(impensa_ancorae_acus
-  SOURCES impensa_ancorae_acus_${_forma}.c
+  SOURCES impensa_ancorae_acus.c impensa_ancorae_acus_${_forma}.c
 )

@@ -164,6 +164,10 @@ PREDEFINED             = DOXYGEN \
                          MMGR_ENABLE_OWNERS=1 \
                          EMBED_WORD_BITS=64 \
                          EMBED_INDEX_BITS=32
+# The member macros of the two guards expand as locus_carcerum.h defines them, and so each guard lists all
+# thirteen members.
+EXPAND_AS_DEFINED      = MMGR_GUARD_MOVABLE_TAKE_MEMBERS \
+                         MMGR_GUARD_MOVABLE_SPAN_MEMBERS
 
 # The Ns table initializers are seventeen blocks of `.member = mmgr_x_y,` about fifteen lines each,
 # and the ASCII and anchor-cost tables are 256-entry arrays. The struct is the contract; the

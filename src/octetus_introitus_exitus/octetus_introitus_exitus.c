@@ -58,9 +58,11 @@ typedef struct
  *       not a size pass to build on. See the warning.
  * @warning A write past the end is a build failure. What a writer emits and how big its buffer is are
  *          both fixed before the build. So the two are either compatible or the program is wrong.
- *          MMGR_ASSERT stops the program in the checks build. In a build without checks the latch is
- *          damage control that retains a wrong program from a write past the end. It is not a path to
- *          design for.
+ *          MMGR_ASSERT stops the program in the checks build, and so that build has no latch. In a build
+ *          without checks the latch is damage control that retains a wrong program from a write past the
+ *          end. It is not a path to design for.
+ * @warning A checks build that defines its own MMGR_ASSERT must stop the program on a failure. The checks build
+ *          has no latch, and an MMGR_ASSERT that returns lets the write go past the end.
  */
 EMBED_INLINE uint8_t *byteio_claim(mmgr_span *write_span, size_t bytes)
 {
@@ -71,11 +73,13 @@ EMBED_INLINE uint8_t *byteio_claim(mmgr_span *write_span, size_t bytes)
                 "append runs past the end of the span");
 
     write_span->pos += bytes;
+#if !MMGR_DEBUG_CHECKS
     if ((write_span->buf == NULL) || write_span->overflow || (bytes > (write_span->cap - at)) || (at > write_span->cap))
     {
         write_span->overflow = EMBED_TRUE;
         return NULL;
     }
+#endif
     return write_span->buf + at;
 }
 

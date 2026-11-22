@@ -29,6 +29,14 @@ import glob
 import os
 import shlex
 import subprocess
+import time
+
+# The wall clock each prover run gets, in seconds. coreutils timeout stops the prover itself at the limit, and a run
+# that reaches it fails with the limit named. A hosted runner has six hours for a job, and the slowest arm runs ten
+# provers in a row.
+RUN_SECONDS = 1800
+# The exit status of coreutils timeout where it stopped the command
+TIMED_OUT = 124
 
 # Each harness's bound: the steps its sequence runs, and the loop unwind CBMC holds it to. A bound with hosted
 # False needs more memory than a hosted runner has, and prove --hosted names it and does not run it. The movable
@@ -78,7 +86,9 @@ def library_sources(root, included=()):
             continue
         if module in ("memoria_externa", "memoriam_praetereo"):
             continue
-        if module == "impensa_ancorae_acus" and not rel.endswith("impensa_ancorae_acus_generic.c"):
+        if module == "impensa_ancorae_acus" and not rel.endswith(
+            ("impensa_ancorae_acus.c", "impensa_ancorae_acus_generic.c")
+        ):
             continue
         sources.append(rel)
     if "test/support/host_wait.c" not in included:
@@ -93,6 +103,14 @@ def linux(root, command):
     return subprocess.run(["bash", "-lc", command], cwd=root, capture_output=True, text=True)
 
 
+def bounded(root, command, seconds):
+    """A prover command run as linux runs it, stopped at seconds. The result, whether the limit stopped it, and the
+    seconds it took."""
+    started = time.monotonic()
+    r = linux(root, "timeout --kill-after=30 %d %s" % (seconds, command))
+    return r, r.returncode == TIMED_OUT, time.monotonic() - started
+
+
 def cbmc(root, harness, bound, reach):
     # The library's cellblocks, owner table, turnstiles and statics pass CBMC's default of 256 addressed objects
     flags = ["--object-bits 12", "-D PROVE_CBMC", "-D MMGR_OWNERS_IN_THIS_UNIT", "-D MMGR_MISNAMED_IN_THIS_UNIT"]
@@ -103,11 +121,13 @@ def cbmc(root, harness, bound, reach):
         flags += ["--unwind %d" % bound["unwind"], "--unwinding-assertions"]
     command = "cbmc %s %s %s" % (" ".join(flags), shlex.quote(harness),
                                  " ".join(library_sources(root, bound.get("included", ()))))
-    r = linux(root, command)
+    r, stopped, seconds = bounded(root, command, bound.get("seconds", RUN_SECONDS))
     text = r.stdout + r.stderr
     failed = [line.strip() for line in text.splitlines() if line.rstrip().endswith("FAILURE")]
+    if stopped:
+        failed.append("timed out after %d s" % bound.get("seconds", RUN_SECONDS))
     verdict = "VERIFICATION SUCCESSFUL" in text
-    return verdict, failed, text
+    return verdict, failed, text, seconds
 
 
 def machine(root, harness, bound, cc, level, out):
@@ -118,10 +138,14 @@ def machine(root, harness, bound, cc, level, out):
     r = linux(root, build)
     if r.returncode != 0:
         return "build failed: " + (r.stdout + r.stderr).strip().splitlines()[-1]
-    r = linux(root, "%s test/prove/symbolic.py %s" % (EXECUTOR, program))
+    r, stopped, seconds = bounded(root, "%s test/prove/symbolic.py %s" % (EXECUTOR, program),
+                                  bound.get("seconds", RUN_SECONDS))
+    if stopped:
+        return "timed out after %d s" % bound.get("seconds", RUN_SECONDS)
     lines = [line for line in (r.stdout + r.stderr).splitlines()
              if line.startswith(("proved", "counterexample", "incomplete"))]
-    return lines[-1] if lines else "no answer: " + (r.stdout + r.stderr).strip()[-200:]
+    answer = lines[-1] if lines else "no answer: " + (r.stdout + r.stderr).strip()[-200:]
+    return "%s (%.0f s)" % (answer, seconds)
 
 
 def linux_root(root, command):
@@ -162,15 +186,18 @@ def genmc_ready(root):
 def genmc(root, client, model, run_root, name):
     """One client under one memory model: proved with its count of executions, or the first fault GenMC names."""
     flags = GENMC_FLAGS + ["--"] + ["-I " + i for i in INCLUDES] + ["-D" + d for d in GENMC_DEFINES]
-    r = linux(root, "%s %s %s %s" % (GENMC, model, " ".join(flags), shlex.quote(client)))
+    r, stopped, seconds = bounded(root, "%s %s %s %s" % (GENMC, model, " ".join(flags), shlex.quote(client)),
+                                  RUN_SECONDS)
     text = r.stdout + r.stderr
     with open(os.path.join(run_root, "%s_genmc_%s.txt" % (name, model.lstrip("-"))), "w", encoding="utf-8") as log:
         log.write(text)
+    if stopped:
+        return "FAILED: timed out after %d s" % RUN_SECONDS
     explored = [line for line in text.splitlines() if line.startswith("Number of complete executions explored")]
     blocked = [line for line in text.splitlines() if "blocked" in line.lower() and any(c.isdigit() and c != "0"
                                                                                      for c in line.split(":")[-1])]
     if "No errors were detected" in text and not blocked:
-        return "proved, %s executions" % (explored[-1].split(":")[-1].strip() if explored else "?")
+        return "proved, %s executions (%.0f s)" % (explored[-1].split(":")[-1].strip() if explored else "?", seconds)
     faults = [line.strip() for line in text.splitlines()
               if line.startswith(("Error", "Assertion violation", "INTERNAL", "LLVM ERROR"))] + blocked
     return "FAILED: " + (faults[0] if faults else text.strip()[-200:])
@@ -194,10 +221,10 @@ def prove(root, run_root, names, arms, hosted=False):
         for path in clients:
             name = os.path.basename(path)[:-len("_genmc.c")]
             client = os.path.relpath(path, root).replace("\\", "/")
-            print("== %s" % name)
+            print("== %s" % name, flush=True)
             for model in GENMC_MODELS:
                 answer = genmc(root, client, model, run_root, name)
-                print("  genmc %-6s %s" % (model.lstrip("-"), answer))
+                print("  genmc %-6s %s" % (model.lstrip("-"), answer), flush=True)
                 if not answer.startswith("proved"):
                     failures.append("%s genmc %s: %s" % (name, model.lstrip("-"), answer))
     for path in chosen:
@@ -207,17 +234,18 @@ def prove(root, run_root, names, arms, hosted=False):
         if bound is None:
             failures.append("%s: no bound in test/prove/prove.py" % name)
             continue
-        print("== %s" % name)
+        print("== %s" % name, flush=True)
         if hosted and not bound["hosted"]:
-            print("  not run: its bound needs more memory than a hosted runner has")
+            print("  not run: its bound needs more memory than a hosted runner has", flush=True)
             continue
         if "cbmc" in arms:
-            held, failed, text = cbmc(root, harness, bound, reach=False)
-            reached, _, _ = cbmc(root, harness, bound, reach=True)
+            held, failed, text, seconds = cbmc(root, harness, bound, reach=False)
+            reached, _, _, reach_seconds = cbmc(root, harness, bound, reach=True)
             with open(os.path.join(run_root, name + "_cbmc.txt"), "w", encoding="utf-8") as log:
                 log.write(text)
-            print("  cbmc      %s%s" % ("proved" if held and not failed else "FAILED",
-                                       "" if not reached else "  (VACUOUS: the end is unreachable)"))
+            print("  cbmc      %s (%.0f s, the reach run %.0f s)%s" % (
+                "proved" if held and not failed else "FAILED", seconds, reach_seconds,
+                "" if not reached else "  (VACUOUS: the end is unreachable)"), flush=True)
             for line in failed[:6]:
                 print("      " + line)
             if not held or failed:
@@ -227,7 +255,7 @@ def prove(root, run_root, names, arms, hosted=False):
         if "machine" in arms:
             for cc, level in MACHINE:
                 answer = machine(root, harness, bound, cc, level, out)
-                print("  %-5s %-3s %s" % (cc, level, answer))
+                print("  %-5s %-3s %s" % (cc, level, answer), flush=True)
                 if not answer.startswith("proved"):
                     failures.append("%s %s %s: %s" % (name, cc, level, answer))
     print("prove: run in %s" % run_root)

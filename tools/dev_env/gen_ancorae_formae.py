@@ -21,11 +21,14 @@ WHAT EACH PROFILE CARRIES BESIDES ITS FREQUENCIES
 
 The generated file is ordinary documented source, and so every profile also carries the prose that
 describes ITS table. That is the @brief, the notes about which bytes sit at the ceiling, and the
-range the entry point returns. Those are observations about one table and no other table can supply
+range of its costs. Those are observations about one table and no other table can supply
 them. So they sit beside the frequency function and not in the template.
 
-The two numbers in the @return line DO come from the table just computed. So that
+The two numbers in the range note DO come from the table just computed. So that
 line cannot come to disagree with the data above it.
+
+The lookup over the table is in impensa_ancorae_acus.c, which no profile changes. A profile file holds its table
+alone.
 
 FORMATTING
 
@@ -230,7 +233,7 @@ def generic():
 # ceiling, where the floor sits, which bytes are unexpectedly above it. They are per profile because
 # they are true of one table and false of the next.
 #
-# `returns` takes the lowest and highest entry of the computed table, and so the range it states comes
+# `costs` takes the lowest and highest entry of the computed table, and so the range it states comes
 # off the data and not from memory.
 PROFILES = [
     (
@@ -239,11 +242,11 @@ PROFILES = [
         [
             "Lower means rarer, and cellul_pick_rows retains the lowest cost it finds.",
             "255 marks the NUL and the space, and so neither is ever chosen as a sieve offset.",
-            "Bytes 128 through 255 all carry 107, and so no high byte is preferred over another.",
+            "Bytes 128 through 255 all carry 107, and so no high byte ranks over another.",
             "The entries carry no U suffix. Each is within 0 to 255, and so the initializer stores it as a\n"
             " *       uint8_t unchanged.",
         ],
-        "The cost, %d through %d in this table.",
+        "Each cost is %d through %d.",
         generic,
     ),
     (
@@ -254,42 +257,42 @@ PROFILES = [
             "The floor is 1. The ceiling 255 sits on the NUL and the space, and so neither is ever chosen as a\n"
             " *       sieve offset.",
         ],
-        "The cost, %d through %d.",
+        "Each cost is %d through %d.",
         english,
     ),
     (
         "uri",
-        "Byte cost table scoring characters, digits and URI punctuation.",
+        "Byte cost table that scores characters, digits and URI punctuation.",
         [
             "Lower means rarer, and cellul_pick_rows retains the lowest cost it finds.",
             "255 marks the NUL and the slash, and so neither is ever chosen as a sieve offset.",
             "The space sits at 1 here, where the two text tables give it 255.",
-            "Every initializer is a plain int constant from 1 to 255, and so narrowing to the uint8_t element"
+            "Every initializer is a plain int constant from 1 to 255, and so the narrow cast to the uint8_t element"
             " retains its value.",
         ],
-        "The cost, %d through %d.",
+        "Each cost is %d through %d.",
         uri,
     ),
     (
         "inet",
-        "Byte cost table scoring only the characters an address is built from.",
+        "Byte cost table that scores only the characters an address consists of.",
         [
             "Lower means rarer, and cellul_pick_rows retains the lowest cost it finds.",
             "255 marks the NUL and the colon, and so neither is ever chosen as a sieve offset.",
             "Also above 1: the digits, 'a' to 'f', 'A' to 'F', and 37 '%', 46 '.', 47 '/', 91 '[', 93 ']'.",
         ],
-        "The cost, %d through %d.",
+        "Each cost is %d through %d.",
         inet,
     ),
     (
         "route",
-        "Byte cost table scoring characters, digits and path punctuation.",
+        "Byte cost table that scores characters, digits and path punctuation.",
         [
             "Lower means rarer, and cellul_pick_rows retains the lowest cost it finds.",
             "255 marks the NUL and the slash, and so neither is ever chosen as a sieve offset.",
             "The braces at 123 and 125 carry a cost, where max punctuation sits at 1.",
         ],
-        "The cost, %d through %d.",
+        "Each cost is %d through %d.",
         route,
     ),
 ]
@@ -306,7 +309,8 @@ SRC = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.c
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note One of five files defining mmgr_ancorae_impensa. A build links exactly one of them.
+ * @note One of five files that define mmgr_ancorae_impensa_table. A build links exactly one of them, beside
+ *       impensa_ancorae_acus.c.
  */
 #include "impensa_ancorae_acus/impensa_ancorae_acus.h"
 
@@ -314,42 +318,11 @@ SRC = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.c
  * @brief Cost of each byte value, indexed by the byte itself.
  *
 %(notes)s
+ * @note %(costs)s
  */
-static const uint8_t s_impensa[256] = {
+const uint8_t mmgr_ancorae_impensa_table[256] = {
 %(rows)s
 };
-
-/**
- * @brief Argument type built by EMBED_CALL in mmgr_ancorae_impensa.
- *
- * @note Mirrors AncoraeCfg without its const qualifier.
- */
-typedef struct
-{
-    uint8_t byte; /**< Byte value to look up. */
-} AncoraeCtx;
-
-/**
- * @brief Returns the table entry for args->byte.
- *
- * @param[in] args Byte to look up [BORROWS].
- * @return         %(returns)s
- * @note The table holds 256 entries, and so every uint8_t value indexes it in range.
- */
-EMBED_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
-{
-    return s_impensa[args->byte];
-}
-
-/**
- * @brief Copies args->byte into an AncoraeCtx and returns the table entry.
- *
- * @note Documented at the declaration in impensa_ancorae_acus.h.
- */
-uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args)
-{
-    return EMBED_CALL(ancorae_impensa, AncoraeCtx, .byte = args->byte);
-}
 """
 
 
@@ -368,7 +341,7 @@ def formatter():
 def main():
     clang = formatter()
     written = []
-    for name, brief, notes, returns, source in PROFILES:
+    for name, brief, notes, costs, source in PROFILES:
         cost = scale(source())
         rows = "\n".join(
             "    " + ", ".join("%d" % c for c in cost[i : i + 16]) + ("," if i < 240 else "") for i in range(0, 256, 16)
@@ -378,7 +351,7 @@ def main():
             "brief": brief,
             "notes": "\n".join(" * @note %s" % one for one in notes),
             "rows": rows,
-            "returns": returns % (min(cost), max(cost)),
+            "costs": costs % (min(cost), max(cost)),
         }
         path = OUT / ("impensa_ancorae_acus_%s.c" % name)
         path.write_text(text, encoding="utf-8", newline="\n")

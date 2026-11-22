@@ -365,7 +365,10 @@ EMBED_INLINE embed_bool linea_tie_odd(double value, int64_t scale)
  * @param[in] cursor   The power of ten.
  * @return             The rounded integer.
  * @note muto.scale_to_u64 scales with a bound on its bits, and so its round of a tie is not a guide. A tie takes its
- *       digits from q itself, where they lie within one of what muto.scale_to_u64 gives.
+ *       digits from q itself.
+ * @note q is twice the digits plus one. The power estimate is never too high, and it is one short only for a value
+ *       below about twice a power of ten. So the digits stay below about 2 times 10 to the 18 at MMGR_G_MAX_SIG,
+ *       and q stays below about 4 times 10 to the 18. It never wraps at 2 to the 64.
  */
 EMBED_INLINE uint64_t linea_scaled(double value, embed_u64 *mantissa, embed_iword binary, embed_iword cursor)
 {
@@ -377,10 +380,8 @@ EMBED_INLINE uint64_t linea_scaled(double value, embed_u64 *mantissa, embed_iwor
         return scaled;
     }
     const uint64_t below = (halves - 1u) / 2u;
-    const uint64_t even = ((below & 1u) == 0u) ? below : (below + 1u);
-    const uint64_t apart = (even > scaled) ? (even - scaled) : (scaled - even);
 
-    return (apart <= 1u) ? even : scaled;
+    return ((below & 1u) == 0u) ? below : (below + 1u);
 }
 
 void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus)
@@ -460,6 +461,49 @@ EMBED_INLINE uint64_t linea_significant(double value, unsigned int significant, 
     return digits;
 }
 
+/**
+ * @brief Writes the sign of a value, and an infinity or a NaN whole.
+ *
+ * @param[in,out] written  The line over the text of the value [BORROWS].
+ * @param[in]     value    The value.
+ * @param[in]     negative Whether the sign bit of the value is set.
+ * @param[in]     plus     Whether a value of no sign gets a plus sign.
+ * @return                 EMBED_TRUE where the value is an infinity or a NaN, and the text holds it whole.
+ * @note An infinity or a NaN goes out as mmgr_verba_fixed writes it, with no sign of its own here. Its text starts
+ *       at the start of the line, over the sign.
+ */
+EMBED_INLINE embed_bool linea_signed(VerbaLinea *written, double value, embed_bool negative, embed_bool plus)
+{
+    if ((negative != EMBED_FALSE) || (plus != EMBED_FALSE))
+    {
+        mmgr_line_ch(written, (negative != EMBED_FALSE) ? '-' : '+');
+    }
+    if ((EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = value) == EMBED_FALSE) &&
+        (EMBED_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = value) == EMBED_FALSE))
+    {
+        return EMBED_FALSE;
+    }
+    written->at = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = written->out, .cap = written->capacity,
+                             .at = 0u, .real = value, .decimals = 0u);
+    return EMBED_TRUE;
+}
+
+/**
+ * @brief Finishes the text of a value and writes it right aligned in its columns.
+ *
+ * @param[in,out] line    The line to write to [BORROWS].
+ * @param[in,out] written The line over the text of the value [BORROWS].
+ * @param[in]     columns The fewest columns, held at LINEA_LEAST_MAX.
+ */
+EMBED_INLINE void linea_aligned(VerbaLinea *line, VerbaLinea *written, unsigned int columns)
+{
+    const size_t length = mmgr_line_finish(written);
+    const size_t wide = linea_least(columns);
+
+    linea_spaced(line, (length < wide) ? (wide - length) : 0u);
+    (void)mmgr_line_put_n(line, written->out, length);
+}
+
 void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus)
 {
     char text[LINEA_DIGITS];
@@ -468,19 +512,7 @@ void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, u
     const double magnitude = (negative != EMBED_FALSE) ? -value : value;
     VerbaLinea written = mmgr_line_over(text, sizeof text);
 
-    if ((negative != EMBED_FALSE) || (plus != EMBED_FALSE))
-    {
-        mmgr_line_ch(&written, (negative != EMBED_FALSE) ? '-' : '+');
-    }
-    if ((EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = value) != EMBED_FALSE) ||
-        (EMBED_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = value) != EMBED_FALSE))
-    {
-        // An infinity or a NaN goes out as mmgr_verba_fixed writes it, with no sign of its own here
-        written.at = 0u;
-        written.at = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = text, .cap = sizeof text, .at = 0u,
-                                .real = value, .decimals = 0u);
-    }
-    else
+    if (linea_signed(&written, value, negative, plus) == EMBED_FALSE)
     {
         int64_t power = 0;
         // A finite magnitude of no sign is 0 where it is at max 0
@@ -500,11 +532,7 @@ void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, u
         // Explicit cast takes the magnitude of a power of at max 324, which an unsigned word holds
         mmgr_line_decimal(&written, (uint64_t)((power < 0) ? -power : power), 2u);
     }
-    const size_t length = mmgr_line_finish(&written);
-    const size_t wide = linea_least(columns);
-
-    linea_spaced(line, (length < wide) ? (wide - length) : 0u);
-    (void)mmgr_line_put_n(line, text, length);
+    linea_aligned(line, &written, columns);
 }
 
 void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant, unsigned int columns, embed_bool plus)
@@ -516,16 +544,9 @@ void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant,
     const double magnitude = (negative != EMBED_FALSE) ? -value : value;
     VerbaLinea written = mmgr_line_over(text, sizeof text);
 
-    if ((negative != EMBED_FALSE) || (plus != EMBED_FALSE))
+    if (linea_signed(&written, value, negative, plus) != EMBED_FALSE)
     {
-        mmgr_line_ch(&written, (negative != EMBED_FALSE) ? '-' : '+');
-    }
-    if ((EMBED_CALL(verba_fractio.is_inf, VerbaFractioCfg, .real = value) != EMBED_FALSE) ||
-        (EMBED_CALL(verba_fractio.is_nan, VerbaFractioCfg, .real = value) != EMBED_FALSE))
-    {
-        // An infinity or a NaN goes out as mmgr_verba_fixed writes it, with no sign of its own here
-        written.at = EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = text, .cap = sizeof text, .at = 0u,
-                                .real = value, .decimals = 0u);
+        // linea_signed wrote the infinity or the NaN whole
     }
     else if (magnitude <= 0.0)
     {
@@ -582,11 +603,7 @@ void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant,
             (void)mmgr_line_put_n(&written, figures, used);
         }
     }
-    const size_t length = mmgr_line_finish(&written);
-    const size_t wide = linea_least(columns);
-
-    linea_spaced(line, (length < wide) ? (wide - length) : 0u);
-    (void)mmgr_line_put_n(line, text, length);
+    linea_aligned(line, &written, columns);
 }
 
 size_t mmgr_line_finish(VerbaLinea *line)

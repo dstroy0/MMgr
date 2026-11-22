@@ -10,7 +10,8 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note Five source files define the call, each with its own table. A build links exactly one.
+ * @note impensa_ancorae_acus.c defines the call. Five profile files each define one table, and a build links
+ *       exactly one of them.
  */
 #ifndef MMGR_IMPENSA_ANCORAE_ACUS_H
 #define MMGR_IMPENSA_ANCORAE_ACUS_H
@@ -40,6 +41,13 @@ typedef struct
     uint8_t (*impensa)(const AncoraeCfg *args); /**< Cost of one byte value. */
 } ImpensaAncoraeAcusNs;
 EMBED_TABLE_LAYOUT(ImpensaAncoraeAcusNs, impensa);
+
+/**
+ * @brief Cost of each byte value under the profile this build links, indexed by the byte itself.
+ *
+ * @note The profile file that the build selects defines it, and mmgr_ancorae_impensa reads it.
+ */
+extern const uint8_t mmgr_ancorae_impensa_table[256];
 
 /**
  * @brief Returns the cost of args->byte under the table this build links.
