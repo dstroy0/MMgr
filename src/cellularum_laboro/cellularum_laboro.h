@@ -120,19 +120,20 @@ typedef struct
 /**
  * @brief Arguments for the conversions from text to number.
  *
- * @note Every one of them reads src, and sets end when the caller passes one.
+ * @note Every one of them reads src, and sets end when the caller passes one. Only to_ulong_in reads base.
  */
 typedef struct
 {
-    const char *const src;  /**< Text to convert [BORROWS]. */
-    const char **const end; /**< Optional target set past the number, or back to src when no number came [BORROWS]. */
+    const char *const src;   /**< Text to convert [BORROWS]. */
+    const char **const end;  /**< Optional target set past the number, or back to src when no number came [BORROWS]. */
+    const unsigned int base; /**< Base of to_ulong_in: 2 to 36, or 0 for the base that the number's prefix names. */
 } TransfiguroCfg;
 
 /**
  * @brief Type of the cellul dispatch table.
  *
- * @note EMBED_TABLE_LAYOUT asserts the seventeen members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
- * nothing else.
+ * @note EMBED_TABLE_LAYOUT asserts the twenty-one members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets,
+ * with nothing else.
  * @note Byte and wire verbs are not here. rd_str and mpint_fixed read a length off the wire instead
  *       of out of a string. So they belong to the byteio module and act on its spans.
  */
@@ -155,9 +156,13 @@ typedef struct
     embed_word (*to_ulong)(const TransfiguroCfg *args);       /**< Text to unsigned integer. */
     double (*to_double)(const TransfiguroCfg *args);          /**< Text to double. */
     float (*to_float)(const TransfiguroCfg *args);            /**< Text to float. */
+    embed_word (*to_ulong_in)(const TransfiguroCfg *args);    /**< Text to unsigned integer, in a base. */
+    size_t (*span)(const CatenaFinitaCfg *args);              /**< Bytes at the start of src that other holds. */
+    size_t (*span_not)(const CatenaFinitaCfg *args);      /**< Bytes at the start of src that other does not hold. */
+    const char *(*chr_last)(const CatenaFinitaCfg *args); /**< Last occurrence of byte in src. */
 } CellularumLaboroNs;
 EMBED_TABLE_LAYOUT(CellularumLaboroNs, init, len, diff, eq, starts, find, has, chr, copy, ws, digit, step_word,
-                   step_byte, to_long, to_ulong, to_double, to_float);
+                   step_byte, to_long, to_ulong, to_double, to_float, to_ulong_in, span, span_not, chr_last);
 
 /**
  * @brief Returns a copy of the argument struct.
@@ -339,6 +344,52 @@ double mmgr_cellul_to_double(const TransfiguroCfg *args);
 float mmgr_cellul_to_float(const TransfiguroCfg *args);
 
 /**
+ * @brief Reads an unsigned integer in base args->base from args->src.
+ *
+ * @param[in,out] args Text src, the optional end target and the base [BORROWS].
+ * @return             The value, negated in its word when a minus sign came first. All ones where the digits pass
+ *                     the word, whatever the sign. 0 where the base is neither 0 nor 2 to 36.
+ * @note Skips leading whitespace, then accepts one optional '+' or '-'. A base of 16 then accepts one optional 0x or
+ *       0X before a digit. A base of 0 reads 0x or 0X before a digit as base 16, a leading 0 as base 8, and any
+ *       other number as base 10.
+ * @note A digit is '0' to '9', then a letter of either case for 10 to 35, each below the base. muto.take_in adds it.
+ * @note When end is not NULL the call sets it past the last digit, or back to src when no digit came.
+ * @warning The read stops at the first byte that is not a digit of the base. No length bounds it.
+ */
+embed_word mmgr_cellul_to_ulong_in(const TransfiguroCfg *args);
+
+/**
+ * @brief Counts the bytes at the start of src that the set other holds.
+ *
+ * @param[in] args Bytes src, the extent cap, and the terminated set other [BORROWS].
+ * @return         The count of bytes before the first byte that other does not hold, the terminator or cap.
+ * @note An empty set counts 0.
+ * @warning src must be readable for cap bytes, and other must end in a terminator.
+ */
+size_t mmgr_cellul_span(const CatenaFinitaCfg *args);
+
+/**
+ * @brief Counts the bytes at the start of src that the set other does not hold.
+ *
+ * @param[in] args Bytes src, the extent cap, and the terminated set other [BORROWS].
+ * @return         The count of bytes before the first byte that other holds, the terminator or cap.
+ * @note An empty set counts every byte before the terminator or cap.
+ * @warning src must be readable for cap bytes, and other must end in a terminator.
+ */
+size_t mmgr_cellul_span_not(const CatenaFinitaCfg *args);
+
+/**
+ * @brief Finds the last occurrence of args->byte in src, before the terminator.
+ *
+ * @param[in] args Bytes src, the extent cap, and the byte sought [BORROWS].
+ * @return         Address inside src, or NULL when the byte does not occur [BORROWS].
+ * @note A byte of 0 returns the terminator's own address, or src plus cap when no terminator is in range, as
+ *       mmgr_cellul_chr does.
+ * @warning src must be readable for cap bytes.
+ */
+const char *mmgr_cellul_chr_last(const CatenaFinitaCfg *args);
+
+/**
  * @brief Dispatch table instance named cellul, with each member set to its mmgr_cellul_ function.
  */
 EMBED_TABLE_STORAGE CellularumLaboroNs cellul EMBED_UNUSED = {
@@ -359,6 +410,10 @@ EMBED_TABLE_STORAGE CellularumLaboroNs cellul EMBED_UNUSED = {
     .to_ulong = mmgr_cellul_to_ulong,
     .to_double = mmgr_cellul_to_double,
     .to_float = mmgr_cellul_to_float,
+    .to_ulong_in = mmgr_cellul_to_ulong_in,
+    .span = mmgr_cellul_span,
+    .span_not = mmgr_cellul_span_not,
+    .chr_last = mmgr_cellul_chr_last,
 };
 
 EMBED_END_DECLS

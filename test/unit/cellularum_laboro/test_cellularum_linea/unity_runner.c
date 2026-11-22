@@ -18,6 +18,12 @@ extern void test_copy_writes_the_text_and_a_terminator_inside_the_bound(void);
 extern void test_copy_of_no_room_writes_nothing(void);
 extern void test_unsigned_reads_the_digits_and_stops_past_them(void);
 extern void test_unsigned_with_no_digit_answers_zero_at_the_start(void);
+extern void test_unsigned_in_reads_a_base_and_stops_past_its_digits(void);
+extern void test_unsigned_in_takes_the_base_of_the_prefix_for_a_base_of_zero(void);
+extern void test_unsigned_in_negates_saturates_and_refuses_a_base(void);
+extern void test_span_counts_the_bytes_the_set_holds(void);
+extern void test_span_not_counts_the_bytes_before_the_set(void);
+extern void test_char_last_answers_the_last_byte_before_the_terminator(void);
 
 
 /*=======Mock Management=====*/
@@ -78,7 +84,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/cellularum_laboro/test_cellularum_linea\\test_cellularum_linea.c");
+  UnityBegin("test/unit/cellularum_laboro/test_cellularum_linea/test_cellularum_linea.c");
   run_test(test_length_counts_the_bytes_before_the_terminator, "test_length_counts_the_bytes_before_the_terminator", 21);
   run_test(test_equal_answers_true_only_where_both_end_together, "test_equal_answers_true_only_where_both_end_together", 29);
   run_test(test_order_orders_as_strcmp_does, "test_order_orders_as_strcmp_does", 37);
@@ -89,6 +95,12 @@ int main(void)
   run_test(test_copy_of_no_room_writes_nothing, "test_copy_of_no_room_writes_nothing", 84);
   run_test(test_unsigned_reads_the_digits_and_stops_past_them, "test_unsigned_reads_the_digits_and_stops_past_them", 90);
   run_test(test_unsigned_with_no_digit_answers_zero_at_the_start, "test_unsigned_with_no_digit_answers_zero_at_the_start", 98);
+  run_test(test_unsigned_in_reads_a_base_and_stops_past_its_digits, "test_unsigned_in_reads_a_base_and_stops_past_its_digits", 107);
+  run_test(test_unsigned_in_takes_the_base_of_the_prefix_for_a_base_of_zero, "test_unsigned_in_takes_the_base_of_the_prefix_for_a_base_of_zero", 119);
+  run_test(test_unsigned_in_negates_saturates_and_refuses_a_base, "test_unsigned_in_negates_saturates_and_refuses_a_base", 132);
+  run_test(test_span_counts_the_bytes_the_set_holds, "test_span_counts_the_bytes_the_set_holds", 149);
+  run_test(test_span_not_counts_the_bytes_before_the_set, "test_span_not_counts_the_bytes_before_the_set", 158);
+  run_test(test_char_last_answers_the_last_byte_before_the_terminator, "test_char_last_answers_the_last_byte_before_the_terminator", 167);
 
   return UNITY_END();
 }

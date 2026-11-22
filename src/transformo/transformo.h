@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
- * @note take builds a mantissa one digit at a time.
+ * @note take builds a mantissa one digit at a time, and take_in does the same in a base from 2 to 36.
  * @note scale turns one into a double, and scale_to_u64 turns one into an integer.
  */
 #ifndef MMGR_TRANSFORMO_H
@@ -48,27 +48,28 @@ EMBED_BEGIN_DECLS
 #define MMGR_MUTO_EXP_LIMIT 400
 
 /**
- * @brief Arguments for the three muto calls.
+ * @brief Arguments for the four muto calls.
  *
- * @note take reads mant and digit.
+ * @note take reads mant and digit, and take_in reads mant, digit and base.
  * @note scale reads mant, ex, rest and neg.
  * @note scale_to_u64 reads mant, e2 and ex.
- * @warning take writes through mant, and so the caller's mantissa changes [BORROWS].
+ * @warning take and take_in write through mant, and so the caller's mantissa changes [BORROWS].
  */
 typedef struct
 {
-    embed_u64 *const mant;  /**< The mantissa, which take extends and both scale calls read [BORROWS]. */
-    const char digit;       /**< ASCII decimal digit take appends. */
-    const embed_iword e2;   /**< Binary exponent the mantissa already carries, read by scale_to_u64. */
-    const embed_iword ex;   /**< Decimal exponent to apply. */
-    const embed_iword rest; /**< Non-zero when the caller already dropped bits, and so the round can see them. */
-    const embed_bool neg;   /**< Sign scale gives its result. */
+    embed_u64 *const mant;   /**< The mantissa, which take extends and both scale calls read [BORROWS]. */
+    const char digit;        /**< ASCII digit take and take_in append. */
+    const embed_iword e2;    /**< Binary exponent the mantissa already carries, read by scale_to_u64. */
+    const embed_iword ex;    /**< Decimal exponent to apply. */
+    const embed_iword rest;  /**< Non-zero when the caller already dropped bits, and so the round can see them. */
+    const embed_bool neg;    /**< Sign scale gives its result. */
+    const unsigned int base; /**< Base take_in reads the digit in, from 2 to 36. */
 } TransformoCfg;
 
 /**
  * @brief Type of the muto dispatch table.
  *
- * @note EMBED_TABLE_LAYOUT asserts the three members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
+ * @note EMBED_TABLE_LAYOUT asserts the four members sit at consecutive EMBED_FUNCTION_POINTER_BYTES offsets, with
  * nothing else.
  */
 typedef struct
@@ -76,8 +77,24 @@ typedef struct
     embed_bool (*take)(const TransformoCfg *args);        /**< Appends one decimal digit to a mantissa. */
     double (*scale)(const TransformoCfg *args);           /**< Turns a mantissa and decimal exponent into a double. */
     embed_u64 (*scale_to_u64)(const TransformoCfg *args); /**< Turns the same plus e2 into a rounded 64-bit integer. */
+    embed_bool (*take_in)(const TransformoCfg *args);     /**< Appends one digit of a base to a mantissa. */
 } TransformoNs;
-EMBED_TABLE_LAYOUT(TransformoNs, take, scale, scale_to_u64);
+EMBED_TABLE_LAYOUT(TransformoNs, take, scale, scale_to_u64, take_in);
+
+/**
+ * @brief The value of an ASCII digit in a base up to 36.
+ *
+ * @param[in] character The byte.
+ * @return              0 to 9 for '0' to '9', 10 to 35 for a letter of either case, and 36 for any other byte.
+ * @note A value at or past the base says the byte is no digit of that base, and 36 is past every base.
+ */
+EMBED_INLINE unsigned int mmgr_muto_digit_value(uint8_t character)
+{
+    const unsigned int decimal = (unsigned int)character - (unsigned int)'0';
+    // A letter of either case folds to its lower case with the bit of 0x20 set
+    const unsigned int letter = ((unsigned int)character | 0x20u) - (unsigned int)'a';
+    return (decimal < 10u) ? decimal : ((letter < 26u) ? (letter + 10u) : 36u);
+}
 
 /**
  * @brief Appends args->digit to *args->mant as one more decimal digit.
@@ -121,12 +138,26 @@ double mmgr_muto_scale(const TransformoCfg *args);
 embed_u64 mmgr_muto_scale_to_u64(const TransformoCfg *args);
 
 /**
+ * @brief Appends args->digit to *args->mant as one more digit in base args->base.
+ *
+ * @param[in] args The mantissa to extend, the digit to append and its base [BORROWS].
+ * @return         EMBED_TRUE when the digit went on. EMBED_FALSE when the base is outside 2 to 36, when the byte is
+ *                 no digit of the base, or when the digit would carry the mantissa past all ones.
+ * @note On EMBED_FALSE the mantissa stays as it was. A caller tells an overflow from a byte that is no digit with
+ *       mmgr_muto_digit_value.
+ * @note A digit is '0' to '9', then a letter of either case for 10 to 35.
+ * @warning Writes through args->mant [BORROWS].
+ */
+embed_bool mmgr_muto_take_in(const TransformoCfg *args);
+
+/**
  * @brief Dispatch table instance named muto, with each member set to its mmgr_muto_ function.
  */
 EMBED_TABLE_STORAGE TransformoNs muto EMBED_UNUSED = {
     .take = mmgr_muto_take,
     .scale = mmgr_muto_scale,
     .scale_to_u64 = mmgr_muto_scale_to_u64,
+    .take_in = mmgr_muto_take_in,
 };
 
 EMBED_END_DECLS

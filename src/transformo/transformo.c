@@ -64,6 +64,7 @@ typedef struct
     embed_u64 right;
     embed_u64 phi;
     embed_u64 plo;
+    unsigned int base;
 
     const MmgrPow5 *pow;
 } MutoCtx;
@@ -86,6 +87,30 @@ EMBED_INLINE embed_bool muto_take(const MutoCtx *args)
     }
     // Explicit cast widens the digit's value to the embed_u64 the mantissa accumulates in
     *args->mant = (*args->mant * 10u) + (embed_u64)(args->digit - '0');
+    return EMBED_TRUE;
+}
+
+/**
+ * @brief Appends args->digit to *args->mant as one more digit in base args->base.
+ *
+ * @param[in,out] args The mantissa to extend, the digit to append and its base [BORROWS].
+ * @return             EMBED_TRUE when the digit went on, EMBED_FALSE when the base is outside 2 to 36, the byte is
+ *                     no digit of it, or the digit would carry the mantissa past all ones.
+ * @note The bound is (~0 - value) / base. A mantissa at or under it takes the multiply and the add inside a 64-bit
+ *       value.
+ * @warning Writes through args->mant, and so the caller's mantissa changes [BORROWS].
+ */
+EMBED_INLINE embed_bool muto_take_in(const MutoCtx *args)
+{
+    // Explicit cast reads the digit's byte as the unsigned byte its value comes from
+    const unsigned int value = mmgr_muto_digit_value((uint8_t)args->digit);
+    if ((args->base < 2u) || (args->base > 36u) || (value >= args->base) ||
+        (*args->mant > ((~(embed_u64)0 - (embed_u64)value) / (embed_u64)args->base)))
+    {
+        return EMBED_FALSE;
+    }
+    // Explicit casts widen the base and the digit's value to the embed_u64 the mantissa accumulates in
+    *args->mant = (*args->mant * (embed_u64)args->base) + (embed_u64)value;
     return EMBED_TRUE;
 }
 
@@ -609,3 +634,4 @@ EMBED_INLINE embed_u64 muto_scale_to_u64(MutoCtx *args)
 MUTO_ENTRY(embed_bool, take, .mant = args->mant, .digit = args->digit)
 MUTO_ENTRY(double, scale, .mant = args->mant, .ex = args->ex, .dropped = args->rest, .neg = args->neg)
 MUTO_ENTRY(embed_u64, scale_to_u64, .mant = args->mant, .e2 = args->e2, .ex = args->ex)
+MUTO_ENTRY(embed_bool, take_in, .mant = args->mant, .digit = args->digit, .base = args->base)

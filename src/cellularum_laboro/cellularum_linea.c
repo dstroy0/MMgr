@@ -69,3 +69,23 @@ embed_word mmgr_text_unsigned(const char *text, const char **end)
 {
     return EMBED_CALL(cellul.to_ulong, TransfiguroCfg, .src = text, .end = end);
 }
+
+embed_word mmgr_text_unsigned_in(const char *text, const char **end, unsigned int base)
+{
+    return EMBED_CALL(cellul.to_ulong_in, TransfiguroCfg, .src = text, .end = end, .base = base);
+}
+
+size_t mmgr_text_span(const char *text, const char *set, size_t cap)
+{
+    return EMBED_CALL(cellul.span, CatenaFinitaCfg, .src = text, .cap = cap, .other = set);
+}
+
+size_t mmgr_text_span_not(const char *text, const char *set, size_t cap)
+{
+    return EMBED_CALL(cellul.span_not, CatenaFinitaCfg, .src = text, .cap = cap, .other = set);
+}
+
+const char *mmgr_text_char_last(const char *text, uint8_t value, size_t cap)
+{
+    return EMBED_CALL(cellul.chr_last, CatenaFinitaCfg, .src = text, .cap = cap, .byte = value);
+}

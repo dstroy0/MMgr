@@ -20,6 +20,9 @@ extern void test_to_u64_of_a_number_wider_than_the_word_saturates(void);
 extern void test_to_u64_with_the_point_on_the_word_boundary(void);
 extern void test_to_u64_on_the_boundary_rounds_a_tie_up(void);
 extern void test_to_u64_on_the_boundary_ignores_what_is_under_the_round_bit(void);
+extern void test_a_digit_value_reads_digits_and_letters_of_either_case(void);
+extern void test_take_in_appends_a_digit_of_its_base(void);
+extern void test_take_in_refuses_a_base_a_byte_or_an_overflow_and_keeps_the_mantissa(void);
 
 
 /*=======Mock Management=====*/
@@ -94,6 +97,9 @@ int main(void)
   run_test(test_to_u64_with_the_point_on_the_word_boundary, "test_to_u64_with_the_point_on_the_word_boundary", 187);
   run_test(test_to_u64_on_the_boundary_rounds_a_tie_up, "test_to_u64_on_the_boundary_rounds_a_tie_up", 192);
   run_test(test_to_u64_on_the_boundary_ignores_what_is_under_the_round_bit, "test_to_u64_on_the_boundary_ignores_what_is_under_the_round_bit", 198);
+  run_test(test_a_digit_value_reads_digits_and_letters_of_either_case, "test_a_digit_value_reads_digits_and_letters_of_either_case", 206);
+  run_test(test_take_in_appends_a_digit_of_its_base, "test_take_in_appends_a_digit_of_its_base", 216);
+  run_test(test_take_in_refuses_a_base_a_byte_or_an_overflow_and_keeps_the_mantissa, "test_take_in_refuses_a_base_a_byte_or_an_overflow_and_keeps_the_mantissa", 225);
 
   return UNITY_END();
 }
