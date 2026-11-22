@@ -49,3 +49,10 @@ const void *mmgr_bytes_find(const void *region, uint8_t value, size_t bytes)
 {
     return EMBED_CALL(memor.chr, MemoriaCfg, .src = region, .bytes = bytes, .val = value);
 }
+
+embed_bool mmgr_bytes_sort(void *base, size_t count, size_t size, int (*order)(const void *left, const void *right),
+                           void *scratch)
+{
+    return EMBED_CALL(memor.sort, MemoriaCfg, .dst = base, .bytes = size, .scratch = scratch, .count = count,
+                      .order = order);
+}

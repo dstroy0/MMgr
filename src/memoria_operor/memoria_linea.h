@@ -10,7 +10,7 @@
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-11-21
  *
- * @note The calls are a copy, a move, a fill, a compare and a find.
+ * @note The calls are a copy, a move, a fill, a compare, a find and a sort.
  * @note Every entry takes its arguments by value, and therefore a C++ translation unit calls them as they are. Each
  *       entry fills the members of MemoriaCfg that its call reads. It leaves every other member zero, as a compound
  *       literal that names those members does. This header includes mmgr.h alone.
@@ -86,6 +86,23 @@ embed_iword mmgr_bytes_compare(const void *left, const void *right, size_t bytes
  * @warning region must be readable for bytes rounded up to a whole word, as mmgr_memor_chr reads it.
  */
 const void *mmgr_bytes_find(const void *region, uint8_t value, size_t bytes);
+
+/**
+ * @brief Sorts the elements of a region in the order of a compare, as qsort sorts them, through a room of the same
+ *        size.
+ *
+ * @param[in,out] base    The elements [BORROWS].
+ * @param[in]     count   Elements of the region.
+ * @param[in]     size    Bytes of one element.
+ * @param[in]     order   The compare: 0 or less where its left element comes at or before its right one.
+ * @param[out]    scratch Room for count times size bytes, which the sort writes and leaves as it likes [BORROWS].
+ * @return                EMBED_TRUE where the elements are in order. EMBED_FALSE where size is 0 or a pointer is
+ *                        NULL, which leaves the elements as they were.
+ * @note memor.sort with dst, count, bytes, order and scratch. Two elements that order as equal keep their order.
+ * @warning base and scratch must each hold count times size bytes, and must not overlap.
+ */
+embed_bool mmgr_bytes_sort(void *base, size_t count, size_t size, int (*order)(const void *left, const void *right),
+                           void *scratch);
 
 EMBED_END_DECLS
 

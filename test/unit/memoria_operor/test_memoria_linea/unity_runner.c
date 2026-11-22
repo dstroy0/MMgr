@@ -15,6 +15,10 @@ extern void test_move_onto_itself_changes_nothing(void);
 extern void test_set_writes_the_value_and_no_byte_past_the_region(void);
 extern void test_compare_answers_zero_exactly_where_every_byte_agrees(void);
 extern void test_find_answers_the_first_byte_that_holds_the_value(void);
+extern void test_sort_puts_words_in_order(void);
+extern void test_sort_keeps_equal_elements_in_their_order(void);
+extern void test_sort_of_many_words_leaves_them_in_order_with_each_one_kept(void);
+extern void test_sort_of_fewer_than_two_elements_and_its_refusals(void);
 
 
 /*=======Mock Management=====*/
@@ -75,7 +79,7 @@ static void run_test(UnityTestFunction func, const char* name, UNITY_LINE_TYPE l
 /*=======MAIN=====*/
 int main(void)
 {
-  UnityBegin("test/unit/memoria_operor/test_memoria_linea/test_memoria_linea.c");
+  UnityBegin("test/unit/memoria_operor/test_memoria_linea\\test_memoria_linea.c");
   run_test(test_copy_writes_the_source_into_a_region_apart, "test_copy_writes_the_source_into_a_region_apart", 32);
   run_test(test_move_is_a_copy_where_the_destination_lies_below_the_source, "test_move_is_a_copy_where_the_destination_lies_below_the_source", 43);
   run_test(test_move_is_a_copy_where_the_destination_lies_above_the_source, "test_move_is_a_copy_where_the_destination_lies_above_the_source", 53);
@@ -83,6 +87,10 @@ int main(void)
   run_test(test_set_writes_the_value_and_no_byte_past_the_region, "test_set_writes_the_value_and_no_byte_past_the_region", 72);
   run_test(test_compare_answers_zero_exactly_where_every_byte_agrees, "test_compare_answers_zero_exactly_where_every_byte_agrees", 83);
   run_test(test_find_answers_the_first_byte_that_holds_the_value, "test_find_answers_the_first_byte_that_holds_the_value", 99);
+  run_test(test_sort_puts_words_in_order, "test_sort_puts_words_in_order", 122);
+  run_test(test_sort_keeps_equal_elements_in_their_order, "test_sort_keeps_equal_elements_in_their_order", 131);
+  run_test(test_sort_of_many_words_leaves_them_in_order_with_each_one_kept, "test_sort_of_many_words_leaves_them_in_order_with_each_one_kept", 140);
+  run_test(test_sort_of_fewer_than_two_elements_and_its_refusals, "test_sort_of_fewer_than_two_elements_and_its_refusals", 165);
 
   return UNITY_END();
 }
