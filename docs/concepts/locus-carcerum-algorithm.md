@@ -382,3 +382,51 @@ turnstile import its Manifold proofs: `Order.lean` carries `Manifold.Open.passes
   an owner is a ticket: two takes fewer than $2^b$ apart have sequences of their own. A roll at 32 bits retains the
   field, and the claim bit of a movable entry is the push of a slot. The release of a movable cell inside a pass
   is a claim that the drain of a move waits for.
+- `LocusCarcerum/Guard.lean` states the access method: the guard passes a token of the caller to its record, and
+  the record decides if a call is legal. One CAS commits the call. A claim tests `~word & mask == mask` on the
+  atomic word of the host, and two claims that commit hold no bit in common. `vec[n]` decays to
+  `base + n * stride`, and the span test passes it only below the count. So a legal span stays in its cell and
+  stops before the neighbor, and the spans of two elements do not overlap.
+- `LocusCarcerum/Linearizable.lean` runs the C order of a call: a read of the claim word, the claim CAS, the work on
+  the cell, and the release CAS. It runs any count of threads on any schedule, with no bound on the count. A claim
+  that does not commit changes nothing, and no two threads hold one element. While a thread holds its element, no
+  other thread changes it. A reader gives the value of the one step model at its claim, and with no claim held the
+  cells are that model.
+- `LocusCarcerum/Linearizable.lean` also proves the run linearizable, as Section 2.2 of Herlihy and Wing,
+  _Linearizability: A Correctness Condition for Concurrent Objects_, ACM TOPLAS 12(3), 463–492, 1990,
+  `doi:10.1145/78969.78972`, defines it. The order is the log of the claims. L1 is `linearizable`: the model is the calls of the log
+  replayed, and a reader gives the replay before it. L2 is `realtime`: a call that ended before another claimed comes
+  first in the log. `EndToEnd.linearizable` carries both conditions end to end.
+- `LocusCarcerum/ConcurrentVector.lean` runs the calls of a vector on any count of threads. The record holds the
+  count and a claim bit for each element. `at` and `set` claim their element, and then read the count, which is the
+  span test. `push_back` claims the element at the count and commits with one CAS of the count, and `pop_back`
+  claims the last element and commits the same way. The log is a legal history of the vector with one lock, and the
+  order keeps real time.
+- `LocusCarcerum/MPMCQueue.lean` ports to Lean 4 the Coq proof of Folly's MPMC queue. The source is Vindum, Frumin
+  and Birkedal, _Mechanized Verification of a Fine-Grained Concurrent Queue from Meta's Folly Library_, CPP 2022,
+  100–115, `doi:10.1145/3497775.3503689`. It keeps the algorithm, the points and the invariant of that proof. An
+  enqueue takes effect at its FAA, and a dequeue that came first takes effect right after the FAA of its enqueue.
+  The log is a legal history of the queue with one lock. Each dequeue gives the value of its ticket, and the order
+  keeps real time.
+- `LocusCarcerum/Hypotheses.lean` tests each hypothesis of these files. A fact of the build, such as an alignment,
+  holds at each width that `embed_types.h` selects, as the C formula gives it. For each composite theorem, a state
+  that the steps reach meets all of its hypotheses at once. So no theorem holds with no state to hold for.
+- `LocusCarcerum/EndToEnd.lean` runs those calls on the integrated model of embedded_types. Workers grant and push
+  slots, pop them and do each call inside a pass, each step one CAS, at any count of workers. A call whose job
+  pointer fails its check never runs, and one worker at max runs each call. A drain that
+  read the lane of a call in progress, and reads it over, finds the call done or its worker freed. Each lane step is
+  a run of the futex model of embedded_types, so each sleeper on the lane gets its wake.
+  `two_lanes_reorder` gives a run on two lanes where a later slot lands first.
+- `LocusCarcerum/Vector.lean` states a vector behind the guard, with its elements in one movable cell. Each call
+  leaves the elements that `std::vector` leaves. A change of one element and a growth both go through the stack.
+  No operation carries the bytes of one cell into another, and no call gives back an identity or an address. Two
+  sound guards with the same view through each token give the same answers to each run of calls. The mover and a
+  relocation change no view.
+- `LocusCarcerum/Vector.lean` also bounds the vector by its pool. The ceiling holds the two cells of a growth in the
+  pool together, and a `push_back` at the ceiling changes nothing. The alignment of the pool bounds the alignment
+  of each element. Odd persistent slabs leave holes that a later take does not fill. A temporary cell held past its
+  call leaves a hole, and a give in stack order leaves none.
+- `LocusCarcerum/Vector.lean` also fills the holes. Behind the guard, the persistent and temporary tiers give out
+  tokens and not pointers. So the fill puts the busy cells end to end with no hole, and it changes no view through
+  a token. Two layouts with the same pointers have the same holes, and so a tier that gives out pointers keeps
+  each hole it has.

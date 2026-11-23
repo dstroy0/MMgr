@@ -99,32 +99,39 @@ library and embedded_types' theory, which `lakefile.toml` requires from `deps/em
 That theory holds the turnstile proofs for the passes and the drain. `Pass.lean`, `Order.lean` and
 `Sleep.lean` import its Manifold proofs and build on them.
 
-| file             | what it proves                                                                                                                                     |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Packed.lean`    | Lemmas 1 to 5 and the theorem, with the two boundaries read in one step                                                                            |
-| `Split.lean`     | the steps with two words, and the order of steps that breaks the invariant                                                                         |
-| `Word.lean`      | the arithmetic of the word, the request guard, and the limit on the bumps in progress                                                              |
-| `Layout.lean`    | the sweep retains the bytes, the busy cells and the count of each owner                                                                            |
-| `Take.lean`      | a take over a free run, and the count that the mover retains                                                                                       |
-| `Move.lean`      | the move ends with the sweep: the tier ends busy, every count stays, a lone cell ends the tier                                                     |
-| `Spill.lean`     | the spill, the bump at the end, and the two growths                                                                                                |
-| `Give.lean`      | a cell goes off the count of its owner one time                                                                                                    |
-| `Temporary.lean` | the temporary tier is the persistent tier mirrored: its sweep, its last fit and its positioning                                                    |
-| `Stacks.lean`    | one temporary stack that two threads share sinks past every depth, and a stack for each thread does not                                            |
-| `Regions.lean`   | a region of the temporary tier stays within its size over any interleaving, through the fall to the large region, and a refused take moves no cell |
-| `Idle.lean`      | the spans the idle walk passes hold no byte of a cell, and an unplaced cellblock refuses every take                                                |
-| `Boundary.lean`  | a free cell stays at the edge only while its trim bit is set                                                                                       |
-| `Fragment.lean`  | the fragmentation value is 100 or less                                                                                                             |
-| `Futex.lean`     | the address wait that GenMC runs has the behavior of the futex contract and no other                                                               |
-| `Bounds.lean`    | the span test, the pointer test and the high-water marks                                                                                           |
-| `Entry.lean`     | two contexts do not name one movable entry                                                                                                         |
-| `Pass.lean`      | a pass does not work on the cellblock while a writer works alone                                                                                   |
-| `Sleep.lean`     | a pass that sleeps on the closed word wakes when the writer opens                                                                                  |
-| `Trim.lean`      | a cellblock with no trim bit set and no give in progress owes no trim                                                                              |
-| `Order.lean`     | the C11 orders that the closed word, the drain and the free use                                                                                    |
-| `OwnerWord.lean` | the owner word's fields, and the undo of one owner's takes after a sequence point                                                                  |
-| `Lowest.lean`    | the claim of a movable entry takes the lowest free bit, and names the entry at that bit's place                                                    |
-| `Ticket.lean`    | the owner word, the give and the owner's sequence as the stamp, the claim and the ticket of embedded_types' ring                                   |
+| file                    | what it proves                                                                                                                                                                                                    |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Packed.lean`           | Lemmas 1 to 5 and the theorem, with the two boundaries read in one step                                                                                                                                           |
+| `Split.lean`            | the steps with two words, and the order of steps that breaks the invariant                                                                                                                                        |
+| `Word.lean`             | the arithmetic of the word, the request guard, and the limit on the bumps in progress                                                                                                                             |
+| `Layout.lean`           | the sweep retains the bytes, the busy cells and the count of each owner                                                                                                                                           |
+| `Take.lean`             | a take over a free run, and the count that the mover retains                                                                                                                                                      |
+| `Move.lean`             | the move ends with the sweep: the tier ends busy, every count stays, a lone cell ends the tier                                                                                                                    |
+| `Spill.lean`            | the spill, the bump at the end, and the two growths                                                                                                                                                               |
+| `Give.lean`             | a cell goes off the count of its owner one time                                                                                                                                                                   |
+| `Temporary.lean`        | the temporary tier is the persistent tier mirrored: its sweep, its last fit and its positioning                                                                                                                   |
+| `Stacks.lean`           | one temporary stack that two threads share sinks past every depth, and a stack for each thread does not                                                                                                           |
+| `Regions.lean`          | a region of the temporary tier stays within its size over any interleaving, through the fall to the large region, and a refused take moves no cell                                                                |
+| `Idle.lean`             | the spans the idle walk passes hold no byte of a cell, and an unplaced cellblock refuses every take                                                                                                               |
+| `Boundary.lean`         | a free cell stays at the edge only while its trim bit is set                                                                                                                                                      |
+| `Fragment.lean`         | the fragmentation value is 100 or less                                                                                                                                                                            |
+| `Futex.lean`            | the address wait that GenMC runs has the behavior of the futex contract and no other                                                                                                                              |
+| `Bounds.lean`           | the span test, the pointer test and the high-water marks                                                                                                                                                          |
+| `Entry.lean`            | two contexts do not name one movable entry                                                                                                                                                                        |
+| `Pass.lean`             | a pass does not work on the cellblock while a writer works alone                                                                                                                                                  |
+| `Sleep.lean`            | a pass that sleeps on the closed word wakes when the writer opens                                                                                                                                                 |
+| `Trim.lean`             | a cellblock with no trim bit set and no give in progress owes no trim                                                                                                                                             |
+| `Order.lean`            | the C11 orders that the closed word, the drain and the free use                                                                                                                                                   |
+| `OwnerWord.lean`        | the owner word's fields, and the undo of one owner's takes after a sequence point                                                                                                                                 |
+| `Lowest.lean`           | the claim of a movable entry takes the lowest free bit, and names the entry at that bit's place                                                                                                                   |
+| `Ticket.lean`           | the owner word, the give and the owner's sequence as the stamp, the claim and the ticket of embedded_types' ring                                                                                                  |
+| `Guard.lean`            | a guard passes a token to its record, one CAS commits a call, the `~&` claim test keeps two claims apart, and `vec[n]` decays to a span inside its cell                                                           |
+| `Linearizable.lean`     | any count of threads on any schedule, each with a read, a claim CAS, its work and a release CAS, is linearizable: conditions L1 and L2 of Herlihy and Wing, Section 2.2                                           |
+| `ConcurrentVector.lean` | `at`, `set`, `push_back` and `pop_back` on any count of threads, each with a claim bit of its element and one CAS or read of the count, are linearizable                                                          |
+| `MPMCQueue.lean`        | Folly's MPMC queue is linearizable against the queue with one lock, with the external linearization point of a dequeue: a port of the Coq proof of Vindum, Frumin and Birkedal, CPP 2022                          |
+| `EndToEnd.lean`         | a call runs from the ticket ring through the turnstile lane to the cells on embedded_types' integrated model, a refused job never runs, a drain waits for each call in progress, and no wake is lost              |
+| `Hypotheses.lean`       | each hypothesis of the guard, the vector, the claims and the run end to end holds at the widths the C builds for, and a state that the steps reach meets all of them at once                                      |
+| `Vector.lean`           | a vector behind the guard does what `std::vector` does within its pool's ceiling and alignment, a compaction changes nothing the caller sees, and the fill closes the holes of the persistent and temporary tiers |
 
 `theory/linea` proves the calls with plain arguments against the contracts of the calls they reach.
 
