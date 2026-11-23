@@ -2,10 +2,10 @@
 #
 # A module directory says what it is and what it needs, and nothing about how to build it:
 #
-#   mmgr_add_module(spatium SOURCES spatium.c DEPS)
-#   mmgr_add_module(confinium SOURCES confinium.c DEPS memoria_operor)
-#   mmgr_add_module(memoria_anularis HEADER_ONLY DEPS proximus_operor spatium)
-#   mmgr_add_module(verba_scribo SOURCES verba_scribo.c DEPS fractio OPTIMIZE -O2)
+#   `mmgr_add_module(spatium SOURCES spatium.c DEPS)`
+#   `mmgr_add_module(confinium SOURCES confinium.c DEPS memoria_operor)`
+#   `mmgr_add_module(memoria_anularis HEADER_ONLY DEPS proximus_operor spatium)`
+#   `mmgr_add_module(verba_scribo SOURCES verba_scribo.c DEPS fractio OPTIMIZE -O2)`
 #
 # OPTIMIZE overrides the build's level for this module alone. One level for the whole library is a
 # guess that suits some of it. At -O3 the compiler unrolls and inlines, which is worth its cost
@@ -45,7 +45,7 @@ function(mmgr_add_module name)
 
     if(ARG_HEADER_ONLY)
       # No .c to compile, but it still carries includes, definitions and dependencies. It still
-      # has to exist once per environment so a consumer can link it inside one width.
+      # has to exist once per environment, and then a consumer can link it inside one width.
       add_library(${target} INTERFACE)
       set(scope INTERFACE)
     else()
@@ -58,8 +58,11 @@ function(mmgr_add_module name)
       target_link_libraries(${target} PRIVATE mmgr_flags)
 
       if(ARG_OPTIMIZE AND MMGR_MODULE_OPTIMIZE)
-        # After mmgr_flags, and so this is the last -O on the line and the one that counts.
-        target_compile_options(${target} PRIVATE ${ARG_OPTIMIZE})
+        # After mmgr_flags, and so this is the last -O on the line and the one that counts. MSVC
+        # refuses a level beside the runtime checks of its Debug build, /RTC1. There the module
+        # keeps the checks and takes the build's level.
+        target_compile_options(${target} PRIVATE
+                               "$<$<NOT:$<AND:$<C_COMPILER_ID:MSVC>,$<CONFIG:Debug>>>:${ARG_OPTIMIZE}>")
       endif()
     endif()
 
@@ -104,10 +107,13 @@ function(mmgr_add_module name)
     # definitions src/ meets on this environment.
     #
     # On the module target and not only the suite, because the asserts under arm are the ones
-    # compiled into src/. Carried at ${scope}. A suite that links this module inherits it.
+    # compiled into src/. Carried at ${scope}. A suite that links this module inherits it. MSVC
+    # names the forced include /FI, and every other compiler names it -include.
     if(env STREQUAL "checks")
+      set(traps "${MMgr_SOURCE_DIR}/test/support/mmgr_host_traps.h")
       target_compile_options(${target} ${scope}
-                             "-include" "${MMgr_SOURCE_DIR}/test/support/mmgr_host_traps.h")
+                             "$<$<COMPILE_LANG_AND_ID:C,MSVC>:/FI${traps}>"
+                             "$<$<NOT:$<COMPILE_LANG_AND_ID:C,MSVC>>:SHELL:-include ${traps}>")
     endif()
 
     foreach(dep IN LISTS ARG_DEPS)
