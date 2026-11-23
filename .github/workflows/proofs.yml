@@ -67,11 +67,11 @@ jobs:
             exit 1
           fi
 
-      - name: Build the proofs of the plain-argument calls
+      - name: Build the proofs of the walks and the sort
         working-directory: theory/linea
         run: lake build
 
-      - name: No proof of the plain-argument calls is open
+      - name: No proof of the walks or the sort is open
         working-directory: theory/linea
         run: |
           if grep -rn --include='*.lean' -w sorry Linea Linea.lean; then

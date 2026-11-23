@@ -126,8 +126,6 @@ That theory holds the turnstile proofs for the passes and the drain. `Pass.lean`
 | `Lowest.lean`    | the claim of a movable entry takes the lowest free bit, and names the entry at that bit's place                                                    |
 | `Ticket.lean`    | the owner word, the give and the owner's sequence as the stamp, the claim and the ticket of embedded_types' ring                                   |
 
-`theory/linea` proves the calls with plain arguments against the contracts of the calls they reach.
-
 ```sh
 cd theory/locus_carcerum
 lake build
@@ -186,10 +184,8 @@ Each module has a Latin name. The entries and the guards that a caller uses have
 | [`memoria_externa`](src/memoria_externa)                                                                    | internal or external placement; `MMGR_ENABLE_EXTRAM`       |
 | [`memoriam_praetereo`](src/memoriam_praetereo)                                                              | DMA channels over weak port hooks; `MMGR_ENABLE_DMA`       |
 
-Three headers give calls with plain arguments and no dispatch table. `verba_scribo/verba_linea.h` is a
-line that carries its own cursor. `memoria_operor/memoria_linea.h` gives the byte calls, and
-`cellularum_laboro/cellularum_linea.h` gives the text calls. Each includes `mmgr.h` alone, and so a C++
-translation unit calls them as they are.
+`verba_scribo/verba_linea.h` gives calls with plain arguments and no dispatch table. It is a line that carries its
+own cursor. It includes `mmgr.h` alone, and so a C++ translation unit calls them as they are.
 
 ## How to build it
 

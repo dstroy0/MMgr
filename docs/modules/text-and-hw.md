@@ -89,24 +89,7 @@ bound on the text's length.
 | making    | `mmgr_line_over`                                                        |
 | finishing | `mmgr_line_flush`, `mmgr_line_finish`, `mmgr_line_ok`                   |
 
-## The byte and text calls with plain arguments
 
-`memoria_operor/memoria_linea.h` and `cellularum_laboro/cellularum_linea.h` do for `memor` and `cellul` what the
-line does for `verba`. Each entry takes its arguments by value, and each header includes `mmgr.h` alone, and
-therefore a C++ translation unit calls them as they are. An entry fills the members that its call reads and leaves
-every other member zero. The text compares fold no case.
-
-| job     | entries                                                                                         |
-| ------- | ----------------------------------------------------------------------------------------------- |
-| bytes   | `mmgr_bytes_copy`, `mmgr_bytes_move`, `mmgr_bytes_set`, `mmgr_bytes_compare`, `mmgr_bytes_find` |
-| text    | `mmgr_text_length`, `mmgr_text_equal`, `mmgr_text_starts`, `mmgr_text_char`, `mmgr_text_find`   |
-| copying | `mmgr_text_copy`                                                                                |
-| numbers | `mmgr_text_unsigned`                                                                            |
-
-`theory/linea` proves each entry against the contract of its call. No call reads a member outside its own set. The
-move picks the upward walk where the destination lies at or below the source, and the downward walk otherwise.
-It is a copy at every overlap and for blocks of any width. The compare answers 0 exactly where every byte agrees,
-and each search answers the first place that holds what it seeks.
 
 ## Gotchas
 

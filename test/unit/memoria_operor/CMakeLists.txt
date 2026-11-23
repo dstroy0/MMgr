@@ -3,4 +3,3 @@
 
 add_subdirectory(test_memoria_operor)
 
-add_subdirectory(test_memoria_linea)

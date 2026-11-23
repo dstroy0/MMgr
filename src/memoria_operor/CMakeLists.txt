@@ -5,7 +5,7 @@
 # negotiated commercial licensing contract or an educator's license issued to you personally.
 
 mmgr_add_module(memoria_operor
-  SOURCES memoria_operor.c memoria_linea.c
+  SOURCES memoria_operor.c
   DEPS
     proximus_operor
     verbum_scrutor
