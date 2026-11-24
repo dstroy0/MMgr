@@ -133,8 +133,6 @@ That theory holds the turnstile proofs for the passes and the drain. `Pass.lean`
 | `Hypotheses.lean`       | each hypothesis of the guard, the vector, the claims and the run end to end holds at the widths the C builds for, and a state that the steps reach meets all of them at once                                      |
 | `Vector.lean`           | a vector behind the guard does what `std::vector` does within its pool's ceiling and alignment, a compaction changes nothing the caller sees, and the fill closes the holes of the persistent and temporary tiers |
 
-`theory/linea` proves the calls with plain arguments against the contracts of the calls they reach.
-
 ```sh
 cd theory/locus_carcerum
 lake build
@@ -195,10 +193,8 @@ Each module has a Latin name. The entries and the guards that a caller uses have
 | [`memoriam_praetereo`](src/memoriam_praetereo)                                                              | DMA channels over weak port hooks; `MMGR_ENABLE_DMA`       |
 | [`string_shim`](src/config)                                                                                 | `memset`, `memcpy`, `memmove` and `memcmp`; opt in         |
 
-Three headers give calls with plain arguments and no dispatch table. `verba_scribo/verba_linea.h` is a
-line that carries its own cursor. `memoria_operor/memoria_linea.h` gives the byte calls, and
-`cellularum_laboro/cellularum_linea.h` gives the text calls. Each includes `mmgr.h` alone, and so a C++
-translation unit calls them as they are.
+`verba_scribo/verba_linea.h` gives calls with plain arguments and no dispatch table. It is a line that carries its
+own cursor. It includes `mmgr.h` alone, and so a C++ translation unit calls them as they are.
 
 ### The vector
 

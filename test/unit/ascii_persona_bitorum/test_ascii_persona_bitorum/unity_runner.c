@@ -22,6 +22,7 @@ extern void test_ascii_print(void);
 extern void test_ascii_ctrl(void);
 extern void test_ascii_high_bytes_are_in_no_class(void);
 extern void test_ascii_classes_partition_the_printables(void);
+extern void test_ascii_lower_and_upper_fold_the_letters_alone(void);
 
 
 /*=======Mock Management=====*/
@@ -104,6 +105,7 @@ int main(void)
   run_test(test_ascii_ctrl, "test_ascii_ctrl", 120);
   run_test(test_ascii_high_bytes_are_in_no_class, "test_ascii_high_bytes_are_in_no_class", 125);
   run_test(test_ascii_classes_partition_the_printables, "test_ascii_classes_partition_the_printables", 135);
+  run_test(test_ascii_lower_and_upper_fold_the_letters_alone, "test_ascii_lower_and_upper_fold_the_letters_alone", 156);
 
   return UNITY_END();
 }

@@ -57,9 +57,7 @@ function reached two ways. See @ref concept_ns_idiom.
 value as plain arguments, and the header includes `mmgr.h` alone. Therefore a C++ translation unit reaches
 them without the designated initializers that the module's tables use.
 
-`memoria_operor/memoria_linea.h` and `cellularum_laboro/cellularum_linea.h` have no table either. Their
-`mmgr_bytes_*` and `mmgr_text_*` entries are the calls of `memor` and `cellul` with plain arguments, for the same
-reason.
+
 
 `proximus_operor` has one table, `proxim`, and retains its three **strategies** apart in the entry
 names instead. `load` and `put` do unaligned access, `al_load` and `al_put` do aligned access, and the

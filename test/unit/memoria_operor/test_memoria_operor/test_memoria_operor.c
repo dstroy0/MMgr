@@ -315,3 +315,84 @@ void test_zero_is_set_of_zero(void)
         same("zero");
     }
 }
+
+// the order of two unsigned words, as a compare of qsort answers it
+static int words_order(const void *left, const void *right)
+{
+    const uint32_t a = *(const uint32_t *)left;
+    const uint32_t b = *(const uint32_t *)right;
+    return (a > b) - (a < b);
+}
+
+// the order of two pairs by their first word alone, and so pairs of equal first words show whether a sort is stable
+static int pairs_order(const void *left, const void *right)
+{
+    return words_order(left, right);
+}
+
+// count elements of size bytes at base, in the order of order, through memor.sort with scratch as its room
+static embed_bool sorted_by(void *base, size_t count, size_t size, int (*order)(const void *, const void *),
+                            void *scratch)
+{
+    return EMBED_CALL(memor.sort, MemoriaCfg, .dst = base, .bytes = size, .scratch = scratch, .count = count,
+                      .order = order);
+}
+
+void test_sort_puts_words_in_order(void)
+{
+    uint32_t words[9] = {5u, 3u, 9u, 1u, 5u, 0u, 8u, 2u, 7u};
+    uint32_t scratch[9];
+    const uint32_t sorted[9] = {0u, 1u, 2u, 3u, 5u, 5u, 7u, 8u, 9u};
+    TEST_ASSERT_TRUE(sorted_by(words, 9u, sizeof(words[0]), words_order, scratch));
+    TEST_ASSERT_EQUAL_UINT32_ARRAY(sorted, words, 9u);
+}
+
+void test_sort_keeps_equal_elements_in_their_order(void)
+{
+    uint32_t pairs[6][2] = {{2u, 0u}, {1u, 1u}, {2u, 2u}, {1u, 3u}, {0u, 4u}, {2u, 5u}};
+    uint32_t scratch[6][2];
+    const uint32_t sorted[12] = {0u, 4u, 1u, 1u, 1u, 3u, 2u, 0u, 2u, 2u, 2u, 5u};
+    TEST_ASSERT_TRUE(sorted_by(pairs, 6u, sizeof(pairs[0]), pairs_order, scratch));
+    TEST_ASSERT_EQUAL_UINT32_ARRAY(sorted, &pairs[0][0], 12u);
+}
+
+void test_sort_of_many_words_leaves_them_in_order_with_each_one_kept(void)
+{
+    static uint32_t words[1000];
+    static uint32_t scratch[1000];
+    uint32_t state = 12345u;
+    uint64_t sum = 0u;
+    for (size_t at = 0u; at < 1000u; at++)
+    {
+        state = (state * 1103515245u) + 12345u;
+        words[at] = state % 257u;
+        sum += words[at];
+    }
+    TEST_ASSERT_TRUE(sorted_by(words, 1000u, sizeof(words[0]), words_order, scratch));
+    uint64_t after = 0u;
+    for (size_t at = 0u; at < 1000u; at++)
+    {
+        after += words[at];
+        if (at > 0u)
+        {
+            TEST_ASSERT_TRUE(words[at - 1u] <= words[at]);
+        }
+    }
+    TEST_ASSERT_EQUAL_UINT64_MESSAGE(sum, after, "the sort keeps every word");
+}
+
+void test_sort_of_fewer_than_two_elements_and_its_refusals(void)
+{
+    uint32_t words[3] = {3u, 2u, 1u};
+    uint32_t scratch[3];
+    TEST_ASSERT_TRUE(sorted_by(words, 0u, sizeof(words[0]), words_order, NULL));
+    TEST_ASSERT_TRUE(sorted_by(words, 1u, sizeof(words[0]), words_order, NULL));
+    TEST_ASSERT_FALSE_MESSAGE(sorted_by(words, 3u, sizeof(words[0]), words_order, NULL), "no room is refused");
+    TEST_ASSERT_FALSE(sorted_by(words, 3u, 0u, words_order, scratch));
+    TEST_ASSERT_FALSE(sorted_by(words, 3u, sizeof(words[0]), NULL, scratch));
+    TEST_ASSERT_FALSE_MESSAGE(sorted_by(NULL, 3u, sizeof(words[0]), words_order, scratch), "no base is refused");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(3u, words[0], "a refusal leaves the elements as they were");
+    TEST_ASSERT_TRUE(sorted_by(words, 2u, sizeof(words[0]), words_order, scratch));
+    TEST_ASSERT_EQUAL_UINT32(2u, words[0]);
+    TEST_ASSERT_EQUAL_UINT32(3u, words[1]);
+}

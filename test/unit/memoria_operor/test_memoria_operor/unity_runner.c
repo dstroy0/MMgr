@@ -34,6 +34,10 @@ extern void test_set_matches_memset_at_every_length(void);
 extern void test_set_matches_memset_at_every_offset(void);
 extern void test_set_retains_only_the_low_byte_of_its_value(void);
 extern void test_zero_is_set_of_zero(void);
+extern void test_sort_puts_words_in_order(void);
+extern void test_sort_keeps_equal_elements_in_their_order(void);
+extern void test_sort_of_many_words_leaves_them_in_order_with_each_one_kept(void);
+extern void test_sort_of_fewer_than_two_elements_and_its_refusals(void);
 
 
 /*=======Mock Management=====*/
@@ -120,6 +124,10 @@ int main(void)
   run_test(test_set_matches_memset_at_every_offset, "test_set_matches_memset_at_every_offset", 290);
   run_test(test_set_retains_only_the_low_byte_of_its_value, "test_set_retains_only_the_low_byte_of_its_value", 301);
   run_test(test_zero_is_set_of_zero, "test_zero_is_set_of_zero", 308);
+  run_test(test_sort_puts_words_in_order, "test_sort_puts_words_in_order", 341);
+  run_test(test_sort_keeps_equal_elements_in_their_order, "test_sort_keeps_equal_elements_in_their_order", 350);
+  run_test(test_sort_of_many_words_leaves_them_in_order_with_each_one_kept, "test_sort_of_many_words_leaves_them_in_order_with_each_one_kept", 359);
+  run_test(test_sort_of_fewer_than_two_elements_and_its_refusals, "test_sort_of_fewer_than_two_elements_and_its_refusals", 384);
 
   return UNITY_END();
 }

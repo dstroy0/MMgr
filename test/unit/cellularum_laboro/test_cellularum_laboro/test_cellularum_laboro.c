@@ -1062,3 +1062,92 @@ void test_a_subnormal_that_rounds_up_into_the_normals(void)
     same_as_strtod("2.2250738585072011e-308");
     same_as_strtod("2.2250738585072009e-308");
 }
+
+static embed_word unsigned_in(const char *text, const char **end, unsigned int base)
+{
+    return EMBED_CALL(cellul.to_ulong_in, TransfiguroCfg, .src = text, .end = end, .base = base);
+}
+
+static size_t spanned(const char *text, const char *set, size_t cap)
+{
+    return EMBED_CALL(cellul.span, CatenaFinitaCfg, .src = text, .cap = cap, .other = set);
+}
+
+static size_t spanned_not(const char *text, const char *set, size_t cap)
+{
+    return EMBED_CALL(cellul.span_not, CatenaFinitaCfg, .src = text, .cap = cap, .other = set);
+}
+
+static const char *last_of(const char *text, uint8_t value, size_t cap)
+{
+    return EMBED_CALL(cellul.chr_last, CatenaFinitaCfg, .src = text, .cap = cap, .byte = value);
+}
+
+void test_to_ulong_in_reads_a_base_and_stops_past_its_digits(void)
+{
+    const char *end = NULL;
+    const char *const hex = " 0x1fZ";
+    TEST_ASSERT_EQUAL_UINT64(31u, (uint64_t)unsigned_in(hex, &end, 16u));
+    TEST_ASSERT_EQUAL_PTR(hex + 5, end);
+    TEST_ASSERT_EQUAL_UINT64(0xABCu, (uint64_t)unsigned_in("abc", NULL, 16u));
+    TEST_ASSERT_EQUAL_UINT64(5u, (uint64_t)unsigned_in("101", NULL, 2u));
+    TEST_ASSERT_EQUAL_UINT64(35u, (uint64_t)unsigned_in("Z", NULL, 36u));
+    TEST_ASSERT_EQUAL_UINT64(42u, (uint64_t)unsigned_in("+42", NULL, 10u));
+}
+
+void test_to_ulong_in_takes_the_base_of_the_prefix_for_a_base_of_zero(void)
+{
+    TEST_ASSERT_EQUAL_UINT64(255u, (uint64_t)unsigned_in("0XfF", NULL, 0u));
+    TEST_ASSERT_EQUAL_UINT64(8u, (uint64_t)unsigned_in("010", NULL, 0u));
+    TEST_ASSERT_EQUAL_UINT64(10u, (uint64_t)unsigned_in("10", NULL, 0u));
+    const char *end = NULL;
+    const char *const bare = "0xg";
+    TEST_ASSERT_EQUAL_UINT64_MESSAGE(0u, (uint64_t)unsigned_in(bare, &end, 0u),
+                                     "an x with no hex digit after it reads the 0 alone");
+    TEST_ASSERT_EQUAL_PTR(bare + 1, end);
+    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)unsigned_in("0xg", NULL, 16u));
+}
+
+void test_to_ulong_in_negates_saturates_and_refuses_a_base(void)
+{
+    TEST_ASSERT_EQUAL_UINT64((uint64_t)(embed_word)(0u - (embed_word)5u), (uint64_t)unsigned_in("-5", NULL, 10u));
+    TEST_ASSERT_EQUAL_UINT64_MESSAGE((uint64_t)(embed_word) ~(embed_word)0u,
+                                     (uint64_t)unsigned_in("123456789012345678901234567890", NULL, 10u),
+                                     "digits past the word answer all ones");
+    TEST_ASSERT_EQUAL_UINT64((uint64_t)(embed_word) ~(embed_word)0u,
+                             (uint64_t)unsigned_in("-123456789012345678901234567890", NULL, 10u));
+    const char *end = NULL;
+    const char *const text = "17";
+    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)unsigned_in(text, &end, 1u));
+    TEST_ASSERT_EQUAL_PTR(text, end);
+    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)unsigned_in(text, NULL, 37u));
+    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)unsigned_in("zz", &end, 10u));
+}
+
+void test_span_counts_the_bytes_the_set_holds(void)
+{
+    TEST_ASSERT_EQUAL_size_t(3u, spanned("  \tlane", " \t", 64u));
+    TEST_ASSERT_EQUAL_size_t(0u, spanned("lane", " ", 64u));
+    TEST_ASSERT_EQUAL_size_t(0u, spanned("lane", "", 64u));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(2u, spanned("aaaa", "a", 2u), "the bound stops the count");
+    TEST_ASSERT_EQUAL_size_t(4u, spanned("aaaa", "a", 64u));
+}
+
+void test_span_not_counts_the_bytes_before_the_set(void)
+{
+    TEST_ASSERT_EQUAL_size_t(4u, spanned_not("lane=7", "=;", 64u));
+    TEST_ASSERT_EQUAL_size_t(0u, spanned_not("=7", "=", 64u));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(6u, spanned_not("lane 7", "", 64u), "an empty set counts the whole text");
+    TEST_ASSERT_EQUAL_size_t(3u, spanned_not("lane", "=", 3u));
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, spanned_not("\xC3=", "=", 64u), "a byte reads as unsigned");
+}
+
+void test_chr_last_answers_the_last_byte_before_the_terminator(void)
+{
+    const char *const text = "a/b/c";
+    TEST_ASSERT_EQUAL_PTR(text + 3, last_of(text, (uint8_t)'/', 64u));
+    TEST_ASSERT_NULL(last_of(text, (uint8_t)'z', 64u));
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(text + 5, last_of(text, 0u, 64u), "a zero answers the terminator");
+    TEST_ASSERT_EQUAL_PTR_MESSAGE(text + 1, last_of(text, (uint8_t)'/', 3u), "the bound stops the walk");
+    TEST_ASSERT_EQUAL_PTR(text + 2, last_of(text, 0u, 2u));
+}

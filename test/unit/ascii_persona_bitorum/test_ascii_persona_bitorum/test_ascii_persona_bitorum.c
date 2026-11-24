@@ -142,3 +142,27 @@ void test_ascii_classes_partition_the_printables(void)
         TEST_ASSERT_EQUAL_INT_MESSAGE(1, n, "a printable byte belongs to exactly one of alnum, punct, space");
     }
 }
+
+static uint8_t folded_lower(uint8_t value)
+{
+    return EMBED_CALL(ascii.lower, AsciiCfg, .byte = value);
+}
+
+static uint8_t folded_upper(uint8_t value)
+{
+    return EMBED_CALL(ascii.upper, AsciiCfg, .byte = value);
+}
+
+void test_ascii_lower_and_upper_fold_the_letters_alone(void)
+{
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'a', folded_lower((uint8_t)'A'));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'z', folded_lower((uint8_t)'Z'));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'q', folded_lower((uint8_t)'q'));
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE((uint8_t)'@', folded_lower((uint8_t)'@'), "the byte before A stays");
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'[', folded_lower((uint8_t)'['));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'A', folded_upper((uint8_t)'a'));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'Z', folded_upper((uint8_t)'z'));
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'Q', folded_upper((uint8_t)'Q'));
+    TEST_ASSERT_EQUAL_UINT8_MESSAGE((uint8_t)'`', folded_upper((uint8_t)'`'), "the byte before a stays");
+    TEST_ASSERT_EQUAL_UINT8((uint8_t)'{', folded_upper((uint8_t)'{'));
+}
