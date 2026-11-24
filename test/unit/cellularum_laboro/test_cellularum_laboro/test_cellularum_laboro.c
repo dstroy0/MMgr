@@ -1063,6 +1063,18 @@ void test_a_subnormal_that_rounds_up_into_the_normals(void)
     same_as_strtod("2.2250738585072009e-308");
 }
 
+// Two texts at an address one past a word boundary skip the aligned walk. Each is longer than two words, and so the
+// unaligned walk steps past a whole word that agrees before it meets the end or the difference
+void test_eq_of_unaligned_texts_longer_than_a_word(void)
+{
+    static EMBED_ALIGN(16) char left[48] = "_abcdefghijklmnopqrstuvwxyz";
+    static EMBED_ALIGN(16) char right[48] = "_abcdefghijklmnopqrstuvwxyz";
+    static EMBED_ALIGN(16) char other[48] = "_abcdefghijklmnopqrstuvwxyZ";
+    TEST_ASSERT_TRUE(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = left + 1, .other = right + 1, .cap = 40u));
+    TEST_ASSERT_FALSE_MESSAGE(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = left + 1, .other = other + 1, .cap = 40u),
+                              "a difference past the first word");
+}
+
 // A short needle that the text does not hold, in a buffer readable past the terminator. The walk reads whole aligned
 // words, and the word that holds the terminator holds no match, and so the search ends there with no match
 void test_a_short_needle_absent_ends_at_the_word_of_the_terminator(void)

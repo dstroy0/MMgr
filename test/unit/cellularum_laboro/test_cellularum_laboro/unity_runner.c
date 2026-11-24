@@ -92,6 +92,7 @@ extern void test_the_conversion_over_random_bit_patterns(void);
 extern void test_the_conversion_over_strobed_bits(void);
 extern void test_the_ends_of_the_range_through_the_table(void);
 extern void test_a_subnormal_that_rounds_up_into_the_normals(void);
+extern void test_eq_of_unaligned_texts_longer_than_a_word(void);
 extern void test_a_short_needle_absent_ends_at_the_word_of_the_terminator(void);
 extern void test_to_ulong_in_reads_a_base_and_stops_past_its_digits(void);
 extern void test_to_ulong_in_takes_the_base_of_the_prefix_for_a_base_of_zero(void);
@@ -243,13 +244,14 @@ int main(void)
   run_test(test_the_conversion_over_strobed_bits, "test_the_conversion_over_strobed_bits", 1003);
   run_test(test_the_ends_of_the_range_through_the_table, "test_the_ends_of_the_range_through_the_table", 1041);
   run_test(test_a_subnormal_that_rounds_up_into_the_normals, "test_a_subnormal_that_rounds_up_into_the_normals", 1058);
-  run_test(test_a_short_needle_absent_ends_at_the_word_of_the_terminator, "test_a_short_needle_absent_ends_at_the_word_of_the_terminator", 1068);
-  run_test(test_to_ulong_in_reads_a_base_and_stops_past_its_digits, "test_to_ulong_in_reads_a_base_and_stops_past_its_digits", 1099);
-  run_test(test_to_ulong_in_takes_the_base_of_the_prefix_for_a_base_of_zero, "test_to_ulong_in_takes_the_base_of_the_prefix_for_a_base_of_zero", 1111);
-  run_test(test_to_ulong_in_negates_saturates_and_refuses_a_base, "test_to_ulong_in_negates_saturates_and_refuses_a_base", 1124);
-  run_test(test_span_counts_the_bytes_the_set_holds, "test_span_counts_the_bytes_the_set_holds", 1140);
-  run_test(test_span_not_counts_the_bytes_before_the_set, "test_span_not_counts_the_bytes_before_the_set", 1149);
-  run_test(test_chr_last_answers_the_last_byte_before_the_terminator, "test_chr_last_answers_the_last_byte_before_the_terminator", 1158);
+  run_test(test_eq_of_unaligned_texts_longer_than_a_word, "test_eq_of_unaligned_texts_longer_than_a_word", 1068);
+  run_test(test_a_short_needle_absent_ends_at_the_word_of_the_terminator, "test_a_short_needle_absent_ends_at_the_word_of_the_terminator", 1080);
+  run_test(test_to_ulong_in_reads_a_base_and_stops_past_its_digits, "test_to_ulong_in_reads_a_base_and_stops_past_its_digits", 1111);
+  run_test(test_to_ulong_in_takes_the_base_of_the_prefix_for_a_base_of_zero, "test_to_ulong_in_takes_the_base_of_the_prefix_for_a_base_of_zero", 1123);
+  run_test(test_to_ulong_in_negates_saturates_and_refuses_a_base, "test_to_ulong_in_negates_saturates_and_refuses_a_base", 1136);
+  run_test(test_span_counts_the_bytes_the_set_holds, "test_span_counts_the_bytes_the_set_holds", 1152);
+  run_test(test_span_not_counts_the_bytes_before_the_set, "test_span_not_counts_the_bytes_before_the_set", 1161);
+  run_test(test_chr_last_answers_the_last_byte_before_the_terminator, "test_chr_last_answers_the_last_byte_before_the_terminator", 1170);
 
   return UNITY_END();
 }
