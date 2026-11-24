@@ -945,9 +945,9 @@ EMBED_INLINE const char *cellul_find_short(const char *hay, const char *needle, 
 
     // A word step reads the word at `at` and, for a two-byte needle, the one at `at + 1`, and so it needs
     // MMGR_SWAR_BYTES + nlen - 1 bytes in hand.
+    // starts is read_cap - nlen + 1, and span is at least nlen, and so reach never passes starts
     const size_t span = MMGR_SWAR_BYTES + (nlen - 1u);
-    const size_t safe = (read_cap >= span) ? ((read_cap - span) + 1u) : 0u;
-    const size_t reach = (safe > starts) ? starts : safe;
+    const size_t reach = (read_cap >= span) ? ((read_cap - span) + 1u) : 0u;
 
     // Bytes to the first word boundary, and the walk below reads through the aligned load. See
     // cellul_head_bytes. Normally none, and the starts it covers go one at a time first.
@@ -1151,6 +1151,19 @@ EMBED_INLINE embed_bool cellul_matched_at(const char *at, const char *needle, si
 }
 
 /**
+ * @brief Whether a read cap is one that the mask chain takes, as MMGR_FIND_CHAIN_MAX bounds it.
+ *
+ * @param[in] cap_ The bytes readable at the haystack.
+ * @return         Non-zero where the chain takes the cap.
+ * @note With the bound at SIZE_MAX, the default, each cap fits, and the build writes no test of it.
+ */
+#if MMGR_FIND_CHAIN_MAX < SIZE_MAX
+#define CELLUL_CHAIN_FITS(cap_) ((cap_) <= MMGR_FIND_CHAIN_MAX)
+#else
+#define CELLUL_CHAIN_FITS(cap_) 1
+#endif
+
+/**
  * @brief Finds the first occurrence of the needle inside the haystack.
  *
  * @param[in] args Haystack src with cap, and needle other with other_cap [BORROWS].
@@ -1192,7 +1205,7 @@ EMBED_INLINE const char *cellul_find_core(const CellulCtx *args, embed_bool ci)
     // The sieve below earns its prologue when it finds a rare byte in a long needle and proves the rest
     // once. Over one or two bytes there is no rare byte to find and no rest to prove, and the
     // prologue is the majority of the call.
-    if ((nlen <= 2u) && !ci && (read_cap <= MMGR_FIND_CHAIN_MAX))
+    if ((nlen <= 2u) && !ci && CELLUL_CHAIN_FITS(read_cap))
     {
         return cellul_find_short(hay, needle, nlen, read_cap, starts);
     }
@@ -1210,20 +1223,10 @@ EMBED_INLINE const char *cellul_find_core(const CellulCtx *args, embed_bool ci)
 
     sieve.nword = ci ? (EMBED_CALL(word.fold_lower, ScrutWordCfg, .word = nraw) & sieve.nmask) : nraw;
 
-    size_t maxrow = sieve.rows[0];
-
-#if MMGR_SIEVE_ROWS > 1u
-    for (size_t row = 1; row < sieve.nrows; ++row)
-    {
-        maxrow = (sieve.rows[row] > maxrow) ? sieve.rows[row] : maxrow;
-    }
-#endif
-
-    const size_t ancorae_reach = maxrow + MMGR_SWAR_BYTES;
-    const size_t reach = (ancorae_reach > verify_reach) ? ancorae_reach : verify_reach;
-
+    // cellul_pick_rows takes each row from the first take bytes of the needle, and so a row's word ends at
+    // take - 1 + MMGR_SWAR_BYTES at most. verify_reach is that far or farther, and so it is the reach of the walk.
     // verify_reach is at least nlen, and so safe never passes starts
-    const size_t safe = (read_cap >= reach) ? ((read_cap - reach) + 1u) : 0u;
+    const size_t safe = (read_cap >= verify_reach) ? ((read_cap - verify_reach) + 1u) : 0u;
     const size_t word_count = safe / MMGR_SWAR_BYTES;
 
     // The sieve's bytes broadcast once, ahead of the walk. They depend only on the needle, which

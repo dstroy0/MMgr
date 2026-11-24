@@ -287,16 +287,34 @@
  *          debugger can catch.
  */
 #ifndef MMGR_FATAL
+/**
+ * @brief Expands to `__attribute__((noreturn))` where `EMBED_HAS_ATTRIBUTE(noreturn)` is not zero.
+ *
+ * @warning Expands to nothing where the attribute is absent. mmgr_fatal_halt still does not return, and
+ *          the compiler then does not know it.
+ */
+#if EMBED_HAS_ATTRIBUTE(noreturn)
+#define MMGR_NORETURN_ATTR __attribute__((noreturn))
+#else
+#define MMGR_NORETURN_ATTR
+#endif
+
+/**
+ * @brief The halt of the default MMGR_FATAL: a spin that does not return.
+ *
+ * @note The spin is the whole body, and so no code follows it. A spin inside a do-while has the exit of
+ *       the do-while after it, which no run reaches and which clang's coverage counts as a line.
+ */
+EMBED_INLINE MMGR_NORETURN_ATTR void mmgr_fatal_halt(void)
+{
+    for (;;)
+    {
+    }
+}
+
 // No libc here, and so the trap is a halt. The cast to void discards msg_, which nothing reads on this
 // arm and would otherwise be an unused argument
-#define MMGR_FATAL(msg_)                                                                                               \
-    do                                                                                                                 \
-    {                                                                                                                  \
-        (void)(msg_);                                                                                                  \
-        for (;;)                                                                                                       \
-        {                                                                                                              \
-        }                                                                                                              \
-    } while (0)
+#define MMGR_FATAL(msg_) ((void)(msg_), mmgr_fatal_halt())
 #endif
 
 #endif

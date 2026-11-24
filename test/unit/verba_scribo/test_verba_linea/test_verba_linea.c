@@ -1,4 +1,5 @@
 #include "verba_scribo/verba_linea.h"
+#include "verba_scribo/verba_scribo.h"
 
 #include "guard_page.h"
 #include "unity.h"
@@ -163,6 +164,30 @@ void test_put_right_pads_past_one_run_of_spaces(void)
         TEST_ASSERT_EQUAL_CHAR(' ', s_out[at]);
     }
     TEST_ASSERT_EQUAL_CHAR('a', s_out[39]);
+}
+
+// a writer of one value at a count of places, the shape of mmgr_line_fixed, exponent and general
+typedef void (*LineWriter)(VerbaLinea *line, double value, unsigned int places, unsigned int columns, embed_bool plus);
+
+// Each writer caps the places it takes at 18, and so a count past the cap writes what the cap writes
+static void capped_like(LineWriter writer, double value, unsigned int past, unsigned int cap, const char *what)
+{
+    char capped[96];
+    char asked[96];
+    VerbaLinea at_cap = mmgr_line_over(capped, sizeof capped);
+    VerbaLinea at_past = mmgr_line_over(asked, sizeof asked);
+
+    writer(&at_cap, value, cap, 0u, EMBED_FALSE);
+    writer(&at_past, value, past, 0u, EMBED_FALSE);
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(mmgr_line_finish(&at_cap), mmgr_line_finish(&at_past), what);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE(capped, asked, what);
+}
+
+void test_a_count_of_places_past_the_cap_writes_what_the_cap_writes(void)
+{
+    capped_like(mmgr_line_fixed, 1.0 / 3.0, MMGR_FIXED_MAX_DECIMALS + 7u, MMGR_FIXED_MAX_DECIMALS, "fixed");
+    capped_like(mmgr_line_exponent, 1.0 / 3.0, MMGR_G_MAX_SIG + 7u, MMGR_G_MAX_SIG - 1u, "exponent");
+    capped_like(mmgr_line_general, 1.0 / 3.0, MMGR_G_MAX_SIG + 7u, MMGR_G_MAX_SIG, "general");
 }
 
 void test_fixed_writes_the_decimals_asked_for(void)

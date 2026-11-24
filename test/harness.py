@@ -98,6 +98,7 @@ import argparse
 import csv
 import datetime
 import fnmatch
+import glob
 import json
 import os
 import re
@@ -1316,9 +1317,13 @@ def cmd_coverage(a):
     #
     # A static function can have one definition in each arm of a build switch. The separate mode
     # keeps each definition on its own line, and the report counts each as a function.
+    #
+    # The notes are the compiler's, and only the gcov of that compiler reads them, so the tool comes from the
+    # compiler that configured the tree.
     r = run(
         [
             sys.executable, "-m", "gcovr", "--root", ".", "--filter", "src/",
+            "--gcov-executable", coverage_gcov(tree_path(tree)),
             "--exclude-branches-by-pattern", ".*MMGR_ASSERT.*",
             "--merge-mode-functions=separate",
             "--print-summary", "--txt-metric", "branch",
@@ -1360,6 +1365,30 @@ def cmd_coverage(a):
     if a.arms:
         report_arms(js, a.arms)
     return 0
+
+
+def coverage_gcov(tree):
+    """The gcov tool that reads the notes of the compiler that configured the tree, for gcovr's --gcov-executable.
+
+    CMake writes the compiler and its version into CMakeFiles/<version>/CMakeCCompiler.cmake. gcc's notes take the
+    gcov of the same major version, and clang's take llvm-cov gcov of the same major version. Each falls to the tool
+    with no version where the one with a version is not on the PATH, and any other compiler takes gcov.
+    """
+    compiler, version = "", ""
+    for record in glob.glob(os.path.join(tree, "CMakeFiles", "*", "CMakeCCompiler.cmake")):
+        with open(record, encoding="utf-8") as fh:
+            text = fh.read()
+        named = re.search(r'set\(CMAKE_C_COMPILER_ID "([^"]*)"\)', text)
+        numbered = re.search(r'set\(CMAKE_C_COMPILER_VERSION "([^"]*)"\)', text)
+        compiler = named.group(1) if named else compiler
+        version = numbered.group(1) if numbered else version
+    major = version.split(".")[0]
+    if compiler in ("Clang", "AppleClang"):
+        tool = "llvm-cov-%s" % major if major and shutil.which("llvm-cov-%s" % major) else "llvm-cov"
+        return "%s gcov" % tool
+    if compiler == "GNU" and major and shutil.which("gcov-%s" % major):
+        return "gcov-%s" % major
+    return "gcov"
 
 
 def report_arms(js, wanted):

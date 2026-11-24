@@ -1063,6 +1063,19 @@ void test_a_subnormal_that_rounds_up_into_the_normals(void)
     same_as_strtod("2.2250738585072009e-308");
 }
 
+// A short needle that the text does not hold, in a buffer readable past the terminator. The walk reads whole aligned
+// words, and the word that holds the terminator holds no match, and so the search ends there with no match
+void test_a_short_needle_absent_ends_at_the_word_of_the_terminator(void)
+{
+    static EMBED_ALIGN(16) char hay[64] = "abcdefghijklmnopqrstuvwxyzABCDEF";
+    TEST_ASSERT_NULL(
+        EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = hay, .cap = sizeof hay, .other = "zz", .other_cap = 3u));
+    TEST_ASSERT_NULL(
+        EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = hay, .cap = sizeof hay, .other = "!", .other_cap = 2u));
+    TEST_ASSERT_EQUAL_PTR(hay + 25, EMBED_CALL(cellul.find, CatenaFinitaCfg, .src = hay, .cap = sizeof hay,
+                                               .other = "zA", .other_cap = 3u));
+}
+
 static embed_word unsigned_in(const char *text, const char **end, unsigned int base)
 {
     return EMBED_CALL(cellul.to_ulong_in, TransfiguroCfg, .src = text, .end = end, .base = base);
