@@ -6,4 +6,5 @@
 
 mmgr_add_module(memoriam_praetereo
   SOURCES memoriam_praetereo.c praet_ordo.c praet_descriptor.c
+  DEPS memoria_operor
 )

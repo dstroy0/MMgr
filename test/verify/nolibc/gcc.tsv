@@ -1,0 +1,9 @@
+# The symbols that src/ may name and not define, when gcc builds it. No row names a function of the C library.
+# A host row is a function that the program defines. A marker row is data that the program defines. A runtime row is a
+# helper of the compiler's own runtime library.
+symbol              kind     reason
+embed_clock_ns      host     embed_turnstile.h makes the program define it: the clock of the turnstile backoff.
+embed_thread_place  host     embed_turnstile.h makes the program define it: the place of the thread, for the regions.
+embed_word_wait     host     embed_turnstile.h makes the program define it: the wait on a word.
+embed_word_wake     host     embed_turnstile.h makes the program define it: the wake of a word.
+___chkstk_ms        runtime  libgcc defines it: the probe of each page of a stack frame larger than one page.

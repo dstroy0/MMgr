@@ -16,6 +16,7 @@
 /** @defgroup mod_config  config — widths, types, attributes and the call idiom */
 /** @defgroup mod_confin  locus_carcerum — the region and its pools */
 /** @defgroup mod_anular  memoria_anularis — the ring */
+/** @defgroup mod_vector  memoria_vector — the vector behind a token */
 /** @defgroup mod_exter   memoria_externa — external memory */
 /** @defgroup mod_proxim  proximus_operor — unaligned loads and stores */
 /** @defgroup mod_anchor  impensa_ancorae_acus — anchor cost tables */

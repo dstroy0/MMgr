@@ -21,6 +21,7 @@
 #include "cellularum_laboro/cellularum_laboro.h"
 #include "clz/clz.h"
 #include "fractio/fractio.h"
+#include "memoria_operor/memoria_operor.h"
 #include "proximus_operor/proximus_operor.h"
 #include "transformo/transformo.h"
 
@@ -439,10 +440,9 @@ EMBED_INLINE size_t verba_u64_clip(const VerbaCtx *args)
 
     const size_t pad = width - digits;
 
-    for (size_t index = pad; index-- > 0;)
-    {
-        args->out[args->at + index] = ' ';
-    }
+    // memor.set writes the spaces. A loop here is a loop that clang rewrites as a call to memset. Explicit cast
+    // takes the space as the byte that memor.set writes
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = args->out + args->at, .val = (uint8_t)' ', .bytes = pad);
 
     // The digits go through the same cut every other entry here uses. A 64-bit divide and a modulo
     // per digit would be two libgcc calls a digit on both parts. On an ESP32-S3 at twenty digits in a
@@ -554,17 +554,9 @@ EMBED_INLINE size_t verba_zeros(const VerbaCtx *args)
 
     char *const to = args->out + args->at;
 
-    // A plain loop, and this module builds with -fno-tree-loop-distribute-patterns so that it
-    // stays one. That pass would rewrite this as a memset, which costs about sixty cycles before it
-    // writes a byte. The runs verba_g asks for are three at the leading end and about seventeen at
-    // the trailing one. None of them is long enough to earn the call back. With the pass off the
-    // compiler still merges and unrolls the stores, and so this beats bytes positioned down by hand as
-    // well. On an ESP32-S3 against a walk per zero: 32 cycles to 26 at two zeros, 60 to 34 at six,
-    // and 144 to 58 at eighteen
-    for (size_t index = 0; index < want; index++)
-    {
-        to[index] = '0';
-    }
+    // memor.set writes the zeros. A loop here is a loop that clang rewrites as a call to memset. Explicit cast
+    // takes the digit as the byte that memor.set writes
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = to, .val = (uint8_t)'0', .bytes = want);
     return args->at + want;
 }
 
@@ -701,12 +693,10 @@ EMBED_INLINE size_t verba_digits(const VerbaCtx *args)
 
     const size_t lead = (size_t)args->point_after;
 
-    // Upward deliberately. Each read of a byte comes before the write of the one below it, and so every
-    // step still finds the digit that landed there
-    for (size_t index = 0; index < lead; index++)
-    {
-        args->out[args->at + index] = args->out[args->at + index + 1u];
-    }
+    // memor.move_down takes the digits one byte down, since the destination is below the source. A loop here is a
+    // loop that clang rewrites as a call to memmove
+    EMBED_CALL(memor.move_down, MemoriaCfg, .dst = args->out + args->at, .src = args->out + args->at + 1u,
+               .bytes = lead);
 
     args->out[args->at + lead] = '.';
     return args->at + width;

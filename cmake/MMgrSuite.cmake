@@ -10,6 +10,10 @@
 #   mmgr_add_suite(test_endian)
 #   mmgr_add_suite(test_memoriam_praetereo CAPABILITY DMA)
 #   mmgr_add_suite(test_word16 ENVIRONMENT word16)
+#   mmgr_add_suite(test_mmgr_string_shim_symbols LINK string_shim)
+#
+# LINK names a module that mmgr_<env> leaves out, an OPT_IN module, which the suite links as well. A suite links one
+# only to check that module, since the module takes names that every other suite gets from the C library.
 #
 # CAPABILITY names a config option the suite cannot be built without. The capability names
 # translation units that are not in the library when it is off, and so the suite would fail to link.
@@ -31,7 +35,7 @@ find_library(MMGR_LIBM m)
 find_package(Threads REQUIRED)
 
 function(mmgr_add_suite suite_name)
-    cmake_parse_arguments(ARG "" "CAPABILITY;ENVIRONMENT" "" ${ARGN})
+    cmake_parse_arguments(ARG "" "CAPABILITY;ENVIRONMENT" "LINK" ${ARGN})
 
     set(suite_dir "${CMAKE_CURRENT_SOURCE_DIR}")
     set(suite_src "${suite_dir}/${suite_name}.c")
@@ -125,6 +129,10 @@ function(mmgr_add_suite suite_name)
         if(CMAKE_C_COMPILER_ID STREQUAL "MSVC" OR CMAKE_C_SIMULATE_ID STREQUAL "MSVC")
             target_compile_definitions(${target} PRIVATE UNITY_NORETURN=_Noreturn)
         endif()
+        # An OPT_IN module comes first, so its names are the ones the link takes
+        foreach(module IN LISTS ARG_LINK)
+            target_link_libraries(${target} PRIVATE mmgr_${module}_${env})
+        endforeach()
         target_link_libraries(${target} PRIVATE mmgr_${env} Threads::Threads)
         # support/host_wait.c defines the turnstiles' waits on the host's address wait, which on Windows is
         # WaitOnAddress in the synchronization library

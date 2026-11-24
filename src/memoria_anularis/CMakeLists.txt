@@ -11,5 +11,5 @@
 # module reaches nothing outside mmgr.h and what embedded_types puts behind it.
 mmgr_add_module(memoria_anularis
   SOURCES memoria_anularis.c
-  DEPS
+  DEPS memoria_operor
 )

@@ -162,9 +162,9 @@ that the clients use is the model in `Futex.lean`.
 | [`test/`](test)                               | `unit` per translation unit, `integration` and `interop` across modules, `environment` per width        |
 | [`test/stress/`](test/stress)                 | threads on one cellblock, every cell's bytes checked before it goes back                                |
 | [`test/fuzz/`](test/fuzz)                     | a libFuzzer harness for every module, each checked against a model, and the replay every toolchain runs |
-| [`test/verify/`](test/verify)                 | every toolchain's build of a module: behavior, IR, lowering, disassembly and Ghidra                     |
+| [`test/verify/`](test/verify)                 | every toolchain's build of a module, and the check that no build of `src/` calls the C library          |
 | [`test/prove/`](test/prove)                   | the proof harnesses that CBMC and the symbolic executor hold                                            |
-| [`test/harness.py`](test/harness.py)          | build, run, fuzz, verify, prove, the A/B, coverage, and the suite and generator checks                  |
+| [`test/harness.py`](test/harness.py)          | build, run, fuzz, verify, nolibc, prove, the A/B, coverage, and the suite and generator checks          |
 | [`tools/dev_env/`](tools/dev_env)             | the generators for `src/`'s tables, the size sweep, the source rewriters                                |
 | [`theory/`](theory)                           | the Lean proofs of LocusCarcerum and of the calls with plain arguments                                  |
 | [`docs/`](docs)                               | the prose, and the Doxygen configuration that renders it                                                |
@@ -177,6 +177,7 @@ Each module has a Latin name. The entries and the guards that a caller uses have
 | ----------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | [`locus_carcerum`](src/locus_carcerum)                                                                      | the two-ended allocator that everything else sits on       |
 | [`memoria_anularis`](src/memoria_anularis)                                                                  | the lock-free ring between a producer and a consumer       |
+| [`memoria_vector`](src/memoria_vector)                                                                      | a vector behind a token, its elements in one movable cell  |
 | [`spatium`](src/spatium)                                                                                    | bounded views over caller memory; owns nothing             |
 | [`cellularum_laboro`](src/cellularum_laboro)                                                                | bounded string work: search, compare, parse                |
 | [`verbum_scrutor`](src/verbum_scrutor)                                                                      | the SWAR core the scans are built from                     |
@@ -192,11 +193,49 @@ Each module has a Latin name. The entries and the guards that a caller uses have
 | [`ascii_persona_bitorum`](src/ascii_persona_bitorum) / [`impensa_ancorae_acus`](src/impensa_ancorae_acus)   | generated: character classes and byte rarity               |
 | [`memoria_externa`](src/memoria_externa)                                                                    | internal or external placement; `MMGR_ENABLE_EXTRAM`       |
 | [`memoriam_praetereo`](src/memoriam_praetereo)                                                              | DMA channels over weak port hooks; `MMGR_ENABLE_DMA`       |
+| [`string_shim`](src/config)                                                                                 | `memset`, `memcpy`, `memmove` and `memcmp`; opt in         |
 
 Three headers give calls with plain arguments and no dispatch table. `verba_scribo/verba_linea.h` is a
 line that carries its own cursor. `memoria_operor/memoria_linea.h` gives the byte calls, and
 `cellularum_laboro/cellularum_linea.h` gives the text calls. Each includes `mmgr.h` alone, and so a C++
 translation unit calls them as they are.
+
+### The vector
+
+`MemoriaVector(name, element, ceiling, owner)` declares a vector as data. The token `name` is a const
+pointer to its record, and the caller holds the token and never an address in the cell. The elements
+are in one movable cell, which a growth replaces up to the ceiling. Each call goes through the movable
+entries of a guard, which `MMGR_VECTOR_THROUGH(guard)` names in the call's `MemoriaVectorCfg`.
+
+```c
+MemoriaVector(samples, uint32_t, 64u, framer);
+
+void keep(uint32_t sample)
+{
+    (void)EMBED_CALL(memoria_vector.push_back, MemoriaVectorCfg, MMGR_VECTOR_THROUGH(prison.work),
+                     .vector = samples, .src = &sample);
+}
+```
+
+`at`, `set`, `push_back`, `pop_back`, `size` and `release` are the calls, and each can run on many
+threads at once. `at` and `set` claim the bit of their element. A push and a pop take effect at one CAS
+of the count. `ConcurrentVector.lean` proves the four calls linearizable. The cellblock needs its
+movable cells, through `movable_init`, before the first push.
+
+### A program with no C library
+
+No build of `src/` calls the C library. `python test/harness.py nolibc` holds that for four toolchains
+and each optimization level, LTO included. It reads the IR, the objects and an image that links with
+no default library. [No C library in src/](docs/quality/no-libc.md) gives the stages.
+
+A compiler writes calls to `memset`, `memcpy`, `memmove` and `memcmp` in a program's own code. The
+target `mmgr_string_shim_<env>` defines the four names over `memor`, for a program with no C library.
+`mmgr_<env>` does not link it, and a program that wants the names links the target itself.
+
+Three build rules keep the C library out of `src/`. Each module with no level of its own builds at
+`-O2`. The frontend of cl, in cl and in clang-cl, builds with `/GS-`. The string shim builds with no
+LTO. `verba_scribo`, `memoria_anularis` and `memoriam_praetereo` link `memoria_operor`, since their
+fills go through `memor.set`.
 
 ## How to build it
 
@@ -225,10 +264,14 @@ The harness gives each build tree the flags that it needs:
 python test/harness.py test        # build and run the suites
 python test/harness.py fuzz        # build the fuzz harnesses and run each one
 python test/harness.py verify      # each toolchain's build of each module, compared
+python test/harness.py nolibc      # each toolchain's build of src/, held to no symbol of a C library
 python test/harness.py prove       # each proof harness, on the C and on the machine code
 python test/harness.py ab          # this library, then the same suites against libc
 python test/harness.py coverage    # the parts of src/ that the suites reached
 ```
+
+`nolibc --report build/nolibc-<stamp>` prints the summary of an earlier run again. `coverage --arms
+file:line` prints each arm of the branches on a line, with its count in each translation unit.
 
 Two environment variables are necessary on a first build, because no earlier tree gives their values.
 `MMGR_CMAKE_ARGS` holds the generator and the compiler. `MMGR_BUILD_ROOT` moves the build trees.
@@ -302,6 +345,7 @@ it writes the name of each harness that it does not run. The `locus_carcerum_mov
 - **`to_double`, `verba.g` and `verba.fixed` are exact. `to_float` rounds two times and can give the wrong neighbor.** [Numbers, and their accuracy](docs/quality/numeric-accuracy.md)
 - **The suites cover each compile-time width, and they pass against this library and against libc.** [The test suite](docs/quality/testing.md)
 - **The cost of each optimization level.** [Optimization](docs/quality/optimization.md)
+- **No build of `src/` calls the C library, under gcc, clang, clang-cl and msvc, LTO included.** [No C library in src/](docs/quality/no-libc.md)
 
 ## Status
 

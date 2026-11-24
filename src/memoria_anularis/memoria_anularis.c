@@ -14,12 +14,13 @@
  * carries no layout.
  * @note head, tail, claimed, released, gratis and pinned are atomic. The spans and the sizes are plain.
  * @note A move across the wrap is two runs through ring_move, never a walk over single bytes.
- * @note ring_move and ring_loculus_bit have their definitions here and mmgr_ring_span in the header, and so the
- *       module reaches no other module.
+ * @note ring_move and ring_loculus_bit have their definitions here and mmgr_ring_span in the header. The module
+ *       reaches one other module: memor.set zeroes the keepout table at the start of a ring.
  */
 #include "memoria_anularis/memoria_anularis.h"
 
 #include "embed_atomic.h"
+#include "memoria_operor/memoria_operor.h"
 
 /**
  * @brief The attributes that make an access at an arbitrary address legal.
@@ -970,13 +971,18 @@ embed_bool mmgr_anular_init(const AnularisCfg *args)
     EMBED_CALL(embed_atomic_word_table.store, EmbedAtomicWordStoreCfg, .word = &state->gratis,
                .value = ring_loculus_all());
     EMBED_CALL(embed_atomic_word_table.store, EmbedAtomicWordStoreCfg, .word = &state->pinned, .value = (embed_word)0);
-#if MMGR_RING_LOCULI > 0u
-    // A build with no loculi has one keepout entry that nothing reaches. So this loop drops out
-    // and does not run over it
-    // Explicit cast puts the declared count at size_t, the type of the index below
+#if (MMGR_RING_LOCULI > 0u) && EMBED_NULL_ZERO_BITS
+    // A build with no loculi has one keepout entry that nothing reaches, and so this zeroes none. memor.set zeroes
+    // the table: no buffer, no bytes and no offset, since the null pointer of this platform is all zero bits. Zero
+    // stores to it in a loop are stores that clang joins into one call to memset
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = state->keepout, .val = 0u,
+               .bytes = (size_t)MMGR_RING_LOCULI * sizeof(state->keepout[0]));
+#elif MMGR_RING_LOCULI > 0u
+    // The null pointer of this platform is not all zero bits, and so each span takes EMBED_NULL. Explicit cast puts
+    // the declared count at size_t, the type of the index below
     for (size_t index = 0; index < (size_t)MMGR_RING_LOCULI; index++)
     {
-        state->keepout[index].buf = NULL;
+        state->keepout[index].buf = EMBED_NULL;
         state->keepout[index].bytes = 0u;
         state->keepout[index].read_offset = 0u;
     }

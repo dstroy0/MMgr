@@ -440,10 +440,11 @@ EMBED_INLINE const void *memor_chr(const MemorScanCtx *args)
  * @brief Writes args->val into args->bytes of args->dst.
  *
  * @param[in,out] args Destination, count and the byte to write [BORROWS].
- * @note Builds a word with args->val in every lane, stores whole words, then finishes byte by byte.
+ * @note Builds a word with args->val in every lane, stores whole words, then the odd bytes four, two and one at a
+ *       time.
  * @note Advances args->dst as it goes, and so it points past the bytes it wrote when it returns.
  * @warning args->dst must be writable for args->bytes. No write lands past the count. The word
- *          stores cover a whole number of words, and the byte loop finishes what they leave.
+ *          stores cover a whole number of words, and the stores of the odd bytes finish what they leave.
  */
 EMBED_INLINE void memor_set(MemorSetCtx *args)
 {
@@ -451,7 +452,7 @@ EMBED_INLINE void memor_set(MemorSetCtx *args)
     const embed_word fill = (embed_word)(MMGR_SWAR_ONES * (embed_word)args->val);
 
     // Explicit cast holds the remainder mask at size_t, as the byte count it works on
-    size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
+    const size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
     size_t word_bytes = args->bytes - tail_bytes;
 
     // A vector a pass while a whole one remains, the byte repeated into every lane once ahead of the
@@ -485,12 +486,22 @@ EMBED_INLINE void memor_set(MemorSetCtx *args)
         args->dst += sizeof(embed_word);
         word_bytes -= sizeof(embed_word);
     }
-    if (tail_bytes != 0u)
+    // The odd bytes through proxim's stores, four, two and one at a time, and not through a loop. clang and msvc
+    // replace a loop of byte stores here with a call to memset, and memset in config/mmgr_string_shim.c calls this
+    if ((tail_bytes & 4u) != 0u)
     {
-        do
-        {
-            *args->dst++ = args->val;
-        } while (--tail_bytes);
+        EMBED_CALL(proxim.put32, ProximusCfg, .dst = args->dst, .val = fill);
+        args->dst += 4u;
+    }
+    if ((tail_bytes & 2u) != 0u)
+    {
+        EMBED_CALL(proxim.put16, ProximusCfg, .dst = args->dst, .val = fill);
+        args->dst += 2u;
+    }
+    if ((tail_bytes & 1u) != 0u)
+    {
+        *args->dst = args->val;
+        args->dst += 1u;
     }
 }
 

@@ -7,10 +7,12 @@
   harness.py test [--tree T] [--filter RE]    build, then run the suites
   harness.py fuzz [--seconds S] [--filter RE] build the fuzz harnesses, then run them as tests or S seconds each
   harness.py verify [--module M] [--tag T]    every toolchain's build of a module: behavior, IR, lowering, disasm
+  harness.py nolibc [--toolchain T] [--build B]  src/ by every host toolchain, LTO too: no C library in IR, object, link
   harness.py prove [--harness H] [--arm A]    each proof harness proved on the C by CBMC and on the machine code
   harness.py ste [--show [DOC ...]] [--lower] every technical document checked against ASD-STE100 with the ratchet
   harness.py ab                               both sides of the A/B, one after the other
   harness.py coverage [--worst N] [--gaps]    build, run and report what src/ the suites reached
+  harness.py coverage --no-build --no-run --arms F:L   each arm of a branch, per translation unit
   harness.py trees                            which build trees exist and which one each name uses
   harness.py stray                            anything outside build/ that a build looks to have made
   harness.py device list                      which on-device benches exist and what is built
@@ -1166,6 +1168,24 @@ def cmd_verify(a):
     return verify.verify(ROOT, run_root, a.module, a.tag, a.runs, a.seed, not a.no_ghidra, objdump)
 
 
+def cmd_nolibc(a):
+    """Build src/ with each host toolchain, and hold its IR, its objects and its link to no symbol of a C library.
+
+    test/verify/nolibc.py does the work and its docstring says what each stage holds. The run lands under the build
+    container as nolibc-<stamp>, beside the trees.
+    """
+    sys.path.insert(0, os.path.join(ROOT, "test", "verify"))
+    import nolibc  # noqa: PLC0415  the module is only importable once its folder is on the path
+    if a.report:
+        # The summary of a run that has ended, read off its findings: each symbol left and the functions that hold it
+        return nolibc.report(os.path.abspath(a.report))
+    if shutil.which("llvm-nm") is None:
+        print("nolibc: llvm-nm not found on PATH - install LLVM")
+        return 1
+    run_root = os.path.join(BUILD_CONTAINER, "nolibc-" + build_stamp())
+    return nolibc.nolibc(ROOT, run_root, a.toolchain, a.environment, a.build, a.jobs)
+
+
 STE_CHECK = os.path.join(ROOT, "test", "ste_check.py")
 STE_RATCHET = os.path.join(ROOT, "test", "ste_ratchet.tsv")
 
@@ -1337,7 +1357,29 @@ def cmd_coverage(a):
 
     if a.gaps:
         report_gaps(js)
+    if a.arms:
+        report_arms(js, a.arms)
     return 0
+
+
+def report_arms(js, wanted):
+    """Each arm of each branch on the lines named, with its count in each translation unit that compiled the line.
+
+    report_gaps combines the environments, and so a branch shows taken where any environment took it. A gap that is
+    one arm in one environment, as a compare that only a narrow word reaches, shows here as that arm at 0.
+    """
+    with open(js, encoding="utf-8") as fh:
+        doc = json.load(fh)
+    lines = {}
+    for spec in wanted:
+        path, _, number = spec.rpartition(":")
+        lines.setdefault(path.replace("\\", "/"), set()).add(int(number))
+    for f in doc["files"]:
+        path = f["file"].replace("\\", "/")
+        for ln in f["lines"]:
+            if ln["line_number"] in lines.get(path, ()):
+                arms = " ".join("%d:%d" % (b.get("branchno", i), b["count"]) for i, b in enumerate(ln.get("branches", [])))
+                print("  arms %s:%d %s | %s" % (path, ln["line_number"], arms or "no branch", ln.get("function_name", "")))
 
 
 def line_runs(nums):
@@ -2300,6 +2342,14 @@ def main():
     p.add_argument("--no-ghidra", action="store_true", help="leave out Ghidra's decompile")
     p.set_defaults(fn=cmd_verify)
 
+    p = sub.add_parser("nolibc", help="src/ built by each host toolchain, its IR, objects and link held to no C library")
+    p.add_argument("--toolchain", action="append", help="one toolchain of TOOLCHAINS only, any number of times")
+    p.add_argument("--environment", action="append", help="one environment only, any number of times")
+    p.add_argument("--build", action="append", help="one build of a row only, as O2 or O2-lto, any number of times")
+    p.add_argument("--jobs", type=int, default=os.cpu_count() or 4, help="builds at once")
+    p.add_argument("--report", metavar="RUN", help="print the summary of a run that has ended, build/nolibc-<stamp>")
+    p.set_defaults(fn=cmd_nolibc)
+
     p = sub.add_parser("prove", help="each proof harness proved on the C with CBMC and on each toolchain's machine code, and each thread client under every memory model with GenMC")
     p.add_argument("--harness", action="append", help="a harness by name, without _prove.c, any number of times")
     p.add_argument("--arm", action="append", choices=["cbmc", "machine", "genmc"], help="one prover only, any number of times")
@@ -2321,6 +2371,8 @@ def main():
     p = sub.add_parser("coverage", help="what of src/ the suites reached")
     p.add_argument("--worst", type=int, default=0, help="list the N thinnest files")
     p.add_argument("--gaps", action="store_true", help="name every uncovered line and branch")
+    p.add_argument("--arms", action="append", metavar="FILE:LINE",
+                   help="each arm of the branches on a line, with its count per translation unit, any number of times")
     p.add_argument("--no-build", action="store_true", help="report on what is already built")
     p.add_argument("--no-run", action="store_true", help="report on the counters already there")
     p.add_argument("--jobs", type=int, default=2, help="build parallelism, retained low on purpose")

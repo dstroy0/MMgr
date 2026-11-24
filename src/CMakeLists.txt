@@ -24,12 +24,14 @@ add_subdirectory(spatium)
 add_subdirectory(octetus_introitus_exitus)
 add_subdirectory(locus_carcerum)
 add_subdirectory(memoria_anularis)
+add_subdirectory(memoria_vector)
 add_subdirectory(memoria_externa)
 add_subdirectory(transformo)
 add_subdirectory(memoriam_praetereo)
 add_subdirectory(fractio)
 add_subdirectory(verba_scribo)
 add_subdirectory(numeros_scribo)
+add_subdirectory(config)
 
 # One aggregate per environment. A test or a consumer links `mmgr_<env>` and does not name
 # seventeen modules and get the list wrong.

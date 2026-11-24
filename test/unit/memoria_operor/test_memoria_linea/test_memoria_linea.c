@@ -171,6 +171,7 @@ void test_sort_of_fewer_than_two_elements_and_its_refusals(void)
     TEST_ASSERT_FALSE_MESSAGE(mmgr_bytes_sort(words, 3u, sizeof(words[0]), words_order, NULL), "no room is refused");
     TEST_ASSERT_FALSE(mmgr_bytes_sort(words, 3u, 0u, words_order, scratch));
     TEST_ASSERT_FALSE(mmgr_bytes_sort(words, 3u, sizeof(words[0]), NULL, scratch));
+    TEST_ASSERT_FALSE_MESSAGE(mmgr_bytes_sort(NULL, 3u, sizeof(words[0]), words_order, scratch), "no base is refused");
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(3u, words[0], "a refusal leaves the elements as they were");
     TEST_ASSERT_TRUE(mmgr_bytes_sort(words, 2u, sizeof(words[0]), words_order, scratch));
     TEST_ASSERT_EQUAL_UINT32(2u, words[0]);

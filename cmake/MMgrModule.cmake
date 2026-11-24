@@ -6,8 +6,11 @@
 #   mmgr_add_module(confinium SOURCES confinium.c DEPS memoria_operor)
 #   mmgr_add_module(memoria_anularis HEADER_ONLY DEPS proximus_operor spatium)
 #   mmgr_add_module(verba_scribo SOURCES verba_scribo.c DEPS fractio OPTIMIZE -O2)
+#   mmgr_add_module(string_shim SOURCES mmgr_string_shim.c DEPS memoria_operor OPT_IN)
 #
-# OPTIMIZE overrides the build's level for this module alone. One level for the whole library is a
+# OPT_IN keeps the module out of mmgr_<env>. A program links mmgr_<module>_<env> by name where it wants it.
+#
+# OPTIMIZE overrides the build's level for this module alone, and a module that names none takes -O2. One level for the whole library is a
 # guess that suits some of it. At -O3 the compiler unrolls and inlines, which is worth its cost
 # where the work is in a loop the compiler can see through. It is dead weight where the code is
 # already the shape it wants to be. The tool tools/dev_env/sizes.py measures the difference per
@@ -37,7 +40,7 @@ function(mmgr_env_name entry out_name out_defs)
 endfunction()
 
 function(mmgr_add_module name)
-  cmake_parse_arguments(ARG "HEADER_ONLY" "OPTIMIZE" "SOURCES;DEPS" ${ARGN})
+  cmake_parse_arguments(ARG "HEADER_ONLY;OPT_IN" "OPTIMIZE" "SOURCES;DEPS" ${ARGN})
 
   foreach(entry IN LISTS MMGR_ENVIRONMENTS)
     mmgr_env_name("${entry}" env defs)
@@ -57,7 +60,12 @@ function(mmgr_add_module name)
       set(scope PUBLIC)
       target_link_libraries(${target} PRIVATE mmgr_flags)
 
-      if(ARG_OPTIMIZE AND MMGR_MODULE_OPTIMIZE)
+      # A module that names no level takes -O2. clang at -O0 writes the zero fill of each EMBED_CALL literal as a
+      # call to memset, and src/ makes no call to the C library at any level a build gives it
+      if(NOT ARG_OPTIMIZE)
+        set(ARG_OPTIMIZE -O2)
+      endif()
+      if(MMGR_MODULE_OPTIMIZE)
         # After mmgr_flags, and so this is the last -O on the line and the one that counts.
         target_compile_options(${target} PRIVATE ${ARG_OPTIMIZE})
       endif()
@@ -114,7 +122,10 @@ function(mmgr_add_module name)
       target_link_libraries(${target} ${scope} mmgr_${dep}_${env})
     endforeach()
 
-    # Collected so the per-environment aggregate can link every module with no list of them.
-    set_property(GLOBAL APPEND PROPERTY MMGR_TARGETS_${env} ${target})
+    # Collected so the per-environment aggregate can link every module with no list of them. An OPT_IN module
+    # stays out of the aggregate, and a program links its target by name.
+    if(NOT ARG_OPT_IN)
+      set_property(GLOBAL APPEND PROPERTY MMGR_TARGETS_${env} ${target})
+    endif()
   endforeach()
 endfunction()

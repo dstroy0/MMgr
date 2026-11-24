@@ -91,6 +91,11 @@ target_link_libraries(mmgr_flags INTERFACE embedded_types::embedded_types)
 if(MINGW AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
   target_compile_options(mmgr_flags INTERFACE -ffunction-sections -fdata-sections)
 endif()
+# /GS puts a stack cookie in each function with a buffer, and the C runtime defines the cookie and its check. src/
+# makes no call to the C runtime, and so the frontend of cl, which cl and clang-cl both take, builds it with /GS-
+if(CMAKE_C_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+  target_compile_options(mmgr_flags INTERFACE /GS-)
+endif()
 target_compile_options(mmgr_flags INTERFACE
   $<$<C_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wshadow;-Wconversion;-Wsign-conversion;-Wcast-align;-Wcast-qual;-Wstrict-prototypes;-Wmissing-prototypes;-Wpointer-arith;-Wvla>
   $<$<AND:$<BOOL:${MMGR_WERROR}>,$<C_COMPILER_ID:GNU,Clang>>:-Werror>

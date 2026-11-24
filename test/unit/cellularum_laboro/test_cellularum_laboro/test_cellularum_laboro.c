@@ -259,6 +259,17 @@ void test_to_ulong_matches_strtoul(void)
     }
 }
 
+// One past the all ones of the word: a 64-bit word passes in the sum, and a narrower word passes in the compare
+void test_to_ulong_in_one_past_the_word_gives_all_ones(void)
+{
+    const char *const past = (EMBED_WORD_BITS == 64u)   ? "18446744073709551616"
+                             : (EMBED_WORD_BITS == 32u) ? "4294967296"
+                                                        : "65536";
+    const embed_word all_ones = (embed_word) ~(embed_word)0u;
+    TEST_ASSERT_EQUAL_UINT64(all_ones,
+                             EMBED_CALL(cellul.to_ulong_in, TransfiguroCfg, .src = past, .end = NULL, .base = 10u));
+}
+
 void test_to_long_without_an_end_pointer(void)
 {
     TEST_ASSERT_EQUAL_INT64(42, EMBED_CALL(cellul.to_long, TransfiguroCfg, .src = "42", .end = &mmgr_cellul_nowhere));

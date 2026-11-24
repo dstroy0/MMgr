@@ -20,6 +20,8 @@
  */
 #include "memoriam_praetereo/memoriam_praetereo.h"
 
+#include "memoria_operor/memoria_operor.h"
+
 #if MMGR_ENABLE_DMA
 
 /**
@@ -98,16 +100,21 @@ void praet_ordo_reset(PraetOrdo *context)
     for (embed_word channel = 0u; channel < PRAET_CHANNELS; channel++)
     {
         context->flags[channel] = (uint32_t)PRAET_SEPARATUS;
-        context->keepalive_deadline[channel] = 0u;
 #if PRAET_RECOVERY
         context->bound[channel] = NULL;
-        context->bound_bytes[channel] = 0u;
         context->start[channel] = NULL;
-        context->length[channel] = 0u;
-        context->position[channel] = 0u;
-        context->boundary_crc[channel] = 0u;
 #endif
     }
+    // memor.set zeroes the arrays of counts. Zero stores to them in the loop are stores that clang joins into one
+    // call to memset
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->keepalive_deadline, .val = 0u,
+               .bytes = sizeof(context->keepalive_deadline));
+#if PRAET_RECOVERY
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->bound_bytes, .val = 0u, .bytes = sizeof(context->bound_bytes));
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->length, .val = 0u, .bytes = sizeof(context->length));
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->position, .val = 0u, .bytes = sizeof(context->position));
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->boundary_crc, .val = 0u, .bytes = sizeof(context->boundary_crc));
+#endif
     context->settle_deadline = 0u;
     context->elapsed_micros = 0u;
     context->praet_set_bitflag = 0u;
