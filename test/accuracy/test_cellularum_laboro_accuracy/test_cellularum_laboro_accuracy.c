@@ -289,11 +289,11 @@ void test_a_case_insensitive_compare_holds_on_an_accented_word(void)
     static const char accented_upper[32] = {'M', '\xFC', 'L', 'L', 'E', 'R', '\0'};
 
     TEST_ASSERT_TRUE_MESSAGE(
-        EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = plain_lower, .other = plain_upper, .cap = 31u, .ci = EMBED_TRUE),
+        EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = plain_lower, .cap = 31u, .other = plain_upper, .ci = EMBED_TRUE),
         "cafe and CAFe did not match without regard to case");
 
-    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = accented_lower, .other = accented_upper,
-                                        .cap = 31u, .ci = EMBED_TRUE),
+    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = accented_lower, .cap = 31u,
+                                        .other = accented_upper, .ci = EMBED_TRUE),
                              "the same two words stopped matching once the e carried an accent");
 
     // "yuz" and "YUZ" with a diaeresis on the u, as Latin-5. That is the Turkish word for a
@@ -303,8 +303,8 @@ void test_a_case_insensitive_compare_holds_on_an_accented_word(void)
     static const char turkish_lower[32] = {'y', '\xFC', 'z', '\0'};
     static const char turkish_upper[32] = {'Y', '\xFC', 'Z', '\0'};
 
-    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = turkish_lower, .other = turkish_upper,
-                                        .cap = 31u, .ci = EMBED_TRUE),
+    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = turkish_lower, .cap = 31u,
+                                        .other = turkish_upper, .ci = EMBED_TRUE),
                              "a Turkish word stopped matching its own uppercase form");
 }
 
@@ -369,7 +369,7 @@ void test_a_case_insensitive_compare_holds_for_every_planted_byte(void)
             // value and the next byte up is the length of the string
             const unsigned planted_and_position = planted | (length << 8);
             const unsigned matched =
-                EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = lower_of, .other = upper_of, .cap = 31u, .ci = EMBED_TRUE)
+                EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = lower_of, .cap = 31u, .other = upper_of, .ci = EMBED_TRUE)
                     ? planted_and_position
                     : 0u;
 

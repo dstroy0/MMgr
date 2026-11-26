@@ -456,7 +456,8 @@ void test_a_span_over_series_cellularum_bytes_carries_the_series_cellularum_addr
 
 void test_the_newest_persistent_cell_grows_in_place(void)
 {
-    uint8_t *const cell = ram.b.persistent_buf_alloc(32u, grower);
+    // Explicit cast takes the address of the cell as its bytes
+    uint8_t *const cell = (uint8_t *)ram.b.persistent_buf_alloc(32u, grower);
     const size_t end_before = mmgr_series_cellularum_persistent_end(&ram_b_ctx);
 
     TEST_ASSERT_NOT_NULL(cell);
@@ -464,7 +465,8 @@ void test_the_newest_persistent_cell_grows_in_place(void)
     {
         cell[at] = 0xA5u;
     }
-    uint8_t *const grown = ram.b.buf_grow(cell, 96u, grower);
+    // Explicit cast takes the address of the cell as its bytes
+    uint8_t *const grown = (uint8_t *)ram.b.buf_grow(cell, 96u, grower);
 
     TEST_ASSERT_EQUAL_PTR_MESSAGE(cell, grown, "a persistent cell retains its address as it grows");
     TEST_ASSERT_EQUAL_size_t(end_before + mmgr_align_up_buf(96u) - mmgr_align_up_buf(32u),
@@ -478,7 +480,8 @@ void test_the_newest_persistent_cell_grows_in_place(void)
         TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, grown[at], "the bytes the growth uncovers are zero");
     }
     TEST_ASSERT_EQUAL_size_t(mmgr_align_up_buf(96u), mmgr_owner_in_use(grower));
-    uint8_t *const next = ram.b.persistent_buf_alloc(8u, cells);
+    // Explicit cast takes the address of the cell as its bytes
+    uint8_t *const next = (uint8_t *)ram.b.persistent_buf_alloc(8u, cells);
 
     TEST_ASSERT_TRUE_MESSAGE(next >= grown + mmgr_align_up_buf(96u), "the next take lands past the grown cell");
     ram.b.persistent_buf_release(next, cells);
@@ -603,14 +606,17 @@ void test_a_temporary_take_the_gap_cannot_meet_reuses_a_free_cell_of_its_tier(vo
 
 void test_a_reused_temporary_cell_splits_what_it_does_not_need_toward_the_gap(void)
 {
-    uint8_t *const large = ram.a.temporary_buf_alloc(256u, grower);
+    // Explicit cast takes the address of the cell as its bytes
+    uint8_t *const large = (uint8_t *)ram.a.temporary_buf_alloc(256u, grower);
     void *const held = ram.a.temporary_buf_alloc(64u, grower);
 
     temporary_gap_spent();
     ram.a.persistent_buf_release(large, grower);
 
-    uint8_t *const first = ram.a.temporary_buf_alloc(64u, grower);
-    uint8_t *const second = ram.a.temporary_buf_alloc(64u, grower);
+    // Explicit cast takes the address of the cell as its bytes
+    uint8_t *const first = (uint8_t *)ram.a.temporary_buf_alloc(64u, grower);
+    // Explicit cast takes the address of the cell as its bytes
+    uint8_t *const second = (uint8_t *)ram.a.temporary_buf_alloc(64u, grower);
 
     TEST_ASSERT_TRUE_MESSAGE(first == large + 192u, "the first take lands at the free cell's end away from the gap");
     TEST_ASSERT_TRUE_MESSAGE(second < first, "the second lands below it, on what the split left");
@@ -689,7 +695,8 @@ void test_a_temporary_cell_given_back_under_the_top_returns_to_the_gap_as_the_ce
 
 void test_the_top_temporary_cell_grows_by_moving_down(void)
 {
-    uint8_t *const cell = ram.b.temporary_buf_alloc(32u, grower);
+    // Explicit cast takes the address of the cell as its bytes
+    uint8_t *const cell = (uint8_t *)ram.b.temporary_buf_alloc(32u, grower);
     const size_t top_before = mmgr_series_cellularum_temporary_top(&ram_b_ctx);
 
     TEST_ASSERT_NOT_NULL(cell);
@@ -697,7 +704,8 @@ void test_the_top_temporary_cell_grows_by_moving_down(void)
     {
         cell[at] = 0x5Au;
     }
-    uint8_t *const grown = ram.b.buf_grow(cell, 96u, grower);
+    // Explicit cast takes the address of the cell as its bytes
+    uint8_t *const grown = (uint8_t *)ram.b.buf_grow(cell, 96u, grower);
     const size_t growth = mmgr_align_up_buf(96u) - mmgr_align_up_buf(32u);
 
     TEST_ASSERT_NOT_NULL(grown);
@@ -780,7 +788,8 @@ void test_a_request_over_the_cellblock_is_refused_on_both_tiers(void)
 
 void test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell(void)
 {
-    uint8_t *const cell = ram.b.persistent_buf_alloc(32u, grower);
+    // Explicit cast takes the address of the cell as its bytes
+    uint8_t *const cell = (uint8_t *)ram.b.persistent_buf_alloc(32u, grower);
     const size_t end_before = mmgr_series_cellularum_persistent_end(&ram_b_ctx);
 
     TEST_ASSERT_NOT_NULL(cell);

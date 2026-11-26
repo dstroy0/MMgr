@@ -2,7 +2,7 @@
 
 #include "unity.h"
 
-static _Alignas(16) uint8_t mem[64];
+EMBED_ALIGN(16u) static uint8_t mem[64];
 
 void setUp(void)
 {

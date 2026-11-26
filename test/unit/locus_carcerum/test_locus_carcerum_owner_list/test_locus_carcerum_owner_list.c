@@ -24,13 +24,13 @@ void tearDown(void)
 
 void test_the_table_counts_the_owners_declared(void)
 {
-    TEST_ASSERT_EQUAL_size_t(2u, mmgr_owner_table_count);
+    TEST_ASSERT_EQUAL_size_t(2u, EMBED_PASS_NAME(mmgr_owner_table_count));
 }
 
 void test_each_owner_is_its_record_in_the_table_at_its_place(void)
 {
-    TEST_ASSERT_EQUAL_PTR(&mmgr_owner_table[0], writer);
-    TEST_ASSERT_EQUAL_PTR(&mmgr_owner_table[1], reader);
+    TEST_ASSERT_EQUAL_PTR(&EMBED_PASS_NAME(mmgr_owner_table)[0], writer);
+    TEST_ASSERT_EQUAL_PTR(&EMBED_PASS_NAME(mmgr_owner_table)[1], reader);
     TEST_ASSERT_EQUAL_STRING("writer", writer->name);
     TEST_ASSERT_EQUAL_STRING("reader", reader->name);
     TEST_ASSERT_EQUAL_size_t(1u, writer->place);
@@ -64,8 +64,8 @@ void test_a_record_of_the_callers_own_is_unlisted_and_takes_nothing(void)
 void test_an_address_between_two_records_is_none_of_the_tables(void)
 {
     // Explicit casts step one byte into the first record: on no record's first byte, it is none of the table's
-    const CellOwner *const between = (const CellOwner *)((const uint8_t *)&mmgr_owner_table[0] + 1u);
+    const CellOwner *const between = (const CellOwner *)((const uint8_t *)&EMBED_PASS_NAME(mmgr_owner_table)[0] + 1u);
 
     TEST_ASSERT_FALSE(mmgr_owner_listed(between));
-    TEST_ASSERT_FALSE(mmgr_owner_listed(&mmgr_owner_table[2]));
+    TEST_ASSERT_FALSE(mmgr_owner_listed(&EMBED_PASS_NAME(mmgr_owner_table)[2]));
 }

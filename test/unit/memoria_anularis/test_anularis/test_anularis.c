@@ -209,9 +209,9 @@ void test_hold_takes_a_loculus_and_drop_returns_it(void)
     TEST_ASSERT_EQUAL_INT(0, (int)pick);
 
     TEST_ASSERT_TRUE(
-        EMBED_CALL(anularis.loculus_hold, AnularisCfg, .ring = &g_ring, .index = 0u, .src = g_src, .bytes = 12u));
+        EMBED_CALL(anularis.loculus_hold, AnularisCfg, .ring = &g_ring, .src = g_src, .bytes = 12u, .index = 0u));
     TEST_ASSERT_FALSE(
-        EMBED_CALL(anularis.loculus_hold, AnularisCfg, .ring = &g_ring, .index = 0u, .src = g_src, .bytes = 12u));
+        EMBED_CALL(anularis.loculus_hold, AnularisCfg, .ring = &g_ring, .src = g_src, .bytes = 12u, .index = 0u));
 
     const embed_word held = EMBED_CALL(anularis.loculus_ready, AnularisCfg, .ring = &g_ring);
 
@@ -244,8 +244,8 @@ void test_hold_refuses_a_loculus_that_does_not_exist(void)
 {
     fresh();
 
-    TEST_ASSERT_FALSE(EMBED_CALL(anularis.loculus_hold, AnularisCfg, .ring = &g_ring, .index = MMGR_RING_LOCULI,
-                                 .src = g_src, .bytes = 4u));
+    TEST_ASSERT_FALSE(EMBED_CALL(anularis.loculus_hold, AnularisCfg, .ring = &g_ring, .src = g_src, .bytes = 4u,
+                                 .index = MMGR_RING_LOCULI));
     TEST_ASSERT_NULL(EMBED_CALL(anularis.loculus_keepout, AnularisCfg, .ring = &g_ring, .index = MMGR_RING_LOCULI));
 }
 
@@ -298,20 +298,20 @@ void test_a_ring_over_a_pool_the_system_gives_passes_its_two_segments_back_and_f
     static uint8_t s_given[GIVEN_BYTES];
     size_t segment = 9u;
 
-    TEST_ASSERT_TRUE(anularis.init(
-        &(AnularisCfg){.ring = &s_hosted_ring, .buf = s_given, .capacity = GIVEN_BYTES, .segment_count = 2u}));
-    TEST_ASSERT_TRUE(anularis.seg_next(&(AnularisCfg){.ring = &s_hosted_ring, .out_index = &segment}));
+    TEST_ASSERT_TRUE(EMBED_CALL(anularis.init, AnularisCfg, .ring = &s_hosted_ring, .buf = s_given,
+                                .capacity = GIVEN_BYTES, .segment_count = 2u));
+    TEST_ASSERT_TRUE(EMBED_CALL(anularis.seg_next, AnularisCfg, .ring = &s_hosted_ring, .out_index = &segment));
     TEST_ASSERT_EQUAL_size_t(0u, segment);
-    TEST_ASSERT_TRUE(anularis.seg_at(&(AnularisCfg){.ring = &s_hosted_ring, .index = 0u}) == s_given);
-    TEST_ASSERT_TRUE(anularis.seg_at(&(AnularisCfg){.ring = &s_hosted_ring, .index = 1u}) == (s_given + 2048));
-    anularis.seg_publish(&(AnularisCfg){.ring = &s_hosted_ring});
-    TEST_ASSERT_TRUE(anularis.seg_next(&(AnularisCfg){.ring = &s_hosted_ring, .out_index = &segment}));
+    TEST_ASSERT_TRUE(EMBED_CALL(anularis.seg_at, AnularisCfg, .ring = &s_hosted_ring, .index = 0u) == s_given);
+    TEST_ASSERT_TRUE(EMBED_CALL(anularis.seg_at, AnularisCfg, .ring = &s_hosted_ring, .index = 1u) == (s_given + 2048));
+    EMBED_CALL(anularis.seg_publish, AnularisCfg, .ring = &s_hosted_ring);
+    TEST_ASSERT_TRUE(EMBED_CALL(anularis.seg_next, AnularisCfg, .ring = &s_hosted_ring, .out_index = &segment));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(1u, segment, "the second is drawn while the first is displayed");
-    anularis.seg_publish(&(AnularisCfg){.ring = &s_hosted_ring});
-    TEST_ASSERT_FALSE_MESSAGE(anularis.seg_next(&(AnularisCfg){.ring = &s_hosted_ring, .out_index = &segment}),
+    EMBED_CALL(anularis.seg_publish, AnularisCfg, .ring = &s_hosted_ring);
+    TEST_ASSERT_FALSE_MESSAGE(EMBED_CALL(anularis.seg_next, AnularisCfg, .ring = &s_hosted_ring, .out_index = &segment),
                               "a segment still displayed is not passed out");
-    anularis.seg_release(&(AnularisCfg){.ring = &s_hosted_ring});
-    TEST_ASSERT_TRUE(anularis.seg_next(&(AnularisCfg){.ring = &s_hosted_ring, .out_index = &segment}));
+    EMBED_CALL(anularis.seg_release, AnularisCfg, .ring = &s_hosted_ring);
+    TEST_ASSERT_TRUE(EMBED_CALL(anularis.seg_next, AnularisCfg, .ring = &s_hosted_ring, .out_index = &segment));
     TEST_ASSERT_EQUAL_size_t(0u, segment);
 }
 
@@ -320,22 +320,22 @@ void test_a_ring_given_its_segment_size_passes_out_segments_of_that_size(void)
     static uint8_t s_given[GIVEN_BYTES];
     size_t segment = 9u;
 
-    TEST_ASSERT_TRUE_MESSAGE(
-        anularis.init(&(AnularisCfg){
-            .ring = &s_hosted_ring, .buf = s_given, .capacity = 3000u, .segment_count = 2u, .segment_bytes = 1500u}),
-        "a capacity that is no power of two is taken with a segment size");
-    TEST_ASSERT_TRUE(anularis.seg_at(&(AnularisCfg){.ring = &s_hosted_ring, .index = 0u}) == s_given);
-    TEST_ASSERT_TRUE_MESSAGE(anularis.seg_at(&(AnularisCfg){.ring = &s_hosted_ring, .index = 1u}) == (s_given + 1500),
+    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(anularis.init, AnularisCfg, .ring = &s_hosted_ring, .buf = s_given,
+                                        .capacity = 3000u, .segment_count = 2u, .segment_bytes = 1500u),
+                             "a capacity that is no power of two is taken with a segment size");
+    TEST_ASSERT_TRUE(EMBED_CALL(anularis.seg_at, AnularisCfg, .ring = &s_hosted_ring, .index = 0u) == s_given);
+    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(anularis.seg_at, AnularisCfg, .ring = &s_hosted_ring, .index = 1u) ==
+                                 (s_given + 1500),
                              "the second segment lies one size along");
-    TEST_ASSERT_TRUE(anularis.seg_next(&(AnularisCfg){.ring = &s_hosted_ring, .out_index = &segment}));
+    TEST_ASSERT_TRUE(EMBED_CALL(anularis.seg_next, AnularisCfg, .ring = &s_hosted_ring, .out_index = &segment));
     TEST_ASSERT_EQUAL_size_t(0u, segment);
-    anularis.seg_publish(&(AnularisCfg){.ring = &s_hosted_ring});
-    TEST_ASSERT_TRUE(anularis.seg_next(&(AnularisCfg){.ring = &s_hosted_ring, .out_index = &segment}));
+    EMBED_CALL(anularis.seg_publish, AnularisCfg, .ring = &s_hosted_ring);
+    TEST_ASSERT_TRUE(EMBED_CALL(anularis.seg_next, AnularisCfg, .ring = &s_hosted_ring, .out_index = &segment));
     TEST_ASSERT_EQUAL_size_t(1u, segment);
-    anularis.seg_publish(&(AnularisCfg){.ring = &s_hosted_ring});
-    TEST_ASSERT_FALSE(anularis.seg_next(&(AnularisCfg){.ring = &s_hosted_ring, .out_index = &segment}));
-    anularis.seg_release(&(AnularisCfg){.ring = &s_hosted_ring});
-    TEST_ASSERT_TRUE(anularis.seg_next(&(AnularisCfg){.ring = &s_hosted_ring, .out_index = &segment}));
+    EMBED_CALL(anularis.seg_publish, AnularisCfg, .ring = &s_hosted_ring);
+    TEST_ASSERT_FALSE(EMBED_CALL(anularis.seg_next, AnularisCfg, .ring = &s_hosted_ring, .out_index = &segment));
+    EMBED_CALL(anularis.seg_release, AnularisCfg, .ring = &s_hosted_ring);
+    TEST_ASSERT_TRUE(EMBED_CALL(anularis.seg_next, AnularisCfg, .ring = &s_hosted_ring, .out_index = &segment));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, segment, "the counter wraps by the count, a power of two");
 }
 
@@ -344,14 +344,15 @@ void test_a_ring_given_its_segment_size_streams_no_bytes(void)
     static uint8_t s_given[GIVEN_BYTES];
     uint8_t byte = 7u;
 
-    TEST_ASSERT_TRUE(anularis.init(&(AnularisCfg){
-        .ring = &s_hosted_ring, .buf = s_given, .capacity = 3000u, .segment_count = 2u, .segment_bytes = 1500u}));
-    TEST_ASSERT_EQUAL_size_t(0u, anularis.vacant(&(AnularisCfg){.ring = &s_hosted_ring}));
-    TEST_ASSERT_EQUAL_size_t(0u, anularis.available(&(AnularisCfg){.ring = &s_hosted_ring}));
-    TEST_ASSERT_FALSE_MESSAGE(anularis.put(&(AnularisCfg){.ring = &s_hosted_ring, .src = &byte, .bytes = 1u}),
+    TEST_ASSERT_TRUE(EMBED_CALL(anularis.init, AnularisCfg, .ring = &s_hosted_ring, .buf = s_given, .capacity = 3000u,
+                                .segment_count = 2u, .segment_bytes = 1500u));
+    TEST_ASSERT_EQUAL_size_t(0u, EMBED_CALL(anularis.vacant, AnularisCfg, .ring = &s_hosted_ring));
+    TEST_ASSERT_EQUAL_size_t(0u, EMBED_CALL(anularis.available, AnularisCfg, .ring = &s_hosted_ring));
+    TEST_ASSERT_FALSE_MESSAGE(EMBED_CALL(anularis.put, AnularisCfg, .ring = &s_hosted_ring, .src = &byte, .bytes = 1u),
                               "the bytes of a segment are not the byte stream's to write");
-    TEST_ASSERT_FALSE(anularis.read_byte(&(AnularisCfg){.ring = &s_hosted_ring, .dst = &byte}));
-    TEST_ASSERT_EQUAL_size_t(0u, anularis.read(&(AnularisCfg){.ring = &s_hosted_ring, .dst = &byte, .bytes = 1u}));
+    TEST_ASSERT_FALSE(EMBED_CALL(anularis.read_byte, AnularisCfg, .ring = &s_hosted_ring, .dst = &byte));
+    TEST_ASSERT_EQUAL_size_t(0u,
+                             EMBED_CALL(anularis.read, AnularisCfg, .ring = &s_hosted_ring, .dst = &byte, .bytes = 1u));
     TEST_ASSERT_EQUAL_UINT8_MESSAGE(0u, s_given[0], "and nothing was written");
 }
 
@@ -359,13 +360,12 @@ void test_a_segment_size_the_capacity_cannot_hold_is_refused(void)
 {
     static uint8_t s_given[GIVEN_BYTES];
 
-    TEST_ASSERT_FALSE(anularis.init(&(AnularisCfg){
-        .ring = &s_hosted_ring, .buf = s_given, .capacity = 3000u, .segment_count = 2u, .segment_bytes = 1501u}));
-    TEST_ASSERT_FALSE_MESSAGE(
-        anularis.init(&(AnularisCfg){
-            .ring = &s_hosted_ring, .buf = s_given, .capacity = 3000u, .segment_count = 3u, .segment_bytes = 1000u}),
-        "the count stays a power of two");
-    TEST_ASSERT_FALSE_MESSAGE(
-        anularis.init(&(AnularisCfg){.ring = &s_hosted_ring, .buf = s_given, .capacity = 3000u, .segment_count = 2u}),
-        "with no segment size the capacity stays a power of two");
+    TEST_ASSERT_FALSE(EMBED_CALL(anularis.init, AnularisCfg, .ring = &s_hosted_ring, .buf = s_given, .capacity = 3000u,
+                                 .segment_count = 2u, .segment_bytes = 1501u));
+    TEST_ASSERT_FALSE_MESSAGE(EMBED_CALL(anularis.init, AnularisCfg, .ring = &s_hosted_ring, .buf = s_given,
+                                         .capacity = 3000u, .segment_count = 3u, .segment_bytes = 1000u),
+                              "the count stays a power of two");
+    TEST_ASSERT_FALSE_MESSAGE(EMBED_CALL(anularis.init, AnularisCfg, .ring = &s_hosted_ring, .buf = s_given,
+                                         .capacity = 3000u, .segment_count = 2u),
+                              "with no segment size the capacity stays a power of two");
 }

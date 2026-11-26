@@ -20,6 +20,7 @@
   harness.py device flash B --target T --port P   flash the image that build produced
   harness.py suites                          every suite, its cases, and the capabilities it needs
   harness.py runners gen <dir> --unity <rb>  write <dir>/unity_runner.c
+  harness.py runners device <dir> --out <cu> write the unit of the device suite of <dir>, --check for why none
   harness.py cases <dir>                     what Unity will register, and what it will walk past
   harness.py generated                       are the generated headers what their generators emit
   harness.py targets [--strict]              compile the module for every part, check its derivation
@@ -1645,6 +1646,187 @@ def cmd_runners_gen(a):
     return 0
 
 
+# ------------------------------------------------------------------------------------------------
+# Device suites
+# ------------------------------------------------------------------------------------------------
+# A device suite runs each case of a suite in a kernel of its own on the GPU (support/device_unity.h). The unit of
+# the suite is a copy of its source with each function at file scope marked for both passes and each static object
+# at file scope marked for the memory of each pass. Then one kernel for each case, and the main that launches them.
+#
+# A device pass has no body for a header of the C library past the freestanding ones, or for the support of the
+# host. A suite that includes one is not a device suite, and the configure step names it with the include.
+
+DEVICE_FREE_HEADERS = ("stdint.h", "stddef.h", "limits.h", "float.h", "stdbool.h", "stdarg.h", "stdalign.h",
+                       "stdnoreturn.h")
+DEVICE_INCLUDE = re.compile(r'^[ \t]*#[ \t]*include[ \t]*([<"])([^>"]+)[>"]', re.M)
+DEVICE_TOP_LINE = re.compile(r"^[A-Za-z_]")
+# The hooks that support/device_hooks.cu defines for the device pass, where the suite defines none of its own
+DEVICE_HOOKS = ("embed_clock_ns", "embed_word_wait", "embed_word_wake", "embed_thread_place", "mmgr_carcer_hw_clock_ns",
+                "mmgr_carcer_hw_misnamed")
+DEVICE_NOT_A_HEAD = ("typedef", "struct", "union", "enum", "extern", "EMBED_", "MMGR_", "#")
+# A static object at file scope whose alignment comes first, as mmgr.h writes its pools
+DEVICE_ALIGNED_STATIC = re.compile(r"^(EMBED_ALIGN\([^)]*\)[ \t]+)static[ \t]+")
+# A string, a character or a line comment, whose braces open and close no block
+DEVICE_NOT_CODE = re.compile(r'"(?:\\.|[^"\\])*"|\'(?:\\.|[^\'\\])*\'|//.*$')
+
+
+def device_braces(line):
+    """The braces that @p line opens, less those it closes, outside its strings, characters and comment."""
+    code = DEVICE_NOT_CODE.sub("", line)
+    return code.count("{") - code.count("}")
+
+
+def device_refusal(source):
+    """The reason the suite of @p source does not run on the device, or None where it does."""
+    with open(source, encoding="utf-8") as fh:
+        text = fh.read()
+    host = []
+    for mark, name in DEVICE_INCLUDE.findall(text):
+        base = name.split("/")[-1]
+        if mark == "<" and base not in DEVICE_FREE_HEADERS:
+            host.append(name)
+        elif mark == '"' and "/" not in name and base != "unity.h" and not base.startswith(("mmgr", "embed")):
+            host.append(name)
+    if host:
+        return "it includes %s, which the device pass has no body for" % ", ".join(host)
+    # A suite that includes the source of a module defines what the device library of that module defines. The
+    # device link takes each library whole, and so each name of the module would have two definitions there
+    module = re.search(r'^[ \t]*#[ \t]*include[ \t]*"([a-z_]+/[a-z_]+\.c)"', text, re.M)
+    if module:
+        return "it includes %s, and the device link takes the library of that module whole" % module.group(1)
+    # The string shim takes the names of the C library, which a device does not have
+    if "mmgr_string_shim.h" in text:
+        return "it checks the string shim, which takes the names of the C library, and a device has no C library"
+    # On Windows nvcc compiles the host pass with cl, which defines no __BYTE_ORDER__
+    if os.name == "nt" and re.search(r"^[ \t]*#[ \t]*error[^\n]*__BYTE_ORDER__", text, re.M):
+        return "it needs __BYTE_ORDER__, which cl does not define, and cl compiles the host pass of nvcc here"
+    return None
+
+
+def device_statement(lines, start):
+    """The lines of the statement at file scope that starts at @p start: through its ';', or up to its '{'."""
+    end = start
+    while end < len(lines):
+        line = lines[end]
+        if line.rstrip().endswith(";") or (end > start and line.startswith("{")):
+            return end
+        if end > start and not line.strip():
+            return end
+        end += 1
+    return end
+
+
+def device_marked(text):
+    """@p text with each function of file scope marked EMBED_HOST_DEVICE, and each static object of file scope marked
+    EMBED_PASS_MEMORY. The suites of MMgr open a function body with a '{' alone at column 0, and that is what this
+    reads."""
+    lines = text.split("\n")
+    out = list(lines)
+    depth = 0
+    comment = False
+    at = 0
+    while at < len(lines):
+        line = lines[at]
+        if comment:
+            comment = "*/" not in line
+            at += 1
+            continue
+        if line.lstrip().startswith("/*") and "*/" not in line:
+            comment = True
+            at += 1
+            continue
+        aligned = DEVICE_ALIGNED_STATIC.match(line) if depth == 0 else None
+        if aligned:
+            out[at] = aligned.group(1) + "static EMBED_PASS_MEMORY " + line[aligned.end():]
+        elif depth == 0 and DEVICE_TOP_LINE.match(line) and not line.startswith(DEVICE_NOT_A_HEAD):
+            end = device_statement(lines, at)
+            head = " ".join(lines[at:end + 1])
+            body = end < len(lines) and lines[end].startswith("{")
+            object_start = head.split("(")[0]
+            if body or ("(" in head and "=" not in object_start and head.rstrip().endswith(");")):
+                out[at] = "EMBED_HOST_DEVICE " + line
+            elif line.startswith("static ") and ("(" not in object_start or "=" in object_start):
+                out[at] = "static EMBED_PASS_MEMORY " + line[len("static "):]
+        depth += device_braces(line)
+        at += 1
+    return "\n".join(out)
+
+
+def generate_device_unit(suite_dir, out):
+    """Write @p out, the unit of the device suite of @p suite_dir: the marked source, one kernel for each case, and
+    the main that runs them."""
+    source = suite_source(suite_dir)
+    if source is None:
+        raise SystemExit("runners: no test case found in %s" % os.path.relpath(suite_dir, ROOT))
+    reason = device_refusal(source)
+    if reason:
+        raise SystemExit("runners: %s is not a device suite: %s" % (os.path.relpath(source, ROOT), reason))
+    cases, _missed = runner_cases(source)
+    with open(source, encoding="utf-8") as fh:
+        text = fh.read()
+    name = os.path.relpath(source, ROOT).replace("\\", "/")
+    unit = ['/* The device suite of %s, which harness.py runners device writes. */' % name,
+            '#include "device_unity.h"',
+            '#include "locus_carcerum/locus_carcerum.h"',
+            '#line 1 "%s"' % source.replace("\\", "/"),
+            device_marked(text),
+            '']
+    # The hooks of the device pass (support/device_hooks.cu), each one that the suite does not define itself
+    for hook in DEVICE_HOOKS:
+        if re.search(r"^[A-Za-z_][\w \t\*]*\b%s[ \t]*\([^;]*$" % hook, text, re.M):
+            unit.append("#define DEVICE_HOOKS_SUITE_%s 1" % hook)
+    unit.append('#include "device_hooks.cu"')
+    if "MMGR_OWNERS(" not in text:
+        # the device copy of the table of no owners, which locus_carcerum.c defines for the host as its weak default
+        unit += ['__device__ CellOwner mmgr_owner_table_device[1] = {{"", 1u, EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u)}};',
+                 '__device__ const size_t mmgr_owner_table_count_device = 0u;']
+    setup = "setUp();" if re.search(r"^void[ \t]+setUp[ \t]*\(", text, re.M) else ""
+    teardown = "tearDown();" if re.search(r"^void[ \t]+tearDown[ \t]*\(", text, re.M) else ""
+    for place, case in enumerate(cases):
+        unit += ['__global__ void mmgr_device_case_%d(MmgrDeviceCase *record)' % place,
+                 '{',
+                 '    mmgr_device_case_begin(record, "%s", "%s");' % (name, case),
+                 '    %s' % setup,
+                 '    %s();' % case,
+                 '    %s' % teardown,
+                 '}',
+                 'static void mmgr_device_launch_%d(MmgrDeviceCase *record)' % place,
+                 '{',
+                 '    mmgr_device_case_%d<<<1, 1>>>(record);' % place,
+                 '}']
+    unit += ['static const MmgrDeviceSuiteCase s_device_cases[] = {']
+    unit += ['    {"%s", mmgr_device_launch_%d},' % (case, place) for place, case in enumerate(cases)]
+    unit += ['};',
+             'int main(void)',
+             '{',
+             '    return mmgr_device_suite_run("%s", s_device_cases, %du);' % (name, len(cases)),
+             '}',
+             '']
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    written = "\n".join(unit)
+    previous = None
+    if os.path.isfile(out):
+        with open(out, encoding="utf-8") as fh:
+            previous = fh.read()
+    if previous != written:
+        with open(out, "w", encoding="utf-8", newline="\n") as fh:
+            fh.write(written)
+    return out
+
+
+def cmd_runners_device(a):
+    if a.check:
+        source = suite_source(a.suite)
+        reason = device_refusal(source) if source else "it holds no case"
+        if reason:
+            print(reason)
+            return 1
+        return 0
+    out = generate_device_unit(a.suite, a.out)
+    print("wrote %s" % out.replace("\\", "/"))
+    return 0
+
+
 
 # ------------------------------------------------------------------------------------------------
 # Generated headers
@@ -2528,6 +2710,11 @@ def main():
     g.add_argument("suite", nargs="+")
     g.add_argument("--unity", required=True, help="path to Unity's auto/generate_test_runner.rb")
     g.set_defaults(fn=cmd_runners_gen)
+    g = psub.add_parser("device", help="write the unit of a suite's device suite, or say why it has none")
+    g.add_argument("suite", help="the folder of the suite")
+    g.add_argument("--out", help="the unit to write")
+    g.add_argument("--check", action="store_true", help="print why the suite has no device suite, and exit 1")
+    g.set_defaults(fn=cmd_runners_device)
 
     p = sub.add_parser("generated", help="are the generated headers what their generators emit")
     p.add_argument("--write", action="store_true", help="retain the regenerated output instead of restoring")

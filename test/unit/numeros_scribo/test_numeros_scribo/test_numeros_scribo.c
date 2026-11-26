@@ -128,7 +128,8 @@ void test_emit_rejects_an_unknown_type(void)
 {
     char b[32];
     mmgr_fval bad = MMGR_VU32(1u);
-    bad.type = 200u;
+    // Explicit cast takes 200, a type that mmgr_fk does not name, into the type of the field
+    bad.type = (mmgr_fk)200u;
     TEST_ASSERT_EQUAL_size_t(0u,
                              EMBED_CALL(numer.emit, NumerosCfg, .out = b, .cap = sizeof b, .vals = &bad, .nvals = 1u));
     TEST_ASSERT_EQUAL_STRING("", b);
@@ -265,9 +266,11 @@ void test_build_overflow_leaves_an_empty_buffer(void)
 void test_build_rejects_an_unknown_type(void)
 {
     char out[64];
-    static const mmgr_field spec[] = {{200u, 0, 0, NULL}, MMGR_END};
+    // Explicit cast takes 200, a type that mmgr_fk does not name, into the type of the field
+    static const mmgr_field spec[] = {{(mmgr_fk)200u, 0, 0, NULL}, MMGR_END};
     mmgr_fval v[1];
-    v[0].type = 200u;
+    // Explicit cast takes 200, a type that mmgr_fk does not name, into the type of the field
+    v[0].type = (mmgr_fk)200u;
     v[0].width = 0;
     TEST_ASSERT_EQUAL_size_t(
         0u, EMBED_CALL(numer.build, NumerosCfg, .out = out, .cap = sizeof out, .spec = spec, .vals = v, .nvals = 1u));

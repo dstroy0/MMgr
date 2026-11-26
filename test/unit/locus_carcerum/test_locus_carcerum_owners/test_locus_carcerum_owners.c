@@ -68,9 +68,9 @@ void tearDown(void)
 
 void test_the_table_holds_the_owners_declared_in_their_order(void)
 {
-    TEST_ASSERT_EQUAL_size_t(4u, mmgr_owner_table_count);
-    TEST_ASSERT_EQUAL_PTR(&mmgr_owner_table[0], reader);
-    TEST_ASSERT_EQUAL_PTR(&mmgr_owner_table[3], keys);
+    TEST_ASSERT_EQUAL_size_t(4u, EMBED_PASS_NAME(mmgr_owner_table_count));
+    TEST_ASSERT_EQUAL_PTR(&EMBED_PASS_NAME(mmgr_owner_table)[0], reader);
+    TEST_ASSERT_EQUAL_PTR(&EMBED_PASS_NAME(mmgr_owner_table)[3], keys);
     TEST_ASSERT_EQUAL_STRING("reader", reader->name);
     TEST_ASSERT_EQUAL_size_t(1u, reader->place);
     TEST_ASSERT_EQUAL_size_t(4u, keys->place);

@@ -153,4 +153,59 @@ function(mmgr_add_suite suite_name)
         add_test(NAME ${target} COMMAND ${target})
         set_property(GLOBAL APPEND PROPERTY MMGR_SUITES_BUILT "${target}")
     endforeach()
+
+    # The device suite: each case in a kernel of its own on the GPU (support/device_unity.h), at the widths of the
+    # host environment, which the device modules take. harness.py writes its unit from the source of the suite. A
+    # suite that includes a header that the device pass has no body for is skipped loudly, with the header named.
+    # A suite pinned to another environment, or one that links an OPT_IN module, has no device form.
+    if(MMGR_DEVICE AND ((NOT ARG_ENVIRONMENT) OR (ARG_ENVIRONMENT STREQUAL "host")) AND (NOT ARG_LINK))
+        execute_process(
+            COMMAND ${Python3_EXECUTABLE} "${MMGR_HARNESS}" runners device "${suite_dir}" --check
+            OUTPUT_VARIABLE refusal
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+            RESULT_VARIABLE refused)
+        if(refused)
+            set_property(GLOBAL APPEND PROPERTY MMGR_SUITES_SKIPPED "${suite_name}_device (${refusal})")
+        else()
+            set(target ${suite_name}_device)
+            set(unit "${CMAKE_CURRENT_BINARY_DIR}/${target}.cu")
+            add_custom_command(
+                OUTPUT "${unit}"
+                COMMAND ${Python3_EXECUTABLE} "${MMGR_HARNESS}" runners device "${suite_dir}" --out "${unit}"
+                DEPENDS "${suite_src}" "${MMGR_HARNESS}"
+                COMMENT "MMgr: writing the device suite of ${suite_name}"
+                VERBATIM)
+            # device_unity.cu holds Unity's assertions for both passes in place of unity.c. The unit includes
+            # device_hooks.cu, the hooks of the device pass that the suite does not define. host_wait.c and
+            # platform_host.c give the host pass its hooks, as each host suite links them
+            add_executable(${target}
+                "${unit}"
+                "${MMGR_TEST_ROOT}/support/device_unity.cu"
+                "${MMGR_TEST_ROOT}/support/platform_host.c"
+                "${MMGR_TEST_ROOT}/support/host_wait.c")
+            mmgr_device_properties(${target})
+            target_include_directories(${target} PRIVATE
+                "${unity_SOURCE_DIR}/src"
+                "${MMGR_TEST_ROOT}"
+                "${MMGR_TEST_ROOT}/support"
+                "${suite_dir}")
+            # A failed assertion returns from its call, as a device has no setjmp. nvcc warns of each call of Unity
+            # that unity_internals.h declares for the host and device_unity.cu defines for both passes (20040)
+            target_compile_definitions(${target} PRIVATE UNITY_INCLUDE_DOUBLE UNITY_INCLUDE_FLOAT UNITY_EXCLUDE_SETJMP_H)
+            target_compile_options(${target} PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-diag-suppress 20040>")
+            target_link_libraries(${target} PRIVATE mmgr_device Threads::Threads)
+            if(WIN32)
+                target_link_libraries(${target} PRIVATE synchronization)
+            endif()
+            if(MMGR_LIBM)
+                target_link_libraries(${target} PRIVATE ${MMGR_LIBM})
+            endif()
+            set_target_properties(${target} PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/test/device"
+                CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+            add_test(NAME ${target} COMMAND ${target})
+            set_tests_properties(${target} PROPERTIES LABELS "device")
+            set_property(GLOBAL APPEND PROPERTY MMGR_SUITES_BUILT "${target}")
+        endif()
+    endif()
 endfunction()

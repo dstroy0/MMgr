@@ -87,11 +87,11 @@ int main(void)
   run_test(test_built_text_reads_back_at_the_length_it_reported, "test_built_text_reads_back_at_the_length_it_reported", 7);
   run_test(test_scanner_finds_what_the_builder_wrote, "test_scanner_finds_what_the_builder_wrote", 18);
   run_test(test_case_folding_agrees_across_builder_and_scanner, "test_case_folding_agrees_across_builder_and_scanner", 33);
-  run_test(test_appending_retains_every_earlier_field_findable, "test_appending_retains_every_earlier_field_findable", 48);
-  run_test(test_a_builder_overflow_leaves_nothing_for_the_scanner, "test_a_builder_overflow_leaves_nothing_for_the_scanner", 69);
-  run_test(test_every_rendered_number_is_found_by_the_scanner, "test_every_rendered_number_is_found_by_the_scanner", 81);
-  run_test(test_escaped_output_is_still_scannable, "test_escaped_output_is_still_scannable", 101);
-  run_test(test_an_empty_render_reports_nothing_written, "test_an_empty_render_reports_nothing_written", 125);
+  run_test(test_appending_retains_every_earlier_field_findable, "test_appending_retains_every_earlier_field_findable", 47);
+  run_test(test_a_builder_overflow_leaves_nothing_for_the_scanner, "test_a_builder_overflow_leaves_nothing_for_the_scanner", 68);
+  run_test(test_every_rendered_number_is_found_by_the_scanner, "test_every_rendered_number_is_found_by_the_scanner", 80);
+  run_test(test_escaped_output_is_still_scannable, "test_escaped_output_is_still_scannable", 100);
+  run_test(test_an_empty_render_reports_nothing_written, "test_an_empty_render_reports_nothing_written", 124);
 
   return UNITY_END();
 }

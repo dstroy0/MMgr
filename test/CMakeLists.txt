@@ -69,7 +69,7 @@ message(STATUS "MMgr: ${MMGR_BUILT_COUNT} test targets")
 
 if(MMGR_SKIPPED)
     list(LENGTH MMGR_SKIPPED MMGR_SKIPPED_COUNT)
-    message(STATUS "MMgr: ${MMGR_SKIPPED_COUNT} suites NOT built, their capability is off:")
+    message(STATUS "MMgr: ${MMGR_SKIPPED_COUNT} suites NOT built, each with the reason:")
     foreach(s ${MMGR_SKIPPED})
         message(STATUS "MMgr:   ${s}")
     endforeach()

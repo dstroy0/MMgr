@@ -41,7 +41,7 @@ void test_case_folding_agrees_across_builder_and_scanner(void)
                                 .other_cap = 13u, .ci = EMBED_TRUE));
     TEST_ASSERT_FALSE(EMBED_CALL(cellul.has, CatenaFinitaCfg, .src = buf, .cap = sizeof buf, .other = "content-type",
                                  .other_cap = 13u, .ci = EMBED_FALSE));
-    TEST_ASSERT_TRUE(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = buf, .other = "CONTENT-TYPE", .cap = sizeof buf,
+    TEST_ASSERT_TRUE(EMBED_CALL(cellul.eq, CatenaFinitaCfg, .src = buf, .cap = sizeof buf, .other = "CONTENT-TYPE",
                                 .ci = EMBED_TRUE));
 }
 

@@ -132,18 +132,18 @@ int main(void)
   run_test(test_tail_mask_past_the_end_is_empty, "test_tail_mask_past_the_end_is_empty", 322);
   run_test(test_lanes_before_drops_everything_from_the_first_hit_on, "test_lanes_before_drops_everything_from_the_first_hit_on", 328);
   run_test(test_fam_eq_selects_a_block, "test_fam_eq_selects_a_block", 342);
-  run_test(test_any_upper_is_a_gate_and_not_a_test, "test_any_upper_is_a_gate_and_not_a_test", 354);
-  run_test(test_any_digit_is_a_gate_and_not_a_test, "test_any_digit_is_a_gate_and_not_a_test", 365);
-  run_test(test_alpha_is_exact_where_the_gates_are_not, "test_alpha_is_exact_where_the_gates_are_not", 373);
-  run_test(test_fold_lower_touches_characters_and_nothing_else, "test_fold_lower_touches_characters_and_nothing_else", 387);
-  run_test(test_run_of_one_is_the_mask_itself, "test_run_of_one_is_the_mask_itself", 398);
-  run_test(test_run_retains_only_the_lanes_a_run_starts_at, "test_run_retains_only_the_lanes_a_run_starts_at", 405);
-  run_test(test_run_of_a_broken_mask, "test_run_of_a_broken_mask", 417);
-  run_test(test_run_wider_than_the_word_is_refused, "test_run_wider_than_the_word_is_refused", 425);
-  run_test(test_run_edge_names_the_lanes_a_run_cannot_be_tested_at, "test_run_edge_names_the_lanes_a_run_cannot_be_tested_at", 432);
-  run_test(test_load_reads_a_word_at_any_alignment, "test_load_reads_a_word_at_any_alignment", 449);
-  run_test(test_load_al_reads_a_word_from_an_aligned_address, "test_load_al_reads_a_word_from_an_aligned_address", 461);
-  run_test(test_a_load_puts_the_first_byte_in_the_first_lane, "test_a_load_puts_the_first_byte_in_the_first_lane", 471);
+  run_test(test_any_upper_is_a_gate_and_not_a_test, "test_any_upper_is_a_gate_and_not_a_test", 353);
+  run_test(test_any_digit_is_a_gate_and_not_a_test, "test_any_digit_is_a_gate_and_not_a_test", 364);
+  run_test(test_alpha_is_exact_where_the_gates_are_not, "test_alpha_is_exact_where_the_gates_are_not", 372);
+  run_test(test_fold_lower_touches_characters_and_nothing_else, "test_fold_lower_touches_characters_and_nothing_else", 386);
+  run_test(test_run_of_one_is_the_mask_itself, "test_run_of_one_is_the_mask_itself", 397);
+  run_test(test_run_retains_only_the_lanes_a_run_starts_at, "test_run_retains_only_the_lanes_a_run_starts_at", 404);
+  run_test(test_run_of_a_broken_mask, "test_run_of_a_broken_mask", 416);
+  run_test(test_run_wider_than_the_word_is_refused, "test_run_wider_than_the_word_is_refused", 424);
+  run_test(test_run_edge_names_the_lanes_a_run_cannot_be_tested_at, "test_run_edge_names_the_lanes_a_run_cannot_be_tested_at", 431);
+  run_test(test_load_reads_a_word_at_any_alignment, "test_load_reads_a_word_at_any_alignment", 448);
+  run_test(test_load_al_reads_a_word_from_an_aligned_address, "test_load_al_reads_a_word_from_an_aligned_address", 460);
+  run_test(test_a_load_puts_the_first_byte_in_the_first_lane, "test_a_load_puts_the_first_byte_in_the_first_lane", 470);
 
   return UNITY_END();
 }

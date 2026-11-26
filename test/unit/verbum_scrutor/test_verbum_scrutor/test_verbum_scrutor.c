@@ -2,7 +2,7 @@
 
 #include "unity.h"
 
-static embed_word all(uint8_t c)
+static embed_word byte_in_every_lane(uint8_t c)
 {
     return (embed_word)(MMGR_SWAR_ONES * (embed_word)c);
 }
@@ -68,7 +68,7 @@ void test_ge_and_le_against_a_scalar_loop(void)
     {
         for (uint32_t v = 0; v < 0x80u; v++)
         {
-            const embed_word w = all((uint8_t)v);
+            const embed_word w = byte_in_every_lane((uint8_t)v);
 
             TEST_ASSERT_EQUAL_INT_MESSAGE(v >= t, EMBED_CALL(lane.ge, ScrutLaneCfg, .word = w, .byte = (uint8_t)t) != 0,
                                           "ge disagrees with >=");
@@ -99,7 +99,8 @@ void test_sub7_is_a_per_lane_difference(void)
     {
         for (uint32_t lo = 0; lo < 256u; lo += 17u)
         {
-            const embed_word got = EMBED_CALL(lane.sub7, ScrutLaneCfg, .word = all((uint8_t)v), .byte = (uint8_t)lo);
+            const embed_word got =
+                EMBED_CALL(lane.sub7, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)v), .byte = (uint8_t)lo);
             const uint32_t want = (v - lo) & 0x7Fu;
             TEST_ASSERT_EQUAL_HEX8_MESSAGE((uint8_t)want, (uint8_t)(got & 0xFFu), "sub7 disagrees with a scalar -");
         }
@@ -122,7 +123,8 @@ void test_spread_fills_a_lane_from_its_high_bit(void)
 void test_has_zero_finds_a_zero_lane_and_only_a_zero_lane(void)
 {
     TEST_ASSERT_TRUE(EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = 0u) != 0u);
-    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0u, (uint64_t)EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = all(1u)),
+    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0u,
+                                    (uint64_t)EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = byte_in_every_lane(1u)),
                                     "a word with no zero lane reported one");
 
     for (size_t i = 0; i < MMGR_SWAR_BYTES; i++)
@@ -157,8 +159,8 @@ void test_eq_finds_a_byte_at_every_lane(void)
 
 void test_eq_ignoring_case_matches_either_case(void)
 {
-    const embed_word upper = all((uint8_t)'A');
-    const embed_word lower = all((uint8_t)'a');
+    const embed_word upper = byte_in_every_lane((uint8_t)'A');
+    const embed_word lower = byte_in_every_lane((uint8_t)'a');
 
     TEST_ASSERT_EQUAL_size_t(MMGR_SWAR_BYTES, lanes(EMBED_CALL(lane.eq, ScrutLaneCfg, .word = upper,
                                                                .byte = (uint8_t)'a', .ci = EMBED_TRUE)));
@@ -168,25 +170,27 @@ void test_eq_ignoring_case_matches_either_case(void)
         0u, lanes(EMBED_CALL(lane.eq, ScrutLaneCfg, .word = upper, .byte = (uint8_t)'a', .ci = EMBED_FALSE)),
         "matching case must not fold");
 
-    TEST_ASSERT_EQUAL_size_t_MESSAGE(
-        0u, lanes(EMBED_CALL(lane.eq, ScrutLaneCfg, .word = all((uint8_t)'{'), .byte = (uint8_t)'[', .ci = EMBED_TRUE)),
-        "the fold leaked past the characters");
+    TEST_ASSERT_EQUAL_size_t_MESSAGE(0u,
+                                     lanes(EMBED_CALL(lane.eq, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'{'),
+                                                      .byte = (uint8_t)'[', .ci = EMBED_TRUE)),
+                                     "the fold leaked past the characters");
 }
 
 void test_xor_reports_the_lanes_that_differ(void)
 {
-    TEST_ASSERT_EQUAL_HEX64(
-        0u, (uint64_t)EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = all(0x41u), .val = all(0x41u), .ci = EMBED_FALSE));
-    TEST_ASSERT_TRUE(EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = all(0x41u), .val = all(0x42u), .ci = EMBED_FALSE) !=
-                     0u);
+    TEST_ASSERT_EQUAL_HEX64(0u, (uint64_t)EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = byte_in_every_lane(0x41u),
+                                                     .val = byte_in_every_lane(0x41u), .ci = EMBED_FALSE));
+    TEST_ASSERT_TRUE(EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = byte_in_every_lane(0x41u),
+                                .val = byte_in_every_lane(0x42u), .ci = EMBED_FALSE) != 0u);
 
-    TEST_ASSERT_EQUAL_HEX64_MESSAGE(
-        0u, (uint64_t)EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = all(0x41u), .val = all(0x61u), .ci = EMBED_TRUE),
-        "a case difference is no difference once case stops counting");
-    TEST_ASSERT_TRUE(EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = all(0x41u), .val = all(0x61u), .ci = EMBED_FALSE) !=
-                     0u);
-    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = all((uint8_t)'1'), .val = all((uint8_t)'2'),
-                                        .ci = EMBED_TRUE) != 0u,
+    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0u,
+                                    (uint64_t)EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = byte_in_every_lane(0x41u),
+                                                         .val = byte_in_every_lane(0x61u), .ci = EMBED_TRUE),
+                                    "a case difference is no difference once case stops counting");
+    TEST_ASSERT_TRUE(EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = byte_in_every_lane(0x41u),
+                                .val = byte_in_every_lane(0x61u), .ci = EMBED_FALSE) != 0u);
+    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(lane.xor_, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'1'),
+                                        .val = byte_in_every_lane((uint8_t)'2'), .ci = EMBED_TRUE) != 0u,
                              "digits do not fold into each other");
 }
 
@@ -341,32 +345,37 @@ void test_lanes_before_drops_everything_from_the_first_hit_on(void)
 
 void test_fam_eq_selects_a_block(void)
 {
-    TEST_ASSERT_EQUAL_size_t(MMGR_SWAR_BYTES, lanes(EMBED_CALL(lane.fam_eq, ScrutLaneCfg, .word = all((uint8_t)'A'),
-                                                               .fam = MMGR_FAM_CS, .byte = 0x40u)));
-    TEST_ASSERT_EQUAL_size_t(
-        0u, lanes(EMBED_CALL(lane.fam_eq, ScrutLaneCfg, .word = all((uint8_t)'a'), .fam = MMGR_FAM_CS, .byte = 0x40u)));
+    TEST_ASSERT_EQUAL_size_t(MMGR_SWAR_BYTES,
+                             lanes(EMBED_CALL(lane.fam_eq, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'A'),
+                                              .byte = 0x40u, .fam = MMGR_FAM_CS)));
+    TEST_ASSERT_EQUAL_size_t(0u, lanes(EMBED_CALL(lane.fam_eq, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'a'),
+                                                  .byte = 0x40u, .fam = MMGR_FAM_CS)));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(
         MMGR_SWAR_BYTES,
-        lanes(EMBED_CALL(lane.fam_eq, ScrutLaneCfg, .word = all((uint8_t)'a'), .fam = MMGR_FAM_CI, .byte = 0x40u)),
+        lanes(EMBED_CALL(lane.fam_eq, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'a'), .byte = 0x40u,
+                         .fam = MMGR_FAM_CI)),
         "the case insensitive mask ignores the bit that tells the two blocks apart");
 }
 
 void test_any_upper_is_a_gate_and_not_a_test(void)
 {
-    TEST_ASSERT_TRUE(EMBED_CALL(lane.any_upper, ScrutLaneCfg, .word = all((uint8_t)'A')) != 0u);
-    TEST_ASSERT_EQUAL_HEX64_MESSAGE(0u, (uint64_t)EMBED_CALL(lane.any_upper, ScrutLaneCfg, .word = all((uint8_t)'a')),
-                                    "a word of lower case has no upper case in it");
-    TEST_ASSERT_EQUAL_HEX64(0u, (uint64_t)EMBED_CALL(lane.any_upper, ScrutLaneCfg, .word = all((uint8_t)'0')));
+    TEST_ASSERT_TRUE(EMBED_CALL(lane.any_upper, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'A')) != 0u);
+    TEST_ASSERT_EQUAL_HEX64_MESSAGE(
+        0u, (uint64_t)EMBED_CALL(lane.any_upper, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'a')),
+        "a word of lower case has no upper case in it");
+    TEST_ASSERT_EQUAL_HEX64(
+        0u, (uint64_t)EMBED_CALL(lane.any_upper, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'0')));
 
-    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(lane.any_upper, ScrutLaneCfg, .word = all((uint8_t)'_')) != 0u,
+    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(lane.any_upper, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'_')) != 0u,
                              "the gate is meant to be a superset");
 }
 
 void test_any_digit_is_a_gate_and_not_a_test(void)
 {
-    TEST_ASSERT_TRUE(EMBED_CALL(lane.any_digit, ScrutLaneCfg, .word = all((uint8_t)'5')) != 0u);
-    TEST_ASSERT_EQUAL_HEX64(0u, (uint64_t)EMBED_CALL(lane.any_digit, ScrutLaneCfg, .word = all((uint8_t)'a')));
-    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(lane.any_digit, ScrutLaneCfg, .word = all((uint8_t)';')) != 0u,
+    TEST_ASSERT_TRUE(EMBED_CALL(lane.any_digit, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'5')) != 0u);
+    TEST_ASSERT_EQUAL_HEX64(
+        0u, (uint64_t)EMBED_CALL(lane.any_digit, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'a')));
+    TEST_ASSERT_TRUE_MESSAGE(EMBED_CALL(lane.any_digit, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)';')) != 0u,
                              "the gate is meant to be a superset");
 }
 
@@ -375,13 +384,16 @@ void test_alpha_is_exact_where_the_gates_are_not(void)
     for (uint32_t c = 0; c < 128u; c++)
     {
         const int want = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
-        const int got = EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = all((uint8_t)c)) != 0u;
+        const int got = EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)c)) != 0u;
         TEST_ASSERT_EQUAL_INT_MESSAGE(want, got, "alpha disagrees with a scalar range check");
     }
 
-    TEST_ASSERT_EQUAL_HEX64(0u, (uint64_t)EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = all((uint8_t)'_')));
-    TEST_ASSERT_EQUAL_HEX64(0u, (uint64_t)EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = all((uint8_t)'{')));
-    TEST_ASSERT_EQUAL_HEX64(0u, (uint64_t)EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = all((uint8_t)'@')));
+    TEST_ASSERT_EQUAL_HEX64(0u,
+                            (uint64_t)EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'_')));
+    TEST_ASSERT_EQUAL_HEX64(0u,
+                            (uint64_t)EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'{')));
+    TEST_ASSERT_EQUAL_HEX64(0u,
+                            (uint64_t)EMBED_CALL(lane.alpha, ScrutLaneCfg, .word = byte_in_every_lane((uint8_t)'@')));
 }
 
 void test_fold_lower_touches_characters_and_nothing_else(void)
@@ -389,7 +401,7 @@ void test_fold_lower_touches_characters_and_nothing_else(void)
     for (uint32_t c = 0; c < 256u; c++)
     {
         const uint32_t want = (c >= 'A' && c <= 'Z') ? (c | 0x20u) : c;
-        const embed_word got = EMBED_CALL(word.fold_lower, ScrutWordCfg, .word = all((uint8_t)c));
+        const embed_word got = EMBED_CALL(word.fold_lower, ScrutWordCfg, .word = byte_in_every_lane((uint8_t)c));
         TEST_ASSERT_EQUAL_HEX8_MESSAGE((uint8_t)want, (uint8_t)(got & 0xFFu),
                                        "the fold changed a byte it had no business changing");
     }
@@ -460,7 +472,7 @@ void test_load_reads_a_word_at_any_alignment(void)
 
 void test_load_al_reads_a_word_from_an_aligned_address(void)
 {
-    _Alignas(8) static const char text[16] = "0123456789abcde";
+    EMBED_ALIGN(8u) static const char text[16] = "0123456789abcde";
 
     TEST_ASSERT_EQUAL_HEX64((uint64_t)EMBED_CALL(word.load, ScrutWordCfg, .at = text),
                             (uint64_t)EMBED_CALL(word.load_al, ScrutWordCfg, .at = text));

@@ -111,12 +111,13 @@ void test_endian_entries_agree_with_the_wire_writer(void)
     uint8_t viaendian[8];
 
     EMBED_CALL(byteio.put_be, OctetusCfg, .write_span = &w, .value = (uint64_t)0xDEADBEEFu, .bytes = (size_t)4);
-    magna_extremitas.wr(&(EndianCfg){viaendian, 0, 0xDEADBEEFu, MMGR_ENDIAN_32});
+    EMBED_CALL(magna_extremitas.wr, EndianCfg, viaendian, 0, 0xDEADBEEFu, MMGR_ENDIAN_32);
 
     TEST_ASSERT_EQUAL_INT_MESSAGE(0,
                                   EMBED_CALL(memor.cmp, MemoriaCfg, .src = mem, .other = viaendian, .bytes = (size_t)4),
                                   "two ways of writing the same field must produce the same bytes");
-    TEST_ASSERT_EQUAL_HEX32(0xDEADBEEFu, (uint32_t)magna_extremitas.rd(&(EndianCfg){0, mem, 0, MMGR_ENDIAN_32}));
+    TEST_ASSERT_EQUAL_HEX32(0xDEADBEEFu,
+                            (uint32_t)EMBED_CALL(magna_extremitas.rd, EndianCfg, 0, mem, 0, MMGR_ENDIAN_32));
 }
 
 void test_a_field_past_the_end_latches_rather_than_writing(void)
