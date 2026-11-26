@@ -306,7 +306,7 @@ typedef struct
  *       definition as a weak external that ld does not resolve from another unit. A weak definition
  *       beside its call resolves on every linker this library builds with.
  */
-uint16_t praet_hw_progress(embed_word channel);
+EMBED_HOST_DEVICE uint16_t praet_hw_progress(embed_word channel);
 
 /**
  * @brief Clears a context back to every channel detached.
@@ -316,7 +316,7 @@ uint16_t praet_hw_progress(embed_word channel);
  * @warning Leaves the boundary word answer alone. That came from the declaration and is not state a
  *          reset has any business with.
  */
-void praet_ordo_reset(PraetOrdo *context);
+EMBED_HOST_DEVICE void praet_ordo_reset(PraetOrdo *context);
 
 /**
  * @brief Attaches a channel over a block of bytes, claims its vector, and starts the settle timer.
@@ -340,8 +340,8 @@ void praet_ordo_reset(PraetOrdo *context);
  * @warning Two channels may attach over one block, and nothing here reports it. Which of them
  *          runs when is the caller's plan, and this library does not have it.
  */
-embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t *bound, embed_word bytes,
-                                embed_word region);
+EMBED_HOST_DEVICE embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t *bound,
+                                                  embed_word bytes, embed_word region);
 
 /**
  * @brief Attaches a channel over a declared pool, by name.
@@ -421,7 +421,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
  * @note A second request against a channel already in detach changes nothing. Hardware teardown
  *       writes the disable and polls the busy bit, and so a second call is the normal path.
  */
-void praet_ordo_separare(PraetOrdo *context, embed_word channel);
+EMBED_HOST_DEVICE void praet_ordo_separare(PraetOrdo *context, embed_word channel);
 
 #if PRAET_RECOVERY
 
@@ -447,7 +447,8 @@ void praet_ordo_separare(PraetOrdo *context, embed_word channel);
  *          that before anything runs, with the pool's own extent to compare against. A direct call
  *          here with numbers nobody checked is how a transfer runs off the end.
  */
-embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word offset, embed_word length);
+EMBED_HOST_DEVICE embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word offset,
+                                                embed_word length);
 
 /**
  * @brief Fails the build when a span runs past the pool it names.
@@ -487,7 +488,7 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word
  *       again has no stall.
  * @note Says nothing about the end of the transfer. praet_ordo_completed reports that.
  */
-void praet_ordo_efficere(PraetOrdo *context, embed_word channel, embed_word position);
+EMBED_HOST_DEVICE void praet_ordo_efficere(PraetOrdo *context, embed_word channel, embed_word position);
 
 /**
  * @brief Returns how far a channel's transfer has got.
@@ -499,7 +500,7 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel, embed_word posi
  *       [start, start + position) hold writes and the rest do not. A caller needs exactly this to
  *       back a stalled transfer out, or to zero exactly the touched bytes instead of the whole buffer.
  */
-embed_word praet_ordo_situs(const PraetOrdo *context, embed_word channel);
+EMBED_HOST_DEVICE embed_word praet_ordo_situs(const PraetOrdo *context, embed_word channel);
 
 /**
  * @brief Returns the max bytes a stalled transfer wrote, rounded up to a whole word.
@@ -513,7 +514,7 @@ embed_word praet_ordo_situs(const PraetOrdo *context, embed_word channel);
  *       caller that has to remember it.
  * @note This is the number to scrub. praet_ordo_situs is the sample itself.
  */
-embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel);
+EMBED_HOST_DEVICE embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel);
 
 /**
  * @brief Returns the checksum of the word a recovery found the engine inside.
@@ -527,7 +528,7 @@ embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel)
  *       it can say what the boundary word now contains and not whether that matches the intent. The
  *       compare of the two is the caller's, the only place both are at hand.
  */
-uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel);
+EMBED_HOST_DEVICE uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel);
 
 #else
 
@@ -542,7 +543,7 @@ uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel);
  * @warning Refuses a channel in its settle, already busy, in detach, or not attached. Fails
  *          closed: a refused submit changes no state.
  */
-embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel);
+EMBED_HOST_DEVICE embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel);
 
 /**
  * @brief Fails the build when a span runs past the pool it names.
@@ -572,7 +573,7 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel);
  * @note Pushes the keepalive window out and clears a recorded stall, because a channel that moves
  *       again has no stall.
  */
-void praet_ordo_efficere(PraetOrdo *context, embed_word channel);
+EMBED_HOST_DEVICE void praet_ordo_efficere(PraetOrdo *context, embed_word channel);
 
 #endif
 
@@ -613,7 +614,7 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel);
  * @note Completion arrives from the port and never from a timer. A timer that decides a transfer
  *       ended would be this library's guess at hardware.
  */
-void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool failed);
+EMBED_HOST_DEVICE void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool failed);
 
 #if PRAET_RECOVERY
 
@@ -631,7 +632,7 @@ void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool fai
  * @warning Refuses a channel with no stall. Fails closed: state is only ever unknown after the
  *          watchdog said so, and a resolution of a healthy channel would throw a live transfer away.
  */
-embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word recovery);
+EMBED_HOST_DEVICE embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word recovery);
 
 #endif
 
@@ -643,7 +644,7 @@ embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word
  * @note Raises set, because the passage of time is one of the things that changes what a service
  *       call would find. A keepalive window can elapse with nothing else at all.
  */
-void praet_ordo_advance(PraetOrdo *context, embed_word micros);
+EMBED_HOST_DEVICE void praet_ordo_advance(PraetOrdo *context, embed_word micros);
 
 /**
  * @brief Advances the clock by @p ticks, scaled against the declared frequency.
@@ -657,7 +658,7 @@ void praet_ordo_advance(PraetOrdo *context, embed_word micros);
  *          this one tick at a time on a fast clock never advances anything. For that reason a port
  *          reads the counter and passes the difference instead of a count of calls.
  */
-void praet_ordo_advance_ticks(PraetOrdo *context, embed_word ticks);
+EMBED_HOST_DEVICE void praet_ordo_advance_ticks(PraetOrdo *context, embed_word ticks);
 
 /**
  * @brief Is in for the interrupt that raises the set volatile.
@@ -667,7 +668,7 @@ void praet_ordo_advance_ticks(PraetOrdo *context, embed_word ticks);
  *       exactly one reader and a raise of a raised flag is a no-op. Nothing counts and nothing
  *       waits in line.
  */
-void praet_ordo_raise(PraetOrdo *context);
+EMBED_HOST_DEVICE void praet_ordo_raise(PraetOrdo *context);
 
 /**
  * @brief Drives the port and brings every flag word up to date. The caller's poll.
@@ -690,7 +691,7 @@ void praet_ordo_raise(PraetOrdo *context);
  * @note Every state change a channel undergoes goes through here, as puts all of the
  *       access control in one function. That fell out of the lock: one reader means one place.
  */
-void praet_ordo_poll(PraetOrdo *context);
+EMBED_HOST_DEVICE void praet_ordo_poll(PraetOrdo *context);
 
 /**
  * @brief Returns one channel's flag word.
@@ -700,7 +701,7 @@ void praet_ordo_poll(PraetOrdo *context);
  * @return            The whole word: quaternary core at the bottom, statuses and region above.
  * @note One load. To know a channel is idle needs no wait for a callback.
  */
-uint32_t praet_ordo_flags(const PraetOrdo *context, embed_word channel);
+EMBED_HOST_DEVICE uint32_t praet_ordo_flags(const PraetOrdo *context, embed_word channel);
 
 EMBED_END_DECLS
 

@@ -158,7 +158,7 @@ EMBED_TABLE_LAYOUT(FractioNs, sign, exp, mant, merge, from_bits, to_bits);
  * @note The bit reads as stored, and nothing else counts. A negative zero answers 1, and so
  *       does a NaN with the sign.
  */
-embed_u64 mmgr_fract_sign(const FractioCfg *args);
+EMBED_HOST_DEVICE embed_u64 mmgr_fract_sign(const FractioCfg *args);
 
 /**
  * @brief Returns the exponent field of args->bits.
@@ -167,7 +167,7 @@ embed_u64 mmgr_fract_sign(const FractioCfg *args);
  * @return         The stored exponent, with MMGR_DBL_BIAS still in it.
  * @note 0 marks a zero or subnormal. MMGR_DBL_EXP_ALL marks an infinity or NaN.
  */
-embed_u64 mmgr_fract_exp(const FractioCfg *args);
+EMBED_HOST_DEVICE embed_u64 mmgr_fract_exp(const FractioCfg *args);
 
 /**
  * @brief Returns the mantissa field of args->bits.
@@ -177,7 +177,7 @@ embed_u64 mmgr_fract_exp(const FractioCfg *args);
  * @note The leading one is implicit only where the exponent field is nonzero. A zero or a subnormal
  *       has none, and there these fifty-two bits are the whole mantissa.
  */
-embed_u64 mmgr_fract_mant(const FractioCfg *args);
+EMBED_HOST_DEVICE embed_u64 mmgr_fract_mant(const FractioCfg *args);
 
 /**
  * @brief Packs args->sign, args->exp and args->mant into one bit pattern.
@@ -189,7 +189,7 @@ embed_u64 mmgr_fract_mant(const FractioCfg *args);
  *          exponent above MMGR_DBL_EXP_ALL or a mantissa above MMGR_DBL_MANT_MASK retains only its low
  *          bits.
  */
-embed_u64 mmgr_fract_merge(const FractioCfg *args);
+EMBED_HOST_DEVICE embed_u64 mmgr_fract_merge(const FractioCfg *args);
 
 /**
  * @brief Reads the union as a double.
@@ -197,7 +197,7 @@ embed_u64 mmgr_fract_merge(const FractioCfg *args);
  * @param[in] args Union with its bits member filled [BORROWS].
  * @return         The same storage interpreted as a double.
  */
-double mmgr_fract_from_bits(const FractioCfg *args);
+EMBED_HOST_DEVICE double mmgr_fract_from_bits(const FractioCfg *args);
 
 /**
  * @brief Reads the union as a bit pattern.
@@ -205,7 +205,7 @@ double mmgr_fract_from_bits(const FractioCfg *args);
  * @param[in] args Union with its val member filled [BORROWS].
  * @return         The same storage interpreted as embed_u64.
  */
-embed_u64 mmgr_fract_to_bits(const FractioCfg *args);
+EMBED_HOST_DEVICE embed_u64 mmgr_fract_to_bits(const FractioCfg *args);
 
 /**
  * @brief Dispatch table instance named fract, whose members are the mmgr_fract_ entries.

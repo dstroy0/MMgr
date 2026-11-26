@@ -36,7 +36,7 @@ typedef struct
  * @param[in] args Bit pattern to read [BORROWS].
  * @return         0 for a positive value, 1 for a negative one.
  */
-EMBED_INLINE embed_u64 fract_sign(const FractioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_u64 fract_sign(const FractioCtx *args)
 {
     return (args->bits & MMGR_DBL_SIGN_MASK) >> MMGR_DBL_SIGN_SHIFT;
 }
@@ -48,7 +48,7 @@ EMBED_INLINE embed_u64 fract_sign(const FractioCtx *args)
  * @return         The stored exponent, with MMGR_DBL_BIAS not yet removed.
  * @note 0 marks a zero or subnormal. MMGR_DBL_EXP_ALL marks an infinity or NaN.
  */
-EMBED_INLINE embed_u64 fract_exp(const FractioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_u64 fract_exp(const FractioCtx *args)
 {
     return (args->bits & MMGR_DBL_EXP_MASK) >> MMGR_DBL_MANT_BITS;
 }
@@ -59,7 +59,7 @@ EMBED_INLINE embed_u64 fract_exp(const FractioCtx *args)
  * @param[in] args Bit pattern to read [BORROWS].
  * @return         The stored mantissa alone.
  */
-EMBED_INLINE embed_u64 fract_mant(const FractioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_u64 fract_mant(const FractioCtx *args)
 {
     return args->bits & MMGR_DBL_MANT_MASK;
 }
@@ -71,7 +71,7 @@ EMBED_INLINE embed_u64 fract_mant(const FractioCtx *args)
  * @return         The assembled bit pattern.
  * @note Each field cuts to its own width first. A wide input cannot reach a neighbor.
  */
-EMBED_INLINE embed_u64 fract_merge(const FractioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_u64 fract_merge(const FractioCtx *args)
 {
     return ((args->sign & MMGR_DBL_SIGN_ONE) << MMGR_DBL_SIGN_SHIFT) |
            ((args->exp & MMGR_DBL_EXP_ALL) << MMGR_DBL_MANT_BITS) | (args->mant & MMGR_DBL_MANT_MASK);
@@ -83,7 +83,7 @@ EMBED_INLINE embed_u64 fract_merge(const FractioCtx *args)
  * @param[in] args Union with the pattern [BORROWS].
  * @return         The same storage read as a double.
  */
-EMBED_INLINE double fract_from_bits(const FractioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE double fract_from_bits(const FractioCtx *args)
 {
     return args->val;
 }
@@ -94,7 +94,7 @@ EMBED_INLINE double fract_from_bits(const FractioCtx *args)
  * @param[in] args Union with the value [BORROWS].
  * @return         The same storage read as a bit pattern.
  */
-EMBED_INLINE embed_u64 fract_to_bits(const FractioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_u64 fract_to_bits(const FractioCtx *args)
 {
     return args->bits;
 }

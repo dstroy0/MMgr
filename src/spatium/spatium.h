@@ -124,7 +124,7 @@ EMBED_TABLE_LAYOUT(SpatiumNs, from, cfrom, ok, cok, has_storage, reset, after, f
  *       unevaluated.
  * @warning The span carries args->buf away, so that buffer must outlive every use of the span [BORROWS].
  */
-mmgr_span mmgr_spat_from(const SpatiumCfg *args);
+EMBED_HOST_DEVICE mmgr_span mmgr_spat_from(const SpatiumCfg *args);
 
 /**
  * @brief Builds a read span over args->cbuf, with pos at 0 and err clear.
@@ -136,7 +136,7 @@ mmgr_span mmgr_spat_from(const SpatiumCfg *args);
  *       or a zero cap still builds, and mmgr_spat_cok is what reports the span unusable.
  * @warning The span carries args->cbuf away, so that buffer must outlive every use of the span [BORROWS].
  */
-mmgr_cspan mmgr_spat_cfrom(const SpatiumCfg *args);
+EMBED_HOST_DEVICE mmgr_cspan mmgr_spat_cfrom(const SpatiumCfg *args);
 
 /**
  * @brief Returns whether args->span has storage and has not overflowed.
@@ -144,7 +144,7 @@ mmgr_cspan mmgr_spat_cfrom(const SpatiumCfg *args);
  * @param[in] args Span to test, as args->span [BORROWS].
  * @return         EMBED_TRUE when the span is still usable.
  */
-embed_bool mmgr_spat_ok(const SpatiumCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_spat_ok(const SpatiumCfg *args);
 
 /**
  * @brief Returns whether args->cspan has storage and recorded no error.
@@ -152,7 +152,7 @@ embed_bool mmgr_spat_ok(const SpatiumCfg *args);
  * @param[in] args Read span to test, as args->cspan [BORROWS].
  * @return         EMBED_TRUE when the span is still usable.
  */
-embed_bool mmgr_spat_cok(const SpatiumCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_spat_cok(const SpatiumCfg *args);
 
 /**
  * @brief Returns whether args->span covers any bytes at all.
@@ -160,7 +160,7 @@ embed_bool mmgr_spat_cok(const SpatiumCfg *args);
  * @param[in] args Span to test, as args->span [BORROWS].
  * @return         EMBED_TRUE when buf is not NULL and cap is not 0.
  */
-embed_bool mmgr_spat_has_storage(const SpatiumCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_spat_has_storage(const SpatiumCfg *args);
 
 /**
  * @brief Returns the span at args->at to its start and clears its overflow.
@@ -171,7 +171,7 @@ embed_bool mmgr_spat_has_storage(const SpatiumCfg *args);
  * @warning The write through args->at has no check of its own, and so it must point at a live span. The
  *          const on the pack covers the pack, not the span at the far end of at.
  */
-void mmgr_spat_reset(const SpatiumCfg *args);
+EMBED_HOST_DEVICE void mmgr_spat_reset(const SpatiumCfg *args);
 
 /**
  * @brief Returns the span that begins args->count bytes into args->span.
@@ -183,7 +183,7 @@ void mmgr_spat_reset(const SpatiumCfg *args);
  * @note An args->count of exactly cap gives an empty span that has not failed: nothing remains, but
  *       nothing went wrong either.
  */
-mmgr_span mmgr_spat_after(const SpatiumCfg *args);
+EMBED_HOST_DEVICE mmgr_span mmgr_spat_after(const SpatiumCfg *args);
 
 /**
  * @brief Returns the span that covers only the first args->count bytes of args->span.
@@ -193,7 +193,7 @@ mmgr_span mmgr_spat_after(const SpatiumCfg *args);
  * @note The span that comes back starts on the same byte args->span starts on [BORROWS], with a
  *       shorter cap over the same storage. A fill through one shows in a read through the other.
  */
-mmgr_span mmgr_spat_first(const SpatiumCfg *args);
+EMBED_HOST_DEVICE mmgr_span mmgr_spat_first(const SpatiumCfg *args);
 
 /**
  * @brief Returns a read span over everything written into args->span.
@@ -203,7 +203,7 @@ mmgr_span mmgr_spat_first(const SpatiumCfg *args);
  * @note The same step as mmgr_spat_read against span's own pos. That case cannot ask for
  *       more than the bytes written and so cannot fail on its own account.
  */
-mmgr_cspan mmgr_spat_produced(const SpatiumCfg *args);
+EMBED_HOST_DEVICE mmgr_cspan mmgr_spat_produced(const SpatiumCfg *args);
 
 /**
  * @brief Returns a read span over the first args->count bytes written into args->span.
@@ -214,7 +214,7 @@ mmgr_cspan mmgr_spat_produced(const SpatiumCfg *args);
  *          view and not the storage. A second fill of args->span moves what the reader sees, and so read it back
  *          before the next fill or copy the bytes out.
  */
-mmgr_cspan mmgr_spat_read(const SpatiumCfg *args);
+EMBED_HOST_DEVICE mmgr_cspan mmgr_spat_read(const SpatiumCfg *args);
 
 /**
  * @brief Dispatch table instance named spat, with each member set to its mmgr_spat_ function.

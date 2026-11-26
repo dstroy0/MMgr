@@ -26,6 +26,7 @@
 # widths of one environment, and so building it against the others would assert a lane that was never
 # selected and fail for the right reason at the wrong target.
 
+
 # floor and the rest of <math.h> live in a separate libm on glibc, which a link reaches only when
 # asked. MinGW folds them into its C runtime, and so the Windows host links without this.
 find_library(MMGR_LIBM m)
@@ -79,6 +80,11 @@ function(mmgr_add_suite suite_name)
             COMPILE_DEFINITIONS "_POSIX_C_SOURCE=200809L;_DEFAULT_SOURCE=1")
         set_source_files_properties("${MMGR_TEST_ROOT}/support/host_wait.c" PROPERTIES
             COMPILE_DEFINITIONS "_GNU_SOURCE=1")
+    endif()
+    # guard_page.c holds its flags in C11 _Atomic objects, and cl takes _Atomic only behind this switch
+    if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+        set_source_files_properties("${MMGR_TEST_ROOT}/support/guard_page.c" PROPERTIES
+            COMPILE_OPTIONS "/experimental:c11atomics")
     endif()
 
     foreach(entry IN LISTS MMGR_ENVIRONMENTS)

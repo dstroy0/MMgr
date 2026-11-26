@@ -69,7 +69,7 @@ EMBED_TABLE_LAYOUT(ProximusOperorNs, load16, load32, load64, put16, put32, put64
  * @return         The two bytes as a uint16_t.
  * @warning args->at must be readable for two bytes, at any alignment.
  */
-uint16_t mmgr_proxim_load16(const ProximusCfg *args);
+EMBED_HOST_DEVICE uint16_t mmgr_proxim_load16(const ProximusCfg *args);
 
 /**
  * @brief Reads four bytes from args->at in the target's own order.
@@ -78,7 +78,7 @@ uint16_t mmgr_proxim_load16(const ProximusCfg *args);
  * @return         The four bytes as a uint32_t.
  * @warning args->at must be readable for four bytes, at any alignment.
  */
-uint32_t mmgr_proxim_load32(const ProximusCfg *args);
+EMBED_HOST_DEVICE uint32_t mmgr_proxim_load32(const ProximusCfg *args);
 
 /**
  * @brief Reads eight bytes from args->at in the target's own order.
@@ -87,7 +87,7 @@ uint32_t mmgr_proxim_load32(const ProximusCfg *args);
  * @return         The eight bytes as a uint64_t.
  * @warning args->at must be readable for eight bytes, at any alignment.
  */
-uint64_t mmgr_proxim_load64(const ProximusCfg *args);
+EMBED_HOST_DEVICE uint64_t mmgr_proxim_load64(const ProximusCfg *args);
 
 /**
  * @brief Writes the low two bytes of args->val to args->dst in the target's own order.
@@ -96,7 +96,7 @@ uint64_t mmgr_proxim_load64(const ProximusCfg *args);
  * @note The upper six bytes of args->val take no part.
  * @warning args->dst must be writable for two bytes, at any alignment.
  */
-void mmgr_proxim_put16(const ProximusCfg *args);
+EMBED_HOST_DEVICE void mmgr_proxim_put16(const ProximusCfg *args);
 
 /**
  * @brief Writes the low four bytes of args->val to args->dst in the target's own order.
@@ -105,7 +105,7 @@ void mmgr_proxim_put16(const ProximusCfg *args);
  * @note The upper four bytes of args->val take no part.
  * @warning args->dst must be writable for four bytes, at any alignment.
  */
-void mmgr_proxim_put32(const ProximusCfg *args);
+EMBED_HOST_DEVICE void mmgr_proxim_put32(const ProximusCfg *args);
 
 /**
  * @brief Writes all eight bytes of args->val to args->dst in the target's own order.
@@ -113,7 +113,7 @@ void mmgr_proxim_put32(const ProximusCfg *args);
  * @param[in] args Destination and value [BORROWS].
  * @warning args->dst must be writable for eight bytes, at any alignment.
  */
-void mmgr_proxim_put64(const ProximusCfg *args);
+EMBED_HOST_DEVICE void mmgr_proxim_put64(const ProximusCfg *args);
 
 /**
  * @brief Reads one word from args->at in the target's own order.
@@ -122,7 +122,7 @@ void mmgr_proxim_put64(const ProximusCfg *args);
  * @return         The bytes as an embed_word.
  * @warning args->at must be readable for a whole embed_word, at any alignment.
  */
-embed_word mmgr_proxim_load(const ProximusCfg *args);
+EMBED_HOST_DEVICE embed_word mmgr_proxim_load(const ProximusCfg *args);
 
 /**
  * @brief Writes the low word of args->val to args->dst in the target's own order.
@@ -130,7 +130,7 @@ embed_word mmgr_proxim_load(const ProximusCfg *args);
  * @param[in] args Destination and value [BORROWS].
  * @warning args->dst must be writable for a whole embed_word, at any alignment.
  */
-void mmgr_proxim_put(const ProximusCfg *args);
+EMBED_HOST_DEVICE void mmgr_proxim_put(const ProximusCfg *args);
 
 /**
  * @brief Reads one word from an aligned args->at, in the target's own order.
@@ -140,7 +140,7 @@ void mmgr_proxim_put(const ProximusCfg *args);
  * @note Reaches the same bytes as mmgr_proxim_load, through a type that retains embed_word's alignment.
  * @warning args->at must be readable for a whole embed_word and aligned for one.
  */
-embed_word mmgr_aequus_load(const ProximusCfg *args);
+EMBED_HOST_DEVICE embed_word mmgr_aequus_load(const ProximusCfg *args);
 
 /**
  * @brief Writes the low word of args->val to an aligned args->dst.
@@ -149,7 +149,7 @@ embed_word mmgr_aequus_load(const ProximusCfg *args);
  * @note Reaches the same bytes as mmgr_proxim_put, through a type that retains embed_word's alignment.
  * @warning args->dst must be writable for a whole embed_word and aligned for one.
  */
-void mmgr_aequus_put(const ProximusCfg *args);
+EMBED_HOST_DEVICE void mmgr_aequus_put(const ProximusCfg *args);
 
 /**
  * @brief Reads eight bytes from an aligned args->at, in the target's own order.
@@ -159,7 +159,7 @@ void mmgr_aequus_put(const ProximusCfg *args);
  * @note Reaches the same bytes as mmgr_proxim_load64, through a type that retains uint64_t's alignment.
  * @warning args->at must be readable for eight bytes and aligned for a uint64_t.
  */
-uint64_t mmgr_aequus_load64(const ProximusCfg *args);
+EMBED_HOST_DEVICE uint64_t mmgr_aequus_load64(const ProximusCfg *args);
 
 /**
  * @brief Writes all eight bytes of args->val to an aligned args->dst.
@@ -168,7 +168,7 @@ uint64_t mmgr_aequus_load64(const ProximusCfg *args);
  * @note Reaches the same bytes as mmgr_proxim_put64, through a type that retains uint64_t's alignment.
  * @warning args->dst must be writable for eight bytes and aligned for a uint64_t.
  */
-void mmgr_aequus_put64(const ProximusCfg *args);
+EMBED_HOST_DEVICE void mmgr_aequus_put64(const ProximusCfg *args);
 
 /**
  * @brief Copies args->size bytes from args->at to args->dst.
@@ -178,7 +178,7 @@ void mmgr_aequus_put64(const ProximusCfg *args);
  * @note This is the only entry that reads args->size.
  * @warning Copies forward. An args->dst above args->at within one region would read bytes it has already written.
  */
-void mmgr_proxim_read(const ProximusCfg *args);
+EMBED_HOST_DEVICE void mmgr_proxim_read(const ProximusCfg *args);
 
 /**
  * @brief Dispatch table instance named proxim.

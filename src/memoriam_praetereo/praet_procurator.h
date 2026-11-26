@@ -93,7 +93,7 @@ EMBED_BEGIN_DECLS
  * @note Records the core transition as a pair, and every status bit that came on or went off. A word
  *       that changed only its region descriptor records neither, and nothing here reads the region.
  */
-void praet_procurator_transitus(embed_word channel, uint32_t was, uint32_t now);
+EMBED_HOST_DEVICE void praet_procurator_transitus(embed_word channel, uint32_t was, uint32_t now);
 
 /**
  * @brief Prints what the run reached, as a table.
@@ -102,7 +102,7 @@ void praet_procurator_transitus(embed_word channel, uint32_t was, uint32_t now);
  *       on. A suite that fails still prints it, which is when it is worth max.
  * @note Prints the work the run did as well, where PRAET_OPTIMIZE is on.
  */
-void praet_procurator_report(void);
+EMBED_HOST_DEVICE void praet_procurator_report(void);
 
 EMBED_END_DECLS
 
@@ -157,7 +157,7 @@ typedef enum
  *
  * @param[in] type The work done, as a PraetOpus.
  */
-void praet_procurator_opus(unsigned type);
+EMBED_HOST_DEVICE void praet_procurator_opus(unsigned type);
 
 EMBED_END_DECLS
 

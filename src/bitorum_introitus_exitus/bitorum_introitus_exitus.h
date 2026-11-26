@@ -86,7 +86,7 @@ EMBED_TABLE_LAYOUT(BitorumIntroitusExitusNs, init, put, align);
  *          MMGR_DEBUG_CHECKS build, and a null out passes here. mmgr_bitor_put writes
  *          through it on the first whole byte.
  */
-mmgr_bitor mmgr_bitor_init(const BitorumCfg *args);
+EMBED_HOST_DEVICE mmgr_bitor mmgr_bitor_init(const BitorumCfg *args);
 
 /**
  * @brief Appends the low args->bit_count bits of args->val to args->writer.
@@ -100,7 +100,7 @@ mmgr_bitor mmgr_bitor_init(const BitorumCfg *args);
  *          MMGR_DEBUG_CHECKS build. A larger count writes zeros past the sixty-fourth bit and
  *          advances the writer as though they were data.
  */
-void mmgr_bitor_put(const BitorumCfg *args);
+EMBED_HOST_DEVICE void mmgr_bitor_put(const BitorumCfg *args);
 
 /**
  * @brief Writes the partial byte the writer still holds, padded with zeros above its bits.
@@ -112,7 +112,7 @@ void mmgr_bitor_put(const BitorumCfg *args);
  * @note It reads only args->writer.
  * @warning Sets the writer's overflow when the byte would pass its cap.
  */
-void mmgr_bitor_align(const BitorumCfg *args);
+EMBED_HOST_DEVICE void mmgr_bitor_align(const BitorumCfg *args);
 
 /**
  * @brief Dispatch table instance named bitio, with each member set to its mmgr_bitor_ function.

@@ -41,3 +41,10 @@ foreach(entry IN LISTS MMGR_ENVIRONMENTS)
   add_library(mmgr_${env} INTERFACE)
   target_link_libraries(mmgr_${env} INTERFACE ${_mods})
 endforeach()
+
+# The device aggregate, for the same reason, where MMGR_DEVICE builds the modules for the GPU
+if(MMGR_DEVICE)
+  get_property(_mods GLOBAL PROPERTY MMGR_TARGETS_device)
+  add_library(mmgr_device INTERFACE)
+  target_link_libraries(mmgr_device INTERFACE ${_mods})
+endif()

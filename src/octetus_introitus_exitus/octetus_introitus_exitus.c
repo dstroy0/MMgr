@@ -64,7 +64,7 @@ typedef struct
  * @warning A checks build that defines its own MMGR_ASSERT must stop the program on a failure. The checks build
  *          has no latch, and an MMGR_ASSERT that returns lets the write go past the end.
  */
-EMBED_INLINE uint8_t *byteio_claim(mmgr_span *write_span, size_t bytes)
+EMBED_HOST_DEVICE EMBED_INLINE uint8_t *byteio_claim(mmgr_span *write_span, size_t bytes)
 {
     const size_t at = write_span->pos;
 
@@ -99,7 +99,7 @@ EMBED_INLINE uint8_t *byteio_claim(mmgr_span *write_span, size_t bytes)
  *       read. byteio_put, byteio_raw and byteio_put_be return nothing, because the span latches its
  *       own failure and leaves no answer to act on.
  */
-EMBED_INLINE const uint8_t *byteio_take(mmgr_cspan *read_span, size_t bytes)
+EMBED_HOST_DEVICE EMBED_INLINE const uint8_t *byteio_take(mmgr_cspan *read_span, size_t bytes)
 {
     const size_t at = read_span->pos;
 
@@ -119,7 +119,7 @@ EMBED_INLINE const uint8_t *byteio_take(mmgr_cspan *read_span, size_t bytes)
  * @note byteio_claim asks whether the byte fits. It does not on a span with no room, and then the
  *       byte drops and the span's overflow stays set. See the warning there.
  */
-EMBED_INLINE void byteio_put(const ByteioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void byteio_put(const ByteioCtx *args)
 {
     uint8_t *const at = byteio_claim(args->write_span, 1u);
 
@@ -138,7 +138,7 @@ EMBED_INLINE void byteio_put(const ByteioCtx *args)
  *       room for them. It does not on a full span, and then nothing moves and the span's
  *       overflow stays set. See the warning there.
  */
-EMBED_INLINE void byteio_raw(const ByteioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void byteio_raw(const ByteioCtx *args)
 {
     uint8_t *const at = byteio_claim(args->write_span, args->bytes);
 
@@ -160,7 +160,7 @@ EMBED_INLINE void byteio_raw(const ByteioCtx *args)
  *       byteio_claim asks whether that many fit, and on a span with no room nothing goes out and
  *       the span's overflow stays set. See the warning there.
  */
-EMBED_INLINE void byteio_put_be(const ByteioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void byteio_put_be(const ByteioCtx *args)
 {
     uint8_t *at = byteio_claim(args->write_span, args->bytes);
 
@@ -213,7 +213,7 @@ EMBED_INLINE void byteio_put_be(const ByteioCtx *args)
  *       The entry writes args->out only on EMBED_TRUE. A span too short to answer is a fact about the
  *       input and not a wrong program. See byteio_take.
  */
-EMBED_INLINE embed_bool byteio_take_be(const ByteioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool byteio_take_be(const ByteioCtx *args)
 {
     const uint8_t *at = byteio_take(args->read_span, args->bytes);
 
@@ -273,7 +273,7 @@ EMBED_INLINE embed_bool byteio_take_be(const ByteioCtx *args)
  *          long as that buffer is [BORROWS]. Nothing here allocates and nothing frees. The entry
  *          writes args->blob and args->blob_bytes only on EMBED_TRUE.
  */
-EMBED_INLINE embed_bool byteio_rd_str(const ByteioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool byteio_rd_str(const ByteioCtx *args)
 {
     const size_t started_at = args->read_span->pos;
     uint64_t run_bytes = 0u;
@@ -310,7 +310,7 @@ EMBED_INLINE embed_bool byteio_rd_str(const ByteioCtx *args)
  * @note The zero fill covers only what lies ahead of the value, since the copy lands on the rest of
  *       the field exactly.
  */
-EMBED_INLINE embed_bool byteio_mpint_fixed(const ByteioCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool byteio_mpint_fixed(const ByteioCtx *args)
 {
     mmgr_span *const field = args->write_span;
     size_t leading_zeros = 0u;
@@ -333,7 +333,7 @@ EMBED_INLINE embed_bool byteio_mpint_fixed(const ByteioCtx *args)
     // exactly. A clear of that part first would store every byte of it twice
 
     // Explicit cast matches MemoriaCfg, where val is a single byte and bytes is a size_t count
-    EMBED_CALL(memor.set, MemoriaCfg, .dst = field->buf, .val = (uint8_t)0, .bytes = field->cap - value_bytes);
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = field->buf, .bytes = field->cap - value_bytes, .val = (uint8_t)0);
     EMBED_CALL(memor.cpy, MemoriaCfg, .dst = field->buf + (field->cap - value_bytes), .src = args->src + leading_zeros,
                .bytes = value_bytes);
     // The field fills whole with no append, and so the cursor ends at cap
@@ -371,6 +371,6 @@ EMBED_INLINE embed_bool byteio_mpint_fixed(const ByteioCtx *args)
 BYTEIO_ENTRY_V(put, .write_span = args->write_span, .byte = args->byte)
 BYTEIO_ENTRY_V(put_be, .write_span = args->write_span, .value = args->value, .bytes = args->bytes)
 BYTEIO_ENTRY_V(raw, .write_span = args->write_span, .src = args->src, .bytes = args->bytes)
-BYTEIO_ENTRY(embed_bool, take_be, .read_span = args->read_span, .bytes = args->bytes, .out = args->out)
+BYTEIO_ENTRY(embed_bool, take_be, .read_span = args->read_span, .out = args->out, .bytes = args->bytes)
 BYTEIO_ENTRY(embed_bool, rd_str, .read_span = args->read_span, .blob = args->blob, .blob_bytes = args->blob_bytes)
 BYTEIO_ENTRY(embed_bool, mpint_fixed, .write_span = args->write_span, .src = args->src, .bytes = args->bytes)

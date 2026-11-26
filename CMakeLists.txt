@@ -19,6 +19,28 @@ option(MMGR_WERROR "Treat warnings as errors" OFF)
 option(MMGR_LTO "Link-time optimization" ON)
 option(MMGR_MODULE_OPTIMIZE "Take the optimization level a module names, off for a coverage build" ON)
 
+# The device environment. Each module builds a second time as CUDA, mmgr_<module>_device, and each suite gets a
+# <suite>_device target whose runner runs each case in a kernel on the GPU. A tree that asks for it and finds no CUDA
+# compiler stops, because a device tree that builds no device code reports a pass that tested nothing.
+option(MMGR_DEVICE "Build every module and suite for the GPU as well, through nvcc" OFF)
+if(MMGR_DEVICE)
+  include(CheckLanguage)
+  check_language(CUDA)
+  if(NOT CMAKE_CUDA_COMPILER)
+    message(FATAL_ERROR "MMgr: MMGR_DEVICE is on and the configure step finds no CUDA compiler")
+  endif()
+  # native asks nvcc for the part in this machine, which cmake 3.24 and later can read. An older cmake takes the part
+  # from CMAKE_CUDA_ARCHITECTURES
+  if(NOT CMAKE_CUDA_ARCHITECTURES)
+    if(CMAKE_VERSION VERSION_LESS 3.24)
+      message(FATAL_ERROR "MMgr: cmake ${CMAKE_VERSION} cannot read the part, define CMAKE_CUDA_ARCHITECTURES")
+    endif()
+    set(CMAKE_CUDA_ARCHITECTURES native)
+  endif()
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+endif()
+
 # Capabilities. Each one says the part has something: an engine, external memory, somewhere to
 # defer work to. A build for a part without it must not carry the code that would use it.
 #

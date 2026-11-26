@@ -101,7 +101,7 @@ HEADER = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmai
  */
 /**
  * @file pow5.h
- * @brief Powers of five as 128-bit significands, for scaling a decimal mantissa into a binary one.
+ * @brief Powers of five as 128-bit significands, for the scale of a decimal mantissa into a binary one.
  * @author dstroy0 (Douglas Quigg) <dquigg123@gmail.com>
  * @date 2026-08-29
  *
@@ -112,6 +112,9 @@ HEADER = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmai
  */
 #ifndef MMGR_POW5_H
 #define MMGR_POW5_H
+
+/** @addtogroup mod_pow5
+ *  @{ */
 
 #include "mmgr.h"
 
@@ -130,8 +133,8 @@ EMBED_BEGIN_DECLS
  * @brief Expands to ((1 << %(steps)d) - 1), which is %(max)d, the largest decimal exponent the tables reach.
  *
  * @note Every one of the nine entries multiplied together gives 5^%(max)d.
- * @note The expansion is a plain int constant expression, which widens to the embed_iword an exponent is
- *       carried in wherever the two are compared.
+ * @note The expansion is a plain int constant expression, which widens to the embed_iword that carries
+ *       an exponent wherever the two compare.
  * @warning muto_scale bounds against this and returns infinity above it and zero below its negative;
  *          muto_scale_to_u64 does not. What retains either off the end of the tables is the walk itself,
  *          which takes only MMGR_POW5_STEPS steps. An exponent past this loses its higher bits.
@@ -147,24 +150,25 @@ typedef struct
 {
     embed_u64 hi;   /**< High 64 bits of the significand, with its top bit set. */
     embed_u64 lo;   /**< Low 64 bits of the significand. */
-    embed_iword e2; /**< Binary exponent the significand is scaled by; %(widest)d at the widest fits a 16-bit embed_iword. */
+    embed_iword e2; /**< Binary exponent that scales the significand; %(widest)d at the widest fits a 16-bit embed_iword. */
 } MmgrPow5;
 
 /**
  * @brief Five raised to each power of two, from 5^1 at index 0 to 5^%(reach)d at index %(last)d.
  *
- * @note Entry i is the multiplier for bit i of the exponent magnitude, and the walk in muto_apply_pow10
+ * @note Entry i is the multiplier for bit i of the exponent magnitude. The walk in muto_apply_pow10
  *       takes this table over mmgr_pow5_down whenever the decimal exponent is not negative.
- * @note Index 0 through 5 are exact. 5^64 and up need more than 128 bits, and so the last three entries are
- *       truncated toward zero and read a little low.
- * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int
+ * @note Index 0 through 5 are exact. 5^64 and up need more than 128 bits, and so the last three entries
+ *       come truncated toward zero and read a little low.
+ * @note Every significand literal carries ULL to match the embed_u64 that holds it. Each e2 is a bare int
  *       that converts to embed_iword.
- * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED retains a unit
+ * @note static const at header scope, and each translation unit gets its own copy. EMBED_UNUSED retains a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
- * @warning transformo settles a positive exponent from its exact powers of ten and returns before the walk,
- *          and the only exponent reaching this table there is zero, which sets no bit.
+ * @note EMBED_PASS_MEMORY gives each pass of nvcc its own copy, and so a kernel reads the table from device memory.
+ * @warning transformo settles a positive exponent from its exact powers of ten and returns before the walk.
+ *          The only exponent that reaches this table there is zero, which sets no bit.
  */
-static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
+static EMBED_PASS_MEMORY const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
 %(up)s
 };
 
@@ -174,14 +178,15 @@ static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
  * @note Entry i is the multiplier for bit i of the exponent magnitude, and the walk in muto_apply_pow10
  *       takes this table when the decimal exponent is negative.
  * @note No negative power of five ends in binary. All nine are the exact value truncated toward zero.
- *       Every entry reads a little low and none of them round up: 5^-1 is the repeating 0xCCCC..., not the
- *       0xCCCD... that rounding to nearest would give.
- * @note Every significand literal carries ULL to match the embed_u64 it is stored in. Each e2 is a bare int
+ *       Every entry reads a little low and none of them round up. The entry for 5^-1 is 0xCCCC... with
+ *       the C repeated, not the 0xCCCD... that a round to nearest would give.
+ * @note Every significand literal carries ULL to match the embed_u64 that holds it. Each e2 is a bare int
  *       that converts to embed_iword.
- * @note static const at header scope, and each translation unit gets its own copy, EMBED_UNUSED retains a unit
+ * @note static const at header scope, and each translation unit gets its own copy. EMBED_UNUSED retains a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
+ * @note EMBED_PASS_MEMORY gives each pass of nvcc its own copy, as it does mmgr_pow5_up.
  */
-static const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {
+static EMBED_PASS_MEMORY const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {
 %(down)s
 };
 
@@ -193,6 +198,8 @@ static const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {
 EMBED_STATIC_ASSERT(MMGR_POW5_MAX >= %(max)d, "the tables do not reach the exponents a double can carry");
 
 EMBED_END_DECLS
+
+/** @} */
 
 #endif
 """

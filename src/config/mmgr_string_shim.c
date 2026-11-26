@@ -39,7 +39,7 @@ EMBED_BEGIN_DECLS
  * @note The types are the C standard's, and not the project's, since a compiler calls this name with them.
  * @warning dest must be writable for bytes.
  */
-void *EMBED_WEAK_NAME(memset)(void *dest, int value, size_t bytes);
+EMBED_HOST_DEVICE void *EMBED_WEAK_NAME(memset)(void *dest, int value, size_t bytes);
 
 /**
  * @brief Copies bytes from source to dest, as the C standard's memcpy does.
@@ -50,7 +50,7 @@ void *EMBED_WEAK_NAME(memset)(void *dest, int value, size_t bytes);
  * @return            dest [BORROWS].
  * @warning The two regions must not overlap.
  */
-void *EMBED_WEAK_NAME(memcpy)(void *dest, const void *source, size_t bytes);
+EMBED_HOST_DEVICE void *EMBED_WEAK_NAME(memcpy)(void *dest, const void *source, size_t bytes);
 
 /**
  * @brief Copies bytes from source to dest, the regions free to overlap, as the C standard's memmove does.
@@ -62,7 +62,7 @@ void *EMBED_WEAK_NAME(memcpy)(void *dest, const void *source, size_t bytes);
  * @note A destination at or below the source takes memor.move_down, and one above it takes memor.move_up, as
  *       mmgr_shim_move does.
  */
-void *EMBED_WEAK_NAME(memmove)(void *dest, const void *source, size_t bytes);
+EMBED_HOST_DEVICE void *EMBED_WEAK_NAME(memmove)(void *dest, const void *source, size_t bytes);
 
 /**
  * @brief Orders bytes of left against right, as the C standard's memcmp does.
@@ -73,25 +73,25 @@ void *EMBED_WEAK_NAME(memmove)(void *dest, const void *source, size_t bytes);
  * @return          The difference of the first byte pair that differs, 0 where every byte matches.
  * @warning Both regions must be readable for bytes rounded up to a whole word, as memor.cmp reads them.
  */
-int EMBED_WEAK_NAME(memcmp)(const void *left, const void *right, size_t bytes);
+EMBED_HOST_DEVICE int EMBED_WEAK_NAME(memcmp)(const void *left, const void *right, size_t bytes);
 
 EMBED_WEAK_DEFAULT(memset)
-void *EMBED_WEAK_NAME(memset)(void *dest, int value, size_t bytes)
+EMBED_HOST_DEVICE void *EMBED_WEAK_NAME(memset)(void *dest, int value, size_t bytes)
 {
     // Explicit cast narrows the fill to the byte that the standard says each write takes
-    EMBED_CALL(memor.set, MemoriaCfg, .dst = dest, .val = (uint8_t)value, .bytes = bytes);
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = dest, .bytes = bytes, .val = (uint8_t)value);
     return dest;
 }
 
 EMBED_WEAK_DEFAULT(memcpy)
-void *EMBED_WEAK_NAME(memcpy)(void *dest, const void *source, size_t bytes)
+EMBED_HOST_DEVICE void *EMBED_WEAK_NAME(memcpy)(void *dest, const void *source, size_t bytes)
 {
     EMBED_CALL(memor.cpy, MemoriaCfg, .dst = dest, .src = source, .bytes = bytes);
     return dest;
 }
 
 EMBED_WEAK_DEFAULT(memmove)
-void *EMBED_WEAK_NAME(memmove)(void *dest, const void *source, size_t bytes)
+EMBED_HOST_DEVICE void *EMBED_WEAK_NAME(memmove)(void *dest, const void *source, size_t bytes)
 {
     // Explicit casts give both addresses a byte type, since a compare of two pointers needs a complete type
     if ((const uint8_t *)dest <= (const uint8_t *)source)
@@ -106,7 +106,7 @@ void *EMBED_WEAK_NAME(memmove)(void *dest, const void *source, size_t bytes)
 }
 
 EMBED_WEAK_DEFAULT(memcmp)
-int EMBED_WEAK_NAME(memcmp)(const void *left, const void *right, size_t bytes)
+EMBED_HOST_DEVICE int EMBED_WEAK_NAME(memcmp)(const void *left, const void *right, size_t bytes)
 {
     // Explicit cast narrows the difference of two bytes, which lies from -255 to 255, to the int of the standard
     return (int)EMBED_CALL(memor.cmp, MemoriaCfg, .src = left, .other = right, .bytes = bytes);

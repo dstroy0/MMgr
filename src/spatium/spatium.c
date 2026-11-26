@@ -45,7 +45,7 @@ typedef struct
  *          only catch a null buffer and an empty one. A cap larger than the buffer passes here
  *          and the walks will hand out spans past its end.
  */
-EMBED_INLINE mmgr_span spat_from(const SpatiumCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE mmgr_span spat_from(const SpatiumCtx *args)
 {
     MMGR_ASSERT(args->buf != NULL, "a span needs a buffer");
     MMGR_ASSERT(args->cap != 0u, "a span needs a capacity");
@@ -68,7 +68,7 @@ EMBED_INLINE mmgr_span spat_from(const SpatiumCtx *args)
  *          null cbuf or a zero cap still builds, and it is cok that later reports it unusable. A cap
  *          that reaches past the end of the buffer is the single one cok cannot see, and it reads as usable.
  */
-EMBED_INLINE mmgr_cspan spat_cfrom(const SpatiumCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE mmgr_cspan spat_cfrom(const SpatiumCtx *args)
 {
     mmgr_cspan span;
 
@@ -85,7 +85,7 @@ EMBED_INLINE mmgr_cspan spat_cfrom(const SpatiumCtx *args)
  * @param[in] args Span to test, as args->span [BORROWS].
  * @return         EMBED_TRUE when buf is not NULL and cap is not 0.
  */
-EMBED_INLINE embed_bool spat_has_storage(const SpatiumCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool spat_has_storage(const SpatiumCtx *args)
 {
     // Explicit cast narrows the combined test into the embed_bool container
     return (embed_bool)((args->span.buf != NULL) && (args->span.cap != 0u));
@@ -97,7 +97,7 @@ EMBED_INLINE embed_bool spat_has_storage(const SpatiumCtx *args)
  * @param[in] args Span to test, as args->span [BORROWS].
  * @return         EMBED_TRUE when the span has storage and has not overflowed.
  */
-EMBED_INLINE embed_bool spat_ok(const SpatiumCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool spat_ok(const SpatiumCtx *args)
 {
     // Explicit cast narrows the combined test into the embed_bool container
     return (embed_bool)(spat_has_storage(args) && !args->span.overflow);
@@ -111,7 +111,7 @@ EMBED_INLINE embed_bool spat_ok(const SpatiumCtx *args)
  * @note The read side of spat_ok. The two cannot share a body. A read span names its extent
  *       len and a fill span names it cap, which retains the two apart.
  */
-EMBED_INLINE embed_bool spat_cok(const SpatiumCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool spat_cok(const SpatiumCtx *args)
 {
     // Explicit cast narrows the combined test into the embed_bool container
     return (embed_bool)((args->cspan.buf != NULL) && (args->cspan.len != 0u) && !args->cspan.err);
@@ -126,7 +126,7 @@ EMBED_INLINE embed_bool spat_cok(const SpatiumCtx *args)
  * @note Rewinds the span only. The bytes it covers stay exactly as they were. A reset span
  *       passes out storage that still holds whatever the last fill wrote.
  */
-EMBED_INLINE void spat_reset(const SpatiumCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void spat_reset(const SpatiumCtx *args)
 {
     args->at->pos = 0u;
     args->at->overflow = EMBED_FALSE;
@@ -140,7 +140,7 @@ EMBED_INLINE void spat_reset(const SpatiumCtx *args)
  *       caller that asked for bytes that are not there has a bug, and a span that looked whole
  *       would hide it.
  */
-EMBED_INLINE mmgr_span spat_failed(void)
+EMBED_HOST_DEVICE EMBED_INLINE mmgr_span spat_failed(void)
 {
     mmgr_span failed;
 
@@ -161,7 +161,7 @@ EMBED_INLINE mmgr_span spat_failed(void)
  *       The pos comes forward with it, moved back to the new start, and rests at 0 once the skip
  *       passes it.
  */
-EMBED_INLINE mmgr_span spat_after(const SpatiumCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE mmgr_span spat_after(const SpatiumCtx *args)
 {
     mmgr_span rest;
 
@@ -185,7 +185,7 @@ EMBED_INLINE mmgr_span spat_after(const SpatiumCtx *args)
  *       shorter cap over the same storage. Both cover the first bytes. A fill through one shows in
  *       a read through the other. The pos comes forward, held down to the shorter cap when it sat past it.
  */
-EMBED_INLINE mmgr_span spat_first(const SpatiumCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE mmgr_span spat_first(const SpatiumCtx *args)
 {
     mmgr_span head;
 
@@ -209,7 +209,7 @@ EMBED_INLINE mmgr_span spat_first(const SpatiumCtx *args)
  *          this view and not the storage. A second fill of args->span moves what the reader sees, and so read
  *          it back before the next fill or copy the bytes out.
  */
-EMBED_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
 {
     mmgr_cspan view;
 
@@ -231,7 +231,7 @@ EMBED_INLINE mmgr_cspan spat_read(const SpatiumCtx *args)
  * @warning Passes back spat_read's span, and so it points at args->span's own bytes [BORROWS] and the
  *          same caution holds. It covers whatever the next fill leaves there.
  */
-EMBED_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE mmgr_cspan spat_produced(const SpatiumCtx *args)
 {
     return EMBED_CALL(spat_read, SpatiumCtx, .span = args->span, .count = args->span.pos);
 }

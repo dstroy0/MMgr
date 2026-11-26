@@ -320,9 +320,9 @@ SRC = """/* MMgr - Copyright (C) 2026 Douglas Quigg (dstroy0) <dquigg123@gmail.c
 %(notes)s
  * @note %(costs)s
  */
-const uint8_t mmgr_ancorae_impensa_table[256] = {
+EMBED_PASS_OBJECT(const uint8_t, mmgr_ancorae_impensa_table, [256], {
 %(rows)s
-};
+});
 """
 
 

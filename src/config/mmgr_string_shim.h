@@ -59,7 +59,7 @@ EMBED_BEGIN_DECLS
  * @return            dest [BORROWS].
  * @warning The two regions must not overlap; use mmgr_shim_move when they might.
  */
-EMBED_INLINE void *mmgr_shim_cpy(void *dest, const void *source, size_t bytes)
+EMBED_HOST_DEVICE EMBED_INLINE void *mmgr_shim_cpy(void *dest, const void *source, size_t bytes)
 {
     EMBED_CALL(memor.cpy, MemoriaCfg, .dst = dest, .src = source, .bytes = bytes);
     return dest;
@@ -75,7 +75,7 @@ EMBED_INLINE void *mmgr_shim_cpy(void *dest, const void *source, size_t bytes)
  * @note Compares the two addresses and walks upwards or downwards so a read of each shared byte comes
  * before the write to it.
  */
-EMBED_INLINE void *mmgr_shim_move(void *dest, const void *source, size_t bytes)
+EMBED_HOST_DEVICE EMBED_INLINE void *mmgr_shim_move(void *dest, const void *source, size_t bytes)
 {
     if ((const uint8_t *)dest <= (const uint8_t *)source)
     {
@@ -97,9 +97,9 @@ EMBED_INLINE void *mmgr_shim_move(void *dest, const void *source, size_t bytes)
  * @return           dest [BORROWS].
  * @note Explicit cast narrows value to uint8_t, the byte the fill writes.
  */
-EMBED_INLINE void *mmgr_shim_set(void *dest, embed_iword value, size_t bytes)
+EMBED_HOST_DEVICE EMBED_INLINE void *mmgr_shim_set(void *dest, embed_iword value, size_t bytes)
 {
-    EMBED_CALL(memor.set, MemoriaCfg, .dst = dest, .val = (uint8_t)value, .bytes = bytes);
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = dest, .bytes = bytes, .val = (uint8_t)value);
     return dest;
 }
 
@@ -112,7 +112,7 @@ EMBED_INLINE void *mmgr_shim_set(void *dest, embed_iword value, size_t bytes)
  * @return          Difference of the first unequal byte pair, or 0 when all bytes match.
  * @note Unlike the strcmp shims, this one does order: the sign follows the bytes that differ.
  */
-EMBED_INLINE embed_iword mmgr_shim_cmp(const void *left, const void *right, size_t bytes)
+EMBED_HOST_DEVICE EMBED_INLINE embed_iword mmgr_shim_cmp(const void *left, const void *right, size_t bytes)
 {
     return EMBED_CALL(memor.cmp, MemoriaCfg, .src = left, .other = right, .bytes = bytes);
 }
@@ -126,7 +126,7 @@ EMBED_INLINE embed_iword mmgr_shim_cmp(const void *left, const void *right, size
  * @return           Address of the match, or NULL when the byte does not occur [BORROWS].
  * @note The cast through size_t drops the const the backend returns, as the memchr signature requires.
  */
-EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t bytes)
+EMBED_HOST_DEVICE EMBED_INLINE void *mmgr_shim_chr(const void *region, embed_iword value, size_t bytes)
 {
     return (void *)(size_t)EMBED_CALL(memor.chr, MemoriaCfg, .src = region, .bytes = bytes, .val = (uint8_t)value);
 }

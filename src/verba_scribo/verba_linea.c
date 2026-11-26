@@ -39,8 +39,10 @@
 
 /**
  * @brief The run of spaces mmgr_line_put_columns pads with, and its terminator.
+ *
+ * @note EMBED_PASS_MEMORY gives each pass of nvcc its own copy, and so a kernel reads the run from device memory.
  */
-static const char s_linea_spaces[LINEA_SPACES + 1u] = "                                ";
+static EMBED_PASS_MEMORY const char s_linea_spaces[LINEA_SPACES + 1u] = "                                ";
 
 /**
  * @brief Stores the terminator: at at while the line has room, in its last byte once a write did not fit.
@@ -48,7 +50,7 @@ static const char s_linea_spaces[LINEA_SPACES + 1u] = "                         
  * @param[in] line The line [BORROWS].
  * @note A line of no bytes has nowhere to store one.
  */
-EMBED_INLINE void linea_terminated(const VerbaLinea *line)
+EMBED_HOST_DEVICE EMBED_INLINE void linea_terminated(const VerbaLinea *line)
 {
     if (line->capacity > 0u)
     {
@@ -61,7 +63,7 @@ EMBED_INLINE void linea_terminated(const VerbaLinea *line)
  *
  * @param[in,out] line The line [BORROWS].
  */
-EMBED_INLINE void linea_filled(VerbaLinea *line)
+EMBED_HOST_DEVICE EMBED_INLINE void linea_filled(VerbaLinea *line)
 {
     line->at = line->capacity;
     linea_terminated(line);
@@ -75,7 +77,7 @@ EMBED_INLINE void linea_filled(VerbaLinea *line)
  * @param[in]     written Where verba's write ended. LINEA_DIGITS holds the widest number, which
  *                        LINEA_LEAST_MAX bounds, and so it always fit.
  */
-EMBED_INLINE void linea_number(VerbaLinea *line, const char *digits, size_t written)
+EMBED_HOST_DEVICE EMBED_INLINE void linea_number(VerbaLinea *line, const char *digits, size_t written)
 {
     (void)mmgr_line_put_n(line, digits, written);
 }
@@ -86,19 +88,19 @@ EMBED_INLINE void linea_number(VerbaLinea *line, const char *digits, size_t writ
  * @param[in] count The count asked for.
  * @return          count, or LINEA_LEAST_MAX where it is more.
  */
-EMBED_INLINE uint8_t linea_least(unsigned int count)
+EMBED_HOST_DEVICE EMBED_INLINE uint8_t linea_least(unsigned int count)
 {
     // Explicit cast narrows a count already clamped at 255 into the byte verba reads it from
     return (uint8_t)((count < LINEA_LEAST_MAX) ? count : LINEA_LEAST_MAX);
 }
 
-VerbaLinea mmgr_line_over(char *out, size_t capacity)
+EMBED_HOST_DEVICE VerbaLinea mmgr_line_over(char *out, size_t capacity)
 {
     const VerbaLinea line = {out, (out != NULL) ? capacity : 0u, 0u, NULL, NULL, 0u};
     return line;
 }
 
-embed_bool mmgr_line_flush(VerbaLinea *line)
+EMBED_HOST_DEVICE embed_bool mmgr_line_flush(VerbaLinea *line)
 {
     if ((line->flush == NULL) || (line->at >= line->capacity))
     {
@@ -117,7 +119,7 @@ embed_bool mmgr_line_flush(VerbaLinea *line)
     return EMBED_TRUE;
 }
 
-size_t mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
+EMBED_HOST_DEVICE size_t mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
 {
     // A line of fewer than two bytes holds none past its terminator, and a flush could never empty it into room
     if ((length > 0u) && (line->capacity < 2u))
@@ -163,7 +165,7 @@ size_t mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length)
  * @note A piece that reaches the room's last byte goes on a line with a flush and goes out before the
  *       measure of the next. On a line with none it fills the line, what fits written.
  */
-EMBED_INLINE size_t linea_streamed(VerbaLinea *line, const char *text)
+EMBED_HOST_DEVICE EMBED_INLINE size_t linea_streamed(VerbaLinea *line, const char *text)
 {
     size_t done = 0u;
 
@@ -195,12 +197,12 @@ EMBED_INLINE size_t linea_streamed(VerbaLinea *line, const char *text)
     }
 }
 
-size_t mmgr_line_put(VerbaLinea *line, const char *text)
+EMBED_HOST_DEVICE size_t mmgr_line_put(VerbaLinea *line, const char *text)
 {
     return linea_streamed(line, text);
 }
 
-size_t mmgr_line_put_max(VerbaLinea *line, const char *text, size_t max)
+EMBED_HOST_DEVICE size_t mmgr_line_put_max(VerbaLinea *line, const char *text, size_t max)
 {
     return mmgr_line_put_n(line, text, EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = text, .cap = max));
 }
@@ -211,7 +213,7 @@ size_t mmgr_line_put_max(VerbaLinea *line, const char *text, size_t max)
  * @param[in,out] line  The line [BORROWS].
  * @param[in]     count Spaces to write.
  */
-EMBED_INLINE void linea_spaced(VerbaLinea *line, size_t count)
+EMBED_HOST_DEVICE EMBED_INLINE void linea_spaced(VerbaLinea *line, size_t count)
 {
     for (size_t pad = count; pad > 0u;)
     {
@@ -222,14 +224,14 @@ EMBED_INLINE void linea_spaced(VerbaLinea *line, size_t count)
     }
 }
 
-void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int columns)
+EMBED_HOST_DEVICE void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int columns)
 {
     const size_t length = linea_streamed(line, text);
 
     linea_spaced(line, (length < columns) ? (columns - length) : 0u);
 }
 
-void mmgr_line_put_right(VerbaLinea *line, const char *text, unsigned int columns)
+EMBED_HOST_DEVICE void mmgr_line_put_right(VerbaLinea *line, const char *text, unsigned int columns)
 {
     // The measure stops at columns bytes, as a longer text gets no spaces
     const size_t length = EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = text, .cap = columns);
@@ -238,12 +240,12 @@ void mmgr_line_put_right(VerbaLinea *line, const char *text, unsigned int column
     (void)linea_streamed(line, text);
 }
 
-void mmgr_line_ch(VerbaLinea *line, char character)
+EMBED_HOST_DEVICE void mmgr_line_ch(VerbaLinea *line, char character)
 {
     (void)mmgr_line_put_n(line, &character, 1u);
 }
 
-void mmgr_line_decimal(VerbaLinea *line, uint64_t value, unsigned int digits_least)
+EMBED_HOST_DEVICE void mmgr_line_decimal(VerbaLinea *line, uint64_t value, unsigned int digits_least)
 {
     char digits[LINEA_DIGITS];
 
@@ -252,7 +254,7 @@ void mmgr_line_decimal(VerbaLinea *line, uint64_t value, unsigned int digits_lea
                             .min = linea_least(digits_least)));
 }
 
-void mmgr_line_decimal_columns(VerbaLinea *line, uint64_t value, unsigned int columns)
+EMBED_HOST_DEVICE void mmgr_line_decimal_columns(VerbaLinea *line, uint64_t value, unsigned int columns)
 {
     char digits[LINEA_DIGITS];
 
@@ -261,7 +263,7 @@ void mmgr_line_decimal_columns(VerbaLinea *line, uint64_t value, unsigned int co
                             .columns = linea_least(columns)));
 }
 
-void mmgr_line_decimal_signed(VerbaLinea *line, int64_t value)
+EMBED_HOST_DEVICE void mmgr_line_decimal_signed(VerbaLinea *line, int64_t value)
 {
     char digits[LINEA_DIGITS];
 
@@ -269,7 +271,7 @@ void mmgr_line_decimal_signed(VerbaLinea *line, int64_t value)
                  EMBED_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = digits, .cap = sizeof digits, .sval = value));
 }
 
-void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least)
+EMBED_HOST_DEVICE void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least)
 {
     char digits[LINEA_DIGITS];
 
@@ -290,7 +292,7 @@ void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least)
  *       a scale below 0, q is an integer where five to the minus scale divides m.
  * @note The product wraps at 2 to the power 64, which 4 divides, and so q modulo 4 is right for any scale.
  */
-EMBED_INLINE embed_bool linea_tie(double value, int64_t scale, uint64_t *halves)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool linea_tie(double value, int64_t scale, uint64_t *halves)
 {
     const union {
         double real;
@@ -349,7 +351,7 @@ EMBED_INLINE embed_bool linea_tie(double value, int64_t scale, uint64_t *halves)
  * @return          EMBED_TRUE where the even digit is the one below.
  * @note The round up gives (q + 1) / 2, which is odd where q is 1 modulo 4.
  */
-EMBED_INLINE embed_bool linea_tie_odd(double value, int64_t scale)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool linea_tie_odd(double value, int64_t scale)
 {
     uint64_t halves = 0u;
 
@@ -370,7 +372,7 @@ EMBED_INLINE embed_bool linea_tie_odd(double value, int64_t scale)
  *       below about twice a power of ten. So the digits stay below about 2 times 10 to the 18 at MMGR_G_MAX_SIG,
  *       and q stays below about 4 times 10 to the 18. It never wraps at 2 to the 64.
  */
-EMBED_INLINE uint64_t linea_scaled(double value, embed_u64 *mantissa, embed_iword binary, embed_iword cursor)
+EMBED_HOST_DEVICE EMBED_INLINE uint64_t linea_scaled(double value, embed_u64 *mantissa, embed_iword binary, embed_iword cursor)
 {
     const uint64_t scaled = EMBED_CALL(muto.scale_to_u64, TransformoCfg, .mant = mantissa, .e2 = binary, .ex = cursor);
     uint64_t halves = 0u;
@@ -384,7 +386,7 @@ EMBED_INLINE uint64_t linea_scaled(double value, embed_u64 *mantissa, embed_iwor
     return ((below & 1u) == 0u) ? below : (below + 1u);
 }
 
-void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus)
+EMBED_HOST_DEVICE void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus)
 {
     char digits[LINEA_DIGITS];
     const unsigned int places = (decimals < MMGR_FIXED_MAX_DECIMALS) ? decimals : MMGR_FIXED_MAX_DECIMALS;
@@ -421,7 +423,7 @@ void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsi
  * @note The scale and the search for the power are those of mmgr_verba_g. A round up to ten to the significant
  *       raises the power by one and scales again. An exact tie rounds to the even digit, through linea_scaled.
  */
-EMBED_INLINE uint64_t linea_significant(double value, unsigned int significant, int64_t *power)
+EMBED_HOST_DEVICE EMBED_INLINE uint64_t linea_significant(double value, unsigned int significant, int64_t *power)
 {
     const union {
         double real;
@@ -472,7 +474,7 @@ EMBED_INLINE uint64_t linea_significant(double value, unsigned int significant, 
  * @note An infinity or a NaN goes out as mmgr_verba_fixed writes it, with no sign of its own here. Its text starts
  *       at the start of the line, over the sign.
  */
-EMBED_INLINE embed_bool linea_signed(VerbaLinea *written, double value, embed_bool negative, embed_bool plus)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool linea_signed(VerbaLinea *written, double value, embed_bool negative, embed_bool plus)
 {
     if ((negative != EMBED_FALSE) || (plus != EMBED_FALSE))
     {
@@ -495,7 +497,7 @@ EMBED_INLINE embed_bool linea_signed(VerbaLinea *written, double value, embed_bo
  * @param[in,out] written The line over the text of the value [BORROWS].
  * @param[in]     columns The fewest columns, held at LINEA_LEAST_MAX.
  */
-EMBED_INLINE void linea_aligned(VerbaLinea *line, VerbaLinea *written, unsigned int columns)
+EMBED_HOST_DEVICE EMBED_INLINE void linea_aligned(VerbaLinea *line, VerbaLinea *written, unsigned int columns)
 {
     const size_t length = mmgr_line_finish(written);
     const size_t wide = linea_least(columns);
@@ -504,7 +506,7 @@ EMBED_INLINE void linea_aligned(VerbaLinea *line, VerbaLinea *written, unsigned 
     (void)mmgr_line_put_n(line, written->out, length);
 }
 
-void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus)
+EMBED_HOST_DEVICE void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus)
 {
     char text[LINEA_DIGITS];
     const unsigned int significant = ((decimals + 1u) < MMGR_G_MAX_SIG) ? (decimals + 1u) : MMGR_G_MAX_SIG;
@@ -535,7 +537,7 @@ void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, u
     linea_aligned(line, &written, columns);
 }
 
-void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant, unsigned int columns, embed_bool plus)
+EMBED_HOST_DEVICE void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant, unsigned int columns, embed_bool plus)
 {
     char text[LINEA_DIGITS];
     const unsigned int kept =
@@ -606,12 +608,12 @@ void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant,
     linea_aligned(line, &written, columns);
 }
 
-size_t mmgr_line_finish(VerbaLinea *line)
+EMBED_HOST_DEVICE size_t mmgr_line_finish(VerbaLinea *line)
 {
     return EMBED_CALL(verba_finis.finish, VerbaFinisCfg, .out = line->out, .cap = line->capacity, .at = line->at);
 }
 
-embed_bool mmgr_line_ok(const VerbaLinea *line)
+EMBED_HOST_DEVICE embed_bool mmgr_line_ok(const VerbaLinea *line)
 {
     return EMBED_CALL(verba_finis.ok, VerbaFinisCfg, .cap = line->capacity, .at = line->at);
 }

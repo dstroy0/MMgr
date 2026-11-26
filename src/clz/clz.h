@@ -58,7 +58,7 @@ EMBED_TABLE_LAYOUT(ClzNs, lead, trail);
  * @note Runs in a fixed number of steps, none of which branches on the value.
  * @warning An args->val of 0 returns 63, the same answer as an args->val of 1.
  */
-embed_iword mmgr_clz_lead(const ClzCfg *args);
+EMBED_HOST_DEVICE embed_iword mmgr_clz_lead(const ClzCfg *args);
 
 /**
  * @brief Counts the zero bits below the lowest set bit of args->val.
@@ -68,7 +68,7 @@ embed_iword mmgr_clz_lead(const ClzCfg *args);
  * @note Runs in a fixed number of steps, none of which branches on the value.
  * @warning An args->val of 0 returns 63, the same answer as an args->val of 2^63.
  */
-embed_iword mmgr_clz_trail(const ClzCfg *args);
+EMBED_HOST_DEVICE embed_iword mmgr_clz_trail(const ClzCfg *args);
 
 /**
  * @brief Dispatch table instance named clz, with each member set to its mmgr_clz_ function.

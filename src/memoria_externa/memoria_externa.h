@@ -94,7 +94,7 @@ EMBED_TABLE_LAYOUT(MemoriaExternaNs, place, pingpong_init, pingpong_fill, pingpo
  * @warning The two tests are not the same shape. Internal placement must also leave dram_reserve
  *          free, where the external one is a size comparison alone.
  */
-mmgr_place mmgr_extern_place(const ExternaCfg *args);
+EMBED_HOST_DEVICE mmgr_place mmgr_extern_place(const ExternaCfg *args);
 
 /**
  * @brief Points the pair at buffer 0.
@@ -104,7 +104,7 @@ mmgr_place mmgr_extern_place(const ExternaCfg *args);
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it, and this
  *          call writes through it at once.
  */
-void mmgr_pingpong_init(const ExternaCfg *args);
+EMBED_HOST_DEVICE void mmgr_pingpong_init(const ExternaCfg *args);
 
 /**
  * @brief Returns the index of the buffer under fill.
@@ -116,7 +116,7 @@ void mmgr_pingpong_init(const ExternaCfg *args);
  * @warning Reports fill_index as it is. On a pair that has not been through mmgr_pingpong_init
  *          that is whatever its storage contained, and this call does not bound it to 0 or 1.
  */
-uint8_t mmgr_pingpong_fill_index(const ExternaCfg *args);
+EMBED_HOST_DEVICE uint8_t mmgr_pingpong_fill_index(const ExternaCfg *args);
 
 /**
  * @brief Returns the index of the buffer under drain.
@@ -129,7 +129,7 @@ uint8_t mmgr_pingpong_fill_index(const ExternaCfg *args);
  * @warning The answer is an index only while fill_index is 0 or 1. On a pair that has not been
  *          through mmgr_pingpong_init it is the flip of whatever its storage contained.
  */
-uint8_t mmgr_pingpong_drain_index(const ExternaCfg *args);
+EMBED_HOST_DEVICE uint8_t mmgr_pingpong_drain_index(const ExternaCfg *args);
 
 /**
  * @brief Swaps which buffer takes the fill and which the drain.
@@ -142,7 +142,7 @@ uint8_t mmgr_pingpong_drain_index(const ExternaCfg *args);
  *          with no atomic and no lock. So two callers that swap the same pair can come away with
  *          the same index.
  */
-uint8_t mmgr_pingpong_swap(const ExternaCfg *args);
+EMBED_HOST_DEVICE uint8_t mmgr_pingpong_swap(const ExternaCfg *args);
 
 /**
  * @brief Dispatch table instance named exter.

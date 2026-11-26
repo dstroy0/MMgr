@@ -46,8 +46,10 @@ EMBED_TABLE_LAYOUT(ImpensaAncoraeAcusNs, impensa);
  * @brief Cost of each byte value under the profile this build links, indexed by the byte itself.
  *
  * @note The profile file that the build selects defines it, and mmgr_ancorae_impensa reads it.
+ * @note Under nvcc the table has a device twin, mmgr_ancorae_impensa_table_device, from the same initializer. A
+ *       read names the table through EMBED_PASS_NAME, and so a kernel reads the twin in device memory.
  */
-extern const uint8_t mmgr_ancorae_impensa_table[256];
+EMBED_PASS_DECLARE(const uint8_t, mmgr_ancorae_impensa_table, [256]);
 
 /**
  * @brief Returns the cost of args->byte under the table this build links.
@@ -59,7 +61,7 @@ extern const uint8_t mmgr_ancorae_impensa_table[256];
  * @warning The read through args has no null check, and so it must point to a readable AncoraeCfg.
  * @warning The value depends on which of the five tables the build linked, and so it is not portable between builds.
  */
-uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args);
+EMBED_HOST_DEVICE uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args);
 
 /**
  * @brief Dispatch table instance named ancorae, whose impensa member is mmgr_ancorae_impensa.

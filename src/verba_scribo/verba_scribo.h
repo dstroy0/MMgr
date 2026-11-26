@@ -207,7 +207,7 @@ EMBED_TABLE_LAYOUT(VerbaScriboFinisNs, finish, ok);
  * @note Writes nothing at all when it does not fit, and does not write what it can.
  * @warning args->text must be readable for args->text_len bytes. It looks for no terminator.
  */
-size_t mmgr_verba_put_n(const VerbaTextusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_put_n(const VerbaTextusCfg *args);
 
 /**
  * @brief Writes a terminated string, with a measure of it first.
@@ -217,7 +217,7 @@ size_t mmgr_verba_put_n(const VerbaTextusCfg *args);
  * @note Takes args->text_len as the length when it is non-zero, and only otherwise measures.
  * @warning args->text must not be NULL here, unlike put_clip, xml and json.
  */
-size_t mmgr_verba_put(const VerbaTextusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_put(const VerbaTextusCfg *args);
 
 /**
  * @brief Writes as much of a string as fits.
@@ -228,7 +228,7 @@ size_t mmgr_verba_put(const VerbaTextusCfg *args);
  * @note Bounds the measure by the room left, and so the length measured is already the length that fits.
  * @warning A NULL args->text writes nothing and does not fault, unlike put.
  */
-size_t mmgr_verba_put_clip(const VerbaTextusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_put_clip(const VerbaTextusCfg *args);
 
 /**
  * @brief Writes text with the four XML entities substituted.
@@ -239,7 +239,7 @@ size_t mmgr_verba_put_clip(const VerbaTextusCfg *args);
  *       goes out as it is, and so this suits element text and double quoted attributes.
  * @warning Walks to the terminator. Its own terminator bounds args->text, and not args->cap.
  */
-size_t mmgr_verba_xml(const VerbaTextusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_xml(const VerbaTextusCfg *args);
 
 /**
  * @brief Writes text as a quoted JSON string.
@@ -250,7 +250,7 @@ size_t mmgr_verba_xml(const VerbaTextusCfg *args);
  *       NULL args->text writes an empty pair of quotes where xml writes nothing at all.
  * @warning Walks to the terminator. Its own terminator bounds args->text, and not args->cap.
  */
-size_t mmgr_verba_json(const VerbaTextusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_json(const VerbaTextusCfg *args);
 
 /**
  * @brief Writes one character.
@@ -261,7 +261,7 @@ size_t mmgr_verba_json(const VerbaTextusCfg *args);
  * @warning args->out must be writable for args->cap bytes. A byte is always reserved for the
  *          terminator finish stores.
  */
-size_t mmgr_verba_ch(const VerbaLitteraCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_ch(const VerbaLitteraCfg *args);
 
 /**
  * @brief Writes a value right aligned, padded with spaces.
@@ -272,7 +272,7 @@ size_t mmgr_verba_ch(const VerbaLitteraCfg *args);
  * @note Pads on the left with spaces, where uint pads with leading zeros.
  * @warning args->out must be writable for args->cap bytes, and one byte stays reserved for the terminator.
  */
-size_t mmgr_verba_u64_clip(const VerbaNumerusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_u64_clip(const VerbaNumerusCfg *args);
 
 /**
  * @brief Writes a value in the base the caller gives.
@@ -282,7 +282,7 @@ size_t mmgr_verba_u64_clip(const VerbaNumerusCfg *args);
  * @note The digit count raised to args->min before the room test is what pads with leading zeros.
  * @warning Any args->base other than 8 or 16 comes out in base ten, whatever value it holds.
  */
-size_t mmgr_verba_uint(const VerbaNumerusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_uint(const VerbaNumerusCfg *args);
 
 /**
  * @brief Writes a value in base ten, padded to min digits.
@@ -292,7 +292,7 @@ size_t mmgr_verba_uint(const VerbaNumerusCfg *args);
  * @note Fixes the base at ten and forwards args->min, as separates it from u32.
  * @warning args->base takes no part here, whatever the caller put in it.
  */
-size_t mmgr_verba_u32w(const VerbaNumerusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_u32w(const VerbaNumerusCfg *args);
 
 /**
  * @brief Writes a value in lower case base sixteen.
@@ -303,7 +303,7 @@ size_t mmgr_verba_u32w(const VerbaNumerusCfg *args);
  *       result can carry leading zeros to a fixed width.
  * @warning args->base takes no part here, whatever the caller put in it.
  */
-size_t mmgr_verba_hex(const VerbaNumerusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_hex(const VerbaNumerusCfg *args);
 
 /**
  * @brief Writes a value in base ten, unpadded.
@@ -313,7 +313,7 @@ size_t mmgr_verba_hex(const VerbaNumerusCfg *args);
  * @note Fixes both the base at ten and the least digit count at one.
  * @warning Neither args->base nor args->min takes any part here. Reach for u32w to pad.
  */
-size_t mmgr_verba_u32(const VerbaNumerusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_u32(const VerbaNumerusCfg *args);
 
 /**
  * @brief Writes a value in base ten, unpadded.
@@ -324,7 +324,7 @@ size_t mmgr_verba_u32(const VerbaNumerusCfg *args);
  *       read the width it means at the call.
  * @warning Neither args->base nor args->min takes any part here. Reach for u32w to pad.
  */
-size_t mmgr_verba_u64(const VerbaNumerusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_u64(const VerbaNumerusCfg *args);
 
 /**
  * @brief Writes a signed value in base ten.
@@ -335,7 +335,7 @@ size_t mmgr_verba_u64(const VerbaNumerusCfg *args);
  * @note The magnitude is -(sval + 1) plus one, which stays in range for the max negative value.
  * @warning Reads args->sval and not args->val. A caller that fills the unsigned member writes a zero.
  */
-size_t mmgr_verba_i64(const VerbaNumerusCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_i64(const VerbaNumerusCfg *args);
 
 /**
  * @brief Writes a double to a significant digit count.
@@ -347,7 +347,7 @@ size_t mmgr_verba_i64(const VerbaNumerusCfg *args);
  * @warning An infinity writes inf and a NaN writes nan, lower case and unquoted, and so neither is valid
  *          JSON on its own.
  */
-size_t mmgr_verba_g(const VerbaFractioCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_g(const VerbaFractioCfg *args);
 
 /**
  * @brief Writes a double to a decimal count.
@@ -360,7 +360,7 @@ size_t mmgr_verba_g(const VerbaFractioCfg *args);
  * @warning A magnitude too large for 64 bits of integer part falls back to g at ten significant
  *          digits. So the result is not always in the fixed form the caller asked for.
  */
-size_t mmgr_verba_fixed(const VerbaFractioCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_fixed(const VerbaFractioCfg *args);
 
 /**
  * @brief Reports a double's sign bit.
@@ -370,7 +370,7 @@ size_t mmgr_verba_fixed(const VerbaFractioCfg *args);
  * @note Reads the bit and does not compare against zero. A negative zero returns EMBED_TRUE.
  * @note Reads no member but args->real. args->out may stay unset.
  */
-embed_bool mmgr_verba_sign_bit(const VerbaFractioCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_verba_sign_bit(const VerbaFractioCfg *args);
 
 /**
  * @brief Reports whether a double is an infinity.
@@ -380,7 +380,7 @@ embed_bool mmgr_verba_sign_bit(const VerbaFractioCfg *args);
  * @note Wants the exponent field all ones and the mantissa zero, where is_nan wants it non-zero.
  * @note The sign takes no part. A negative infinity returns EMBED_TRUE too.
  */
-embed_bool mmgr_verba_is_inf(const VerbaFractioCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_verba_is_inf(const VerbaFractioCfg *args);
 
 /**
  * @brief Reports whether a double is a NaN.
@@ -390,7 +390,7 @@ embed_bool mmgr_verba_is_inf(const VerbaFractioCfg *args);
  * @note Wants the exponent field all ones and the mantissa non-zero, where is_inf wants it zero.
  * @note Quiet and signaling NaNs answer alike, since the test covers only a non-zero mantissa.
  */
-embed_bool mmgr_verba_is_nan(const VerbaFractioCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_verba_is_nan(const VerbaFractioCfg *args);
 
 /**
  * @brief Stores the terminator and reports the length.
@@ -400,7 +400,7 @@ embed_bool mmgr_verba_is_nan(const VerbaFractioCfg *args);
  * @note A return of 0 covers both an empty result and one that ran out of room. ok tells them apart.
  * @warning The only entry that writes a terminator. A buffer is not a string until this runs.
  */
-size_t mmgr_verba_finish(const VerbaFinisCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_verba_finish(const VerbaFinisCfg *args);
 
 /**
  * @brief Reports whether there is still room.
@@ -409,7 +409,7 @@ size_t mmgr_verba_finish(const VerbaFinisCfg *args);
  * @return         EMBED_TRUE while there is still room, EMBED_FALSE once an entry returned args->cap.
  * @note Reads neither args->out nor any value member, and so it touches no memory and args->out may be NULL.
  */
-embed_bool mmgr_verba_ok(const VerbaFinisCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_verba_ok(const VerbaFinisCfg *args);
 
 /**
  * @brief Dispatch table instance named verba_textus, with each member set to its mmgr_verba_ function.

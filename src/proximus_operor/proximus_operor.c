@@ -18,17 +18,17 @@
 /**
  * @brief The sixteen-bit access type, with EMBED_RAW, which lets a read or write take any address.
  */
-typedef uint16_t mmgr_proxim_u16_t EMBED_RAW;
+EMBED_RAW_TYPE(uint16_t, mmgr_proxim_u16_t);
 
 /**
  * @brief The thirty-two-bit access type, with EMBED_RAW, which lets a read or write take any address.
  */
-typedef uint32_t mmgr_proxim_u32_t EMBED_RAW;
+EMBED_RAW_TYPE(uint32_t, mmgr_proxim_u32_t);
 
 /**
  * @brief The sixty-four-bit access type, with EMBED_RAW, which lets a read or write take any address.
  */
-typedef uint64_t mmgr_proxim_u64_t EMBED_RAW;
+EMBED_RAW_TYPE(uint64_t, mmgr_proxim_u64_t);
 
 /**
  * @brief The aligned access type for sixty-four bits.
@@ -41,7 +41,7 @@ typedef uint64_t mmgr_aequus_u64_t EMBED_ALIAS;
 /**
  * @brief The word-width access type, with EMBED_RAW, which lets a read or write take any address.
  */
-typedef embed_word mmgr_proxim_word_t EMBED_RAW;
+EMBED_RAW_TYPE(embed_word, mmgr_proxim_word_t);
 
 /**
  * @brief The word-width access type that retains embed_word's own alignment.
@@ -89,7 +89,7 @@ typedef struct
  * @note Reads through mmgr_proxim_u16_t. args->at needs no particular alignment.
  * @warning args->at must be readable for two bytes.
  */
-EMBED_INLINE uint16_t proxim_load16(const ProximLoadCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint16_t proxim_load16(const ProximLoadCtx *args)
 {
     return *(const mmgr_proxim_u16_t *)args->at;
 }
@@ -102,7 +102,7 @@ EMBED_INLINE uint16_t proxim_load16(const ProximLoadCtx *args)
  * @note Reads through mmgr_proxim_u32_t. args->at needs no particular alignment.
  * @warning args->at must be readable for four bytes.
  */
-EMBED_INLINE uint32_t proxim_load32(const ProximLoadCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint32_t proxim_load32(const ProximLoadCtx *args)
 {
     return *(const mmgr_proxim_u32_t *)args->at;
 }
@@ -115,7 +115,7 @@ EMBED_INLINE uint32_t proxim_load32(const ProximLoadCtx *args)
  * @note Reads through mmgr_proxim_u64_t. args->at needs no particular alignment.
  * @warning args->at must be readable for eight bytes.
  */
-EMBED_INLINE uint64_t proxim_load64(const ProximLoadCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint64_t proxim_load64(const ProximLoadCtx *args)
 {
     return *(const mmgr_proxim_u64_t *)args->at;
 }
@@ -128,7 +128,7 @@ EMBED_INLINE uint64_t proxim_load64(const ProximLoadCtx *args)
  * @note Reads through mmgr_proxim_word_t. args->at needs no particular alignment.
  * @warning args->at must be readable for sizeof(embed_word) bytes.
  */
-EMBED_INLINE embed_word proxim_load(const ProximLoadCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_word proxim_load(const ProximLoadCtx *args)
 {
     return *(const mmgr_proxim_word_t *)args->at;
 }
@@ -141,7 +141,7 @@ EMBED_INLINE embed_word proxim_load(const ProximLoadCtx *args)
  * @note Reads through mmgr_aequus_word_t, which retains embed_word's alignment, unlike proxim_load.
  * @warning args->at must be readable for sizeof(embed_word) bytes and aligned for an embed_word.
  */
-EMBED_INLINE embed_word aequus_load(const ProximLoadCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_word aequus_load(const ProximLoadCtx *args)
 {
     return *(const mmgr_aequus_word_t *)args->at;
 }
@@ -154,7 +154,7 @@ EMBED_INLINE embed_word aequus_load(const ProximLoadCtx *args)
  * @note Reads through mmgr_aequus_u64_t, which retains uint64_t's alignment, unlike proxim_load64.
  * @warning args->at must be readable for eight bytes and aligned for a uint64_t.
  */
-EMBED_INLINE uint64_t aequus_load64(const ProximLoadCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint64_t aequus_load64(const ProximLoadCtx *args)
 {
     return *(const mmgr_aequus_u64_t *)args->at;
 }
@@ -166,7 +166,7 @@ EMBED_INLINE uint64_t aequus_load64(const ProximLoadCtx *args)
  * @note Writes through mmgr_proxim_u16_t. args->dst needs no particular alignment.
  * @warning args->dst must be writable for two bytes.
  */
-EMBED_INLINE void proxim_put16(const ProximPutCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void proxim_put16(const ProximPutCtx *args)
 {
     // Explicit cast narrows the 64-bit val to the uint16_t the store writes
     *(mmgr_proxim_u16_t *)args->dst = (uint16_t)args->val;
@@ -179,7 +179,7 @@ EMBED_INLINE void proxim_put16(const ProximPutCtx *args)
  * @note Writes through mmgr_proxim_u32_t. args->dst needs no particular alignment.
  * @warning args->dst must be writable for four bytes.
  */
-EMBED_INLINE void proxim_put32(const ProximPutCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void proxim_put32(const ProximPutCtx *args)
 {
     // Explicit cast narrows the 64-bit val to the uint32_t the store writes
     *(mmgr_proxim_u32_t *)args->dst = (uint32_t)args->val;
@@ -193,7 +193,7 @@ EMBED_INLINE void proxim_put32(const ProximPutCtx *args)
  * @note No cast is necessary here, since args->val is already a uint64_t.
  * @warning args->dst must be writable for eight bytes.
  */
-EMBED_INLINE void proxim_put64(const ProximPutCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void proxim_put64(const ProximPutCtx *args)
 {
     *(mmgr_proxim_u64_t *)args->dst = args->val;
 }
@@ -205,7 +205,7 @@ EMBED_INLINE void proxim_put64(const ProximPutCtx *args)
  * @note Writes through mmgr_proxim_word_t. args->dst needs no particular alignment.
  * @warning args->dst must be writable for sizeof(embed_word) bytes.
  */
-EMBED_INLINE void proxim_put(const ProximPutCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void proxim_put(const ProximPutCtx *args)
 {
     // Explicit cast narrows the 64-bit val to the embed_word the store writes
     *(mmgr_proxim_word_t *)args->dst = (embed_word)args->val;
@@ -218,7 +218,7 @@ EMBED_INLINE void proxim_put(const ProximPutCtx *args)
  * @note Writes through mmgr_aequus_word_t, which retains embed_word's alignment, unlike proxim_put.
  * @warning args->dst must be writable for sizeof(embed_word) bytes and aligned for an embed_word.
  */
-EMBED_INLINE void aequus_put(const ProximPutCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void aequus_put(const ProximPutCtx *args)
 {
     // Explicit cast narrows the 64-bit val to the embed_word the store writes
     *(mmgr_aequus_word_t *)args->dst = (embed_word)args->val;
@@ -232,7 +232,7 @@ EMBED_INLINE void aequus_put(const ProximPutCtx *args)
  * @note No cast is necessary here, since args->val is already a uint64_t.
  * @warning args->dst must be writable for eight bytes and aligned for a uint64_t.
  */
-EMBED_INLINE void aequus_put64(const ProximPutCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void aequus_put64(const ProximPutCtx *args)
 {
     *(mmgr_aequus_u64_t *)args->dst = args->val;
 }
@@ -246,7 +246,7 @@ EMBED_INLINE void aequus_put64(const ProximPutCtx *args)
  * @note Advances args->dst and args->src past what it copied and draws that count off args->bytes.
  * @note Both pointers step in the copy statement itself, and the rest count goes down in the while test.
  */
-EMBED_INLINE void proxim_head(ProximReadCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void proxim_head(ProximReadCtx *args)
 {
     // Explicit casts hold the negation and the mask at uintptr_t, then bring the byte count back to size_t
     const size_t skew = (size_t)((0u - (uintptr_t)args->dst) & (uintptr_t)(sizeof(embed_word) - 1u));
@@ -287,7 +287,7 @@ EMBED_INLINE void proxim_head(ProximReadCtx *args)
  *       at all and moves nothing.
  * @warning Depends on a prior proxim_head, which puts args->dst on a boundary.
  */
-EMBED_INLINE void proxim_words(ProximReadCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void proxim_words(ProximReadCtx *args)
 {
     // Explicit cast holds the mask at size_t, as the byte count whose low bits it clears
     size_t word_bytes = args->bytes & ~(size_t)(sizeof(embed_word) - 1u);
@@ -327,7 +327,7 @@ EMBED_INLINE void proxim_words(ProximReadCtx *args)
  * @note Advances args->dst and args->src, but leaves args->bytes as it found it, unlike the two stages before it.
  * @note Both pointers step in the copy statement itself, and the local rest count goes down in the while test.
  */
-EMBED_INLINE void proxim_tail(ProximReadCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void proxim_tail(ProximReadCtx *args)
 {
     size_t remaining = args->bytes;
 
@@ -349,7 +349,7 @@ EMBED_INLINE void proxim_tail(ProximReadCtx *args)
  * @note Runs proxim_head, then proxim_words, then proxim_tail.
  * @warning Copies forward. An args->dst above args->src within one region would read bytes it has already written.
  */
-EMBED_INLINE void proxim_read(ProximReadCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void proxim_read(ProximReadCtx *args)
 {
     proxim_head(args);
     proxim_words(args);
@@ -408,17 +408,19 @@ EMBED_INLINE void proxim_read(ProximReadCtx *args)
  *
  * @note proximus_operor.h describes each at its declaration.
  * @note read is the only entry that reads args->size. Every other one leaves that member alone.
+ * @note Every line casts the caller's void pointers to the uint8_t pointers the context declares. C++ gives a pointer
+ *       to void to no other pointer type without the cast, and nvcc compiles this file as C++.
  */
-PROXIM_ENTRY(uint16_t, ProximLoadCtx, load16, .at = args->at)
-PROXIM_ENTRY(uint32_t, ProximLoadCtx, load32, .at = args->at)
-PROXIM_ENTRY(uint64_t, ProximLoadCtx, load64, .at = args->at)
-PROXIM_ENTRY_V(ProximPutCtx, put16, .dst = args->dst, .val = args->val)
-PROXIM_ENTRY_V(ProximPutCtx, put32, .dst = args->dst, .val = args->val)
-PROXIM_ENTRY_V(ProximPutCtx, put64, .dst = args->dst, .val = args->val)
-PROXIM_ENTRY(embed_word, ProximLoadCtx, load, .at = args->at)
-PROXIM_ENTRY_V(ProximPutCtx, put, .dst = args->dst, .val = args->val)
-AEQUUS_ENTRY(embed_word, ProximLoadCtx, load, .at = args->at)
-AEQUUS_ENTRY_V(ProximPutCtx, put, .dst = args->dst, .val = args->val)
-AEQUUS_ENTRY(uint64_t, ProximLoadCtx, load64, .at = args->at)
-AEQUUS_ENTRY_V(ProximPutCtx, put64, .dst = args->dst, .val = args->val)
+PROXIM_ENTRY(uint16_t, ProximLoadCtx, load16, .at = (const uint8_t *)args->at)
+PROXIM_ENTRY(uint32_t, ProximLoadCtx, load32, .at = (const uint8_t *)args->at)
+PROXIM_ENTRY(uint64_t, ProximLoadCtx, load64, .at = (const uint8_t *)args->at)
+PROXIM_ENTRY_V(ProximPutCtx, put16, .dst = (uint8_t *)args->dst, .val = args->val)
+PROXIM_ENTRY_V(ProximPutCtx, put32, .dst = (uint8_t *)args->dst, .val = args->val)
+PROXIM_ENTRY_V(ProximPutCtx, put64, .dst = (uint8_t *)args->dst, .val = args->val)
+PROXIM_ENTRY(embed_word, ProximLoadCtx, load, .at = (const uint8_t *)args->at)
+PROXIM_ENTRY_V(ProximPutCtx, put, .dst = (uint8_t *)args->dst, .val = args->val)
+AEQUUS_ENTRY(embed_word, ProximLoadCtx, load, .at = (const uint8_t *)args->at)
+AEQUUS_ENTRY_V(ProximPutCtx, put, .dst = (uint8_t *)args->dst, .val = args->val)
+AEQUUS_ENTRY(uint64_t, ProximLoadCtx, load64, .at = (const uint8_t *)args->at)
+AEQUUS_ENTRY_V(ProximPutCtx, put64, .dst = (uint8_t *)args->dst, .val = args->val)
 PROXIM_ENTRY_V(ProximReadCtx, read, .dst = (uint8_t *)args->dst, .src = (const uint8_t *)args->at, .bytes = args->size)

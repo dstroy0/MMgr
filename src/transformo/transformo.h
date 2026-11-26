@@ -88,7 +88,7 @@ EMBED_TABLE_LAYOUT(TransformoNs, take, scale, scale_to_u64, take_in);
  * @return              0 to 9 for '0' to '9', 10 to 35 for a letter of either case, and 36 for any other byte.
  * @note A value at or past the base says the byte is no digit of that base, and 36 is past every base.
  */
-EMBED_INLINE unsigned int mmgr_muto_digit_value(uint8_t character)
+EMBED_HOST_DEVICE EMBED_INLINE unsigned int mmgr_muto_digit_value(uint8_t character)
 {
     const unsigned int decimal = (unsigned int)character - (unsigned int)'0';
     // A letter of either case folds to its lower case with the bit of 0x20 set
@@ -106,7 +106,7 @@ EMBED_INLINE unsigned int mmgr_muto_digit_value(uint8_t character)
  * @warning args->digit must be an ASCII decimal digit, since the value added is args->digit minus '0'.
  * @warning Writes through args->mant [BORROWS].
  */
-embed_bool mmgr_muto_take(const TransformoCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_muto_take(const TransformoCfg *args);
 
 /**
  * @brief Turns *args->mant times ten raised to args->ex into a double, signed by args->neg.
@@ -118,7 +118,7 @@ embed_bool mmgr_muto_take(const TransformoCfg *args);
  * @note Does not read args->e2, and so the mantissa counts as a plain integer.
  * @warning Returns a signed infinity for an args->ex above MMGR_POW5_MAX and a signed zero below its negative.
  */
-double mmgr_muto_scale(const TransformoCfg *args);
+EMBED_HOST_DEVICE double mmgr_muto_scale(const TransformoCfg *args);
 
 /**
  * @brief Turns *args->mant times two raised to args->e2 times ten raised to args->ex into a rounded 64-bit integer.
@@ -135,7 +135,7 @@ double mmgr_muto_scale(const TransformoCfg *args);
  *          MMGR_POW5_STEPS bits of the magnitude take part in the walk. A larger exponent loses its high
  *          bits and the value scaled is not the one asked for.
  */
-embed_u64 mmgr_muto_scale_to_u64(const TransformoCfg *args);
+EMBED_HOST_DEVICE embed_u64 mmgr_muto_scale_to_u64(const TransformoCfg *args);
 
 /**
  * @brief Appends args->digit to *args->mant as one more digit in base args->base.
@@ -148,7 +148,7 @@ embed_u64 mmgr_muto_scale_to_u64(const TransformoCfg *args);
  * @note A digit is '0' to '9', then a letter of either case for 10 to 35.
  * @warning Writes through args->mant [BORROWS].
  */
-embed_bool mmgr_muto_take_in(const TransformoCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_muto_take_in(const TransformoCfg *args);
 
 /**
  * @brief Dispatch table instance named muto, with each member set to its mmgr_muto_ function.

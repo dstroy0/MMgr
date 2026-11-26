@@ -140,12 +140,14 @@ typedef struct
  *       cellblock's and never collide.
  * @note Emits the storage and nothing in it. mmgr_anular_init positions the state into those bytes and
  *       still has to run, since it can refuse the sizes it receives.
+ * @note EMBED_PASS_MEMORY gives each pass of nvcc its own ring, as it gives each pass its own pool. A kernel
+ *       reaches the ring in device memory, and host code reaches the one in host memory.
  * @warning The pool appears here and again at mmgr_anular_init. Nothing holds those two to the
  *          same pool. A ring declared over one pool and initialized over another compiles.
  */
 #define MemoriaAnularis(name_, pool_)                                                                                  \
     MMGR_PARS_CLAIMED_ONCE(pool_);                                                                                     \
-    static mmgr_ring name_
+    static EMBED_PASS_MEMORY mmgr_ring name_
 
 /**
  * @brief Arguments for every mmgr_anular_ entry, each reading only the members it needs.
@@ -225,7 +227,7 @@ EMBED_TABLE_LAYOUT(MemoriaAnularisNs, init, available, vacant, read_byte, read, 
  * @warning args->buf must carry the alignment the caller's own accesses need. This call does not
  *          align it.
  */
-embed_bool mmgr_anular_init(const AnularisCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_anular_init(const AnularisCfg *args);
 
 /**
  * @brief Returns the bytes ready for a read.
@@ -235,7 +237,7 @@ embed_bool mmgr_anular_init(const AnularisCfg *args);
  * @warning The answer is only a snapshot. A concurrent producer may add more before the caller acts
  *          on it.
  */
-size_t mmgr_anular_available(const AnularisCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_anular_available(const AnularisCfg *args);
 
 /**
  * @brief Returns the bytes still free to write.
@@ -246,7 +248,7 @@ size_t mmgr_anular_available(const AnularisCfg *args);
  * @warning The answer is only a snapshot. A concurrent consumer may free more before the caller acts
  *          on it.
  */
-size_t mmgr_anular_vacant(const AnularisCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_anular_vacant(const AnularisCfg *args);
 
 /**
  * @brief Takes one byte into args->dst and advances the tail past it.
@@ -258,7 +260,7 @@ size_t mmgr_anular_vacant(const AnularisCfg *args);
  *       wants mmgr_anular_read, which moves them a word at a time under one tail store.
  * @warning args->dst must be writable for one byte.
  */
-embed_bool mmgr_anular_read_byte(const AnularisCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_anular_read_byte(const AnularisCfg *args);
 
 /**
  * @brief Takes up to args->bytes into args->dst and advances the tail once at the end.
@@ -269,7 +271,7 @@ embed_bool mmgr_anular_read_byte(const AnularisCfg *args);
  * @note Reads the tail once and publishes it once and not per byte.
  * @warning args->dst must be writable for args->bytes.
  */
-size_t mmgr_anular_read(const AnularisCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_anular_read(const AnularisCfg *args);
 
 /**
  * @brief Copies args->bytes from args->offset ahead of the tail into args->dst, and leaves the tail
@@ -281,7 +283,7 @@ size_t mmgr_anular_read(const AnularisCfg *args);
  * @warning An args->bytes above the ring's capacity stops there. Two runs cover one lap at max.
  * @warning args->dst must be writable for args->bytes.
  */
-void mmgr_anular_peek(const AnularisCfg *args);
+EMBED_HOST_DEVICE void mmgr_anular_peek(const AnularisCfg *args);
 
 /**
  * @brief Advances the tail past args->bytes.
@@ -289,7 +291,7 @@ void mmgr_anular_peek(const AnularisCfg *args);
  * @param[in,out] args Ring and the byte count to drop [BORROWS].
  * @warning Advances whether or not that many arrived. Read mmgr_anular_available first.
  */
-void mmgr_anular_consume(const AnularisCfg *args);
+EMBED_HOST_DEVICE void mmgr_anular_consume(const AnularisCfg *args);
 
 /**
  * @brief Writes args->bytes of args->src into the ring, or refuses the whole span.
@@ -300,7 +302,7 @@ void mmgr_anular_consume(const AnularisCfg *args);
  * @note Advances a local head across the wrap and publishes it once, and so no half span is ever visible.
  * @warning args->src must be readable for args->bytes.
  */
-embed_bool mmgr_anular_put(const AnularisCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_anular_put(const AnularisCfg *args);
 
 /**
  * @brief Returns the segments filled and not yet released.
@@ -310,7 +312,7 @@ embed_bool mmgr_anular_put(const AnularisCfg *args);
  * @warning The reads of the two counters come one after the other, and so the answer is only a snapshot. A publish
  *          or a release may land between the reads, or after both.
  */
-size_t mmgr_anular_seg_inflight(const AnularisCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_anular_seg_inflight(const AnularisCfg *args);
 
 /**
  * @brief Reports the index of the segment the producer fills next.
@@ -324,7 +326,7 @@ size_t mmgr_anular_seg_inflight(const AnularisCfg *args);
  *       since releases only make room.
  * @warning args->out_index must be writable.
  */
-embed_bool mmgr_anular_seg_next(const AnularisCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_anular_seg_next(const AnularisCfg *args);
 
 /**
  * @brief Makes the filled segment visible to the consumer.
@@ -336,7 +338,7 @@ embed_bool mmgr_anular_seg_next(const AnularisCfg *args);
  *          match puts more in flight than the ring holds, and that call then refuses
  *          until releases catch up.
  */
-void mmgr_anular_seg_publish(const AnularisCfg *args);
+EMBED_HOST_DEVICE void mmgr_anular_seg_publish(const AnularisCfg *args);
 
 /**
  * @brief Reports the index of the segment the consumer takes next.
@@ -348,7 +350,7 @@ void mmgr_anular_seg_publish(const AnularisCfg *args);
  *       since publishes only add.
  * @warning args->out_index must be writable.
  */
-embed_bool mmgr_anular_seg_front(const AnularisCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_anular_seg_front(const AnularisCfg *args);
 
 /**
  * @brief Frees the front segment.
@@ -361,7 +363,7 @@ embed_bool mmgr_anular_seg_front(const AnularisCfg *args);
  *          the in-flight count and leaves mmgr_anular_seg_front with a segment on offer that never
  *          filled.
  */
-void mmgr_anular_seg_release(const AnularisCfg *args);
+EMBED_HOST_DEVICE void mmgr_anular_seg_release(const AnularisCfg *args);
 
 /**
  * @brief Returns the contiguous span of segment args->index.
@@ -373,7 +375,7 @@ void mmgr_anular_seg_release(const AnularisCfg *args);
  * @warning Nothing checks args->index against the segment count, and no assertion covers it. An index
  *          at or past that count returns a pointer outside the ring's bytes.
  */
-uint8_t *mmgr_anular_seg_at(const AnularisCfg *args);
+EMBED_HOST_DEVICE uint8_t *mmgr_anular_seg_at(const AnularisCfg *args);
 
 /**
  * @brief Returns the loculi that are free and not pinned.
@@ -385,7 +387,7 @@ uint8_t *mmgr_anular_seg_at(const AnularisCfg *args);
  *          or a drop may land before the caller acts on it. mmgr_anular_loculus_hold settles that race,
  *          and refuses a loculus another caller took first.
  */
-embed_word mmgr_anular_loculus_ready(const AnularisCfg *args);
+EMBED_HOST_DEVICE embed_word mmgr_anular_loculus_ready(const AnularisCfg *args);
 
 /**
  * @brief Returns the index of the lowest set bit of args->mask.
@@ -397,7 +399,7 @@ embed_word mmgr_anular_loculus_ready(const AnularisCfg *args);
  * @warning The mask passes as given. A bit at or above MMGR_RING_LOCULI comes back as its index,
  *          and that index names no loculus, and so mmgr_anular_loculus_hold refuses it.
  */
-embed_iword mmgr_anular_loculus_next(const AnularisCfg *args);
+EMBED_HOST_DEVICE embed_iword mmgr_anular_loculus_next(const AnularisCfg *args);
 
 /**
  * @brief Takes loculus args->index and records the args->bytes at args->src that it retains out.
@@ -410,7 +412,7 @@ embed_iword mmgr_anular_loculus_next(const AnularisCfg *args);
  * @warning The ring retains args->src and mmgr_anular_loculus_keepout passes it back, and so it must
  *          outlive the hold [BORROWS].
  */
-embed_bool mmgr_anular_loculus_hold(const AnularisCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_anular_loculus_hold(const AnularisCfg *args);
 
 /**
  * @brief Returns the region loculus args->index retains out.
@@ -423,7 +425,7 @@ embed_bool mmgr_anular_loculus_hold(const AnularisCfg *args);
  * @warning The record comes back for any loculus in range, pinned or not. A drop leaves it in place, and so
  *          afterwards it still names the last region that loculus recorded [BORROWS].
  */
-const mmgr_ring_span *mmgr_anular_loculus_keepout(const AnularisCfg *args);
+EMBED_HOST_DEVICE const mmgr_ring_span *mmgr_anular_loculus_keepout(const AnularisCfg *args);
 
 /**
  * @brief Gives loculus args->index back.
@@ -433,7 +435,7 @@ const mmgr_ring_span *mmgr_anular_loculus_keepout(const AnularisCfg *args);
  * @note An out-of-range args->index names no bit and clears nothing, and a drop of a loculus with
  *       no pin does nothing.
  */
-void mmgr_anular_loculus_drop(const AnularisCfg *args);
+EMBED_HOST_DEVICE void mmgr_anular_loculus_drop(const AnularisCfg *args);
 
 /**
  * @brief Marks loculus args->index free.
@@ -445,7 +447,7 @@ void mmgr_anular_loculus_drop(const AnularisCfg *args);
  *       call positioned down this changes nothing.
  * @note An out-of-range args->index names no bit and sets nothing.
  */
-void mmgr_anular_loculus_mark(const AnularisCfg *args);
+EMBED_HOST_DEVICE void mmgr_anular_loculus_mark(const AnularisCfg *args);
 
 /**
  * @brief Dispatch table instance named anularis, whose members are the mmgr_anular_ entries.

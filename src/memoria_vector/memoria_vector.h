@@ -94,6 +94,8 @@ typedef struct
  *       first call, and the vector starts with no element and no cell.
  * @note The build fails where the ceiling is 0, where one cell of the ceiling passes MMGR_CARCER_BYTES_MAX, or
  *       where the alignment of the element does not divide MMGR_ALIGN_BYTES.
+ * @note EMBED_PASS_MEMORY gives each pass of nvcc its own claim bits, record and token. A kernel reaches the vector in
+ *       device memory, and its owner_ is the device copy of the identity.
  * @warning The vector names no cellblock. Each call names the guard that it goes through, and every call on one
  *          vector must name the same guard.
  */
@@ -101,14 +103,13 @@ typedef struct
     EMBED_STATIC_ASSERT((size_t)(limit_) > 0u, #name_ " has a ceiling of 0 elements");                                 \
     EMBED_STATIC_ASSERT((size_t)(limit_) <= (MMGR_CARCER_BYTES_MAX / sizeof(element_)),                                \
                         #name_ " has a ceiling whose cell passes MMGR_CARCER_BYTES_MAX");                              \
-    EMBED_STATIC_ASSERT((MMGR_ALIGN_BYTES % _Alignof(element_)) == 0u,                                                 \
+    EMBED_STATIC_ASSERT((MMGR_ALIGN_BYTES % EMBED_ALIGNOF(element_)) == 0u,                                            \
                         #name_ " has an element whose alignment does not divide MMGR_ALIGN_BYTES");                    \
-    static embed_atomic_usize mmgr_vector_claimed_##name_[MMGR_VECTOR_CLAIM_WORDS(limit_)];                            \
-    static VectorRecord mmgr_vector_record_##name_ = {EMBED_ATOMIC_INIT(0u),      EMBED_ATOMIC_INIT(0u),               \
-                                                      EMBED_ATOMIC_INIT(0u),      sizeof(element_),                    \
-                                                      (size_t)(limit_),           &(owner_),                           \
-                                                      mmgr_vector_claimed_##name_};                                    \
-    static VectorRecord *const name_ = &mmgr_vector_record_##name_
+    static EMBED_PASS_MEMORY embed_atomic_usize mmgr_vector_claimed_##name_[MMGR_VECTOR_CLAIM_WORDS(limit_)];          \
+    static EMBED_PASS_MEMORY VectorRecord mmgr_vector_record_##name_ = {                                               \
+        EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u), EMBED_ATOMIC_INIT(0u), sizeof(element_),                         \
+        (size_t)(limit_),      &(owner_),             mmgr_vector_claimed_##name_};                                    \
+    static EMBED_PASS_MEMORY VectorRecord *const name_ = &mmgr_vector_record_##name_
 
 /**
  * @brief The movable entries of a guard, as the members of a MemoriaVectorCfg.
@@ -167,7 +168,7 @@ EMBED_TABLE_LAYOUT(MemoriaVectorNs, at, set, push_back, pop_back, size, release)
  *       the count is the point where the call takes effect.
  * @warning args->dst must be writable for one element.
  */
-embed_bool mmgr_vector_at(const MemoriaVectorCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_vector_at(const MemoriaVectorCfg *args);
 
 /**
  * @brief Copies the element at args->src to args->index.
@@ -178,7 +179,7 @@ embed_bool mmgr_vector_at(const MemoriaVectorCfg *args);
  * @note Claims the bit of the element, reads the count, copies the element, and gives the bit back.
  * @warning args->src must be readable for one element.
  */
-embed_bool mmgr_vector_set(const MemoriaVectorCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_vector_set(const MemoriaVectorCfg *args);
 
 /**
  * @brief Appends the element at args->src.
@@ -192,7 +193,7 @@ embed_bool mmgr_vector_set(const MemoriaVectorCfg *args);
  * @note A CAS that finds another count gives the bit back and starts again, as does a claim of a held bit.
  * @warning args->src must be readable for one element.
  */
-embed_bool mmgr_vector_push_back(const MemoriaVectorCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_vector_push_back(const MemoriaVectorCfg *args);
 
 /**
  * @brief Removes the last element and copies it to args->dst.
@@ -206,7 +207,7 @@ embed_bool mmgr_vector_push_back(const MemoriaVectorCfg *args);
  * @warning A guard other than the guard of the cell can refuse the read after the CAS. The call then answers
  *          EMBED_FALSE, and the element is gone.
  */
-embed_bool mmgr_vector_pop_back(const MemoriaVectorCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_vector_pop_back(const MemoriaVectorCfg *args);
 
 /**
  * @brief Returns the count of elements.
@@ -215,7 +216,7 @@ embed_bool mmgr_vector_pop_back(const MemoriaVectorCfg *args);
  * @return         The count, off one word.
  * @warning The answer is only a snapshot. A push or a pop on another thread can change it before the caller acts.
  */
-size_t mmgr_vector_size(const MemoriaVectorCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_vector_size(const MemoriaVectorCfg *args);
 
 /**
  * @brief Gives the cell of the vector back, and leaves the vector with no element.
@@ -228,7 +229,7 @@ size_t mmgr_vector_size(const MemoriaVectorCfg *args);
  * @warning The claims are one for each element of the ceiling. A vector with a high ceiling pays that at each
  *          release.
  */
-embed_bool mmgr_vector_release(const MemoriaVectorCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_vector_release(const MemoriaVectorCfg *args);
 
 /**
  * @brief Dispatch table instance named memoria_vector, whose members are the mmgr_vector_ entries.

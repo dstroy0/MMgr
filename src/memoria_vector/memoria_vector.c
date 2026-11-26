@@ -30,7 +30,7 @@
  * @param[in] index The element.
  * @return          The word with that one bit set.
  */
-EMBED_INLINE embed_atomic_usize_value vector_bit(size_t index)
+EMBED_HOST_DEVICE EMBED_INLINE embed_atomic_usize_value vector_bit(size_t index)
 {
     // Explicit cast puts the one at the width of the claim word before the shift
     return (embed_atomic_usize_value)1u << (index % MMGR_VECTOR_CLAIM_BITS);
@@ -43,7 +43,7 @@ EMBED_INLINE embed_atomic_usize_value vector_bit(size_t index)
  * @param[in] index  The element.
  * @return           The word [BORROWS].
  */
-EMBED_INLINE embed_atomic_usize *vector_claim_word(const VectorRecord *vector, size_t index)
+EMBED_HOST_DEVICE EMBED_INLINE embed_atomic_usize *vector_claim_word(const VectorRecord *vector, size_t index)
 {
     return &vector->claimed[index / MMGR_VECTOR_CLAIM_BITS];
 }
@@ -55,7 +55,7 @@ EMBED_INLINE embed_atomic_usize *vector_claim_word(const VectorRecord *vector, s
  * @param[in]     index  The element.
  * @return               EMBED_TRUE where the fetch-or found the bit clear, and the caller now holds it.
  */
-EMBED_INLINE embed_bool vector_claim_once(const VectorRecord *vector, size_t index)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool vector_claim_once(const VectorRecord *vector, size_t index)
 {
     const embed_atomic_usize_value bit = vector_bit(index);
     const embed_atomic_usize_value found = EMBED_CALL(embed_atomic_usize_table.fetch_or, EmbedAtomicUsizeFetchOrCfg,
@@ -70,7 +70,7 @@ EMBED_INLINE embed_bool vector_claim_once(const VectorRecord *vector, size_t ind
  * @param[in,out] vector The vector [BORROWS].
  * @param[in]     index  The element.
  */
-EMBED_INLINE void vector_claim(const VectorRecord *vector, size_t index)
+EMBED_HOST_DEVICE EMBED_INLINE void vector_claim(const VectorRecord *vector, size_t index)
 {
     embed_bool claimed = vector_claim_once(vector, index);
     while (!claimed)
@@ -86,7 +86,7 @@ EMBED_INLINE void vector_claim(const VectorRecord *vector, size_t index)
  * @param[in,out] vector The vector [BORROWS].
  * @param[in]     index  The element, whose bit the caller holds.
  */
-EMBED_INLINE void vector_give(const VectorRecord *vector, size_t index)
+EMBED_HOST_DEVICE EMBED_INLINE void vector_give(const VectorRecord *vector, size_t index)
 {
     (void)EMBED_CALL(embed_atomic_usize_table.fetch_and, EmbedAtomicUsizeFetchAndCfg,
                      .word = vector_claim_word(vector, index), .value = ~vector_bit(index));
@@ -98,7 +98,7 @@ EMBED_INLINE void vector_give(const VectorRecord *vector, size_t index)
  * @param[in] vector The vector [BORROWS].
  * @return           The count, off one word.
  */
-EMBED_INLINE size_t vector_count(const VectorRecord *vector)
+EMBED_HOST_DEVICE EMBED_INLINE size_t vector_count(const VectorRecord *vector)
 {
     // Explicit cast reads the word as the count it holds
     return (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &vector->count);
@@ -110,7 +110,7 @@ EMBED_INLINE size_t vector_count(const VectorRecord *vector)
  * @param[in] vector The vector [BORROWS].
  * @return           The capacity, off one word.
  */
-EMBED_INLINE size_t vector_capacity(const VectorRecord *vector)
+EMBED_HOST_DEVICE EMBED_INLINE size_t vector_capacity(const VectorRecord *vector)
 {
     // Explicit cast reads the word as the capacity it holds
     return (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &vector->capacity);
@@ -122,7 +122,7 @@ EMBED_INLINE size_t vector_capacity(const VectorRecord *vector)
  * @param[in] vector The vector [BORROWS].
  * @return           The identity, NULL where the vector has no cell [BORROWS].
  */
-EMBED_INLINE const CarcerMovableEntry *vector_cell(const VectorRecord *vector)
+EMBED_HOST_DEVICE EMBED_INLINE const CarcerMovableEntry *vector_cell(const VectorRecord *vector)
 {
     // Explicit cast takes the word back to the identity that a growth stored in it as an integer
     return (const CarcerMovableEntry *)(uintptr_t)EMBED_CALL(embed_atomic_uptr_table.load, EmbedAtomicUptrLoadCfg,
@@ -137,7 +137,7 @@ EMBED_INLINE const CarcerMovableEntry *vector_cell(const VectorRecord *vector)
  * @param[in]     capacity The elements that the new cell holds.
  * @note The caller holds each bit that a call can hold while it reads the cell, so no call reads the two halfway.
  */
-EMBED_INLINE void vector_place(VectorRecord *vector, const CarcerMovableEntry *cell, size_t capacity)
+EMBED_HOST_DEVICE EMBED_INLINE void vector_place(VectorRecord *vector, const CarcerMovableEntry *cell, size_t capacity)
 {
     // Explicit cast stores the identity as the integer the word holds
     EMBED_CALL(embed_atomic_uptr_table.store, EmbedAtomicUptrStoreCfg, .word = &vector->cell,
@@ -154,7 +154,7 @@ EMBED_INLINE void vector_place(VectorRecord *vector, const CarcerMovableEntry *c
  * @param[in] limit    The ceiling.
  * @return             The capacity after it, as grown of LocusCarcerum/Vector.lean gives it.
  */
-EMBED_INLINE size_t vector_grown(size_t capacity, size_t limit)
+EMBED_HOST_DEVICE EMBED_INLINE size_t vector_grown(size_t capacity, size_t limit)
 {
     const size_t doubled = (capacity == 0u) ? 1u : (2u * capacity);
     return (doubled < limit) ? doubled : limit;
@@ -172,8 +172,8 @@ EMBED_INLINE size_t vector_grown(size_t capacity, size_t limit)
  * @note The movable option has no copy from one cell to another, so each chunk goes out to the stack and back
  *       in. This is copyRun of LocusCarcerum/Vector.lean, which proves that it copies each byte for each chunk size.
  */
-EMBED_INLINE embed_bool vector_copy(const MemoriaVectorCfg *args, const CarcerMovableEntry *from,
-                                    const CarcerMovableEntry *to, size_t bytes)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool vector_copy(const MemoriaVectorCfg *args, const CarcerMovableEntry *from,
+                                                      const CarcerMovableEntry *to, size_t bytes)
 {
     uint8_t chunk[MMGR_VECTOR_CHUNK_BYTES];
     size_t offset = 0u;
@@ -183,8 +183,9 @@ EMBED_INLINE embed_bool vector_copy(const MemoriaVectorCfg *args, const CarcerMo
         const size_t left = bytes - offset;
         const size_t step = (left < MMGR_VECTOR_CHUNK_BYTES) ? left : MMGR_VECTOR_CHUNK_BYTES;
         const embed_bool read =
-            args->read(&(CarcerMovableCfg){.cell = from, .offset = offset, .dst = chunk, .bytes = step});
-        copied = read && args->write(&(CarcerMovableCfg){.cell = to, .offset = offset, .src = chunk, .bytes = step});
+            EMBED_CALL(args->read, CarcerMovableCfg, .cell = from, .offset = offset, .dst = chunk, .bytes = step);
+        copied = read &&
+                 EMBED_CALL(args->write, CarcerMovableCfg, .cell = to, .offset = offset, .src = chunk, .bytes = step);
         offset += step;
     }
     return copied;
@@ -201,7 +202,7 @@ EMBED_INLINE embed_bool vector_copy(const MemoriaVectorCfg *args, const CarcerMo
  * @note Claims each bit below the count first, so no other call reads or writes an element while the cell
  *       changes. This is the relocation of LocusCarcerum/Vector.lean, which changes nothing that the caller can see.
  */
-EMBED_INLINE embed_bool vector_grow(const MemoriaVectorCfg *args, size_t count)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool vector_grow(const MemoriaVectorCfg *args, size_t count)
 {
     VectorRecord *const vector = args->vector;
     for (size_t index = 0u; index < count; index++)
@@ -236,33 +237,31 @@ EMBED_INLINE embed_bool vector_grow(const MemoriaVectorCfg *args, size_t count)
     return placed;
 }
 
-embed_bool mmgr_vector_at(const MemoriaVectorCfg *args)
+EMBED_HOST_DEVICE embed_bool mmgr_vector_at(const MemoriaVectorCfg *args)
 {
     VectorRecord *const vector = args->vector;
     vector_claim(vector, args->index);
     const embed_bool legal = (args->index < vector_count(vector));
-    const embed_bool copied = legal && args->read(&(CarcerMovableCfg){.cell = vector_cell(vector),
-                                                                      .offset = args->index * vector->stride,
-                                                                      .dst = args->dst,
-                                                                      .bytes = vector->stride});
+    const embed_bool copied = legal && EMBED_CALL(args->read, CarcerMovableCfg, .cell = vector_cell(vector),
+                                                  .offset = args->index * vector->stride, .dst = args->dst,
+                                                  .bytes = vector->stride);
     vector_give(vector, args->index);
     return copied;
 }
 
-embed_bool mmgr_vector_set(const MemoriaVectorCfg *args)
+EMBED_HOST_DEVICE embed_bool mmgr_vector_set(const MemoriaVectorCfg *args)
 {
     VectorRecord *const vector = args->vector;
     vector_claim(vector, args->index);
     const embed_bool legal = (args->index < vector_count(vector));
-    const embed_bool copied = legal && args->write(&(CarcerMovableCfg){.cell = vector_cell(vector),
-                                                                       .offset = args->index * vector->stride,
-                                                                       .src = args->src,
-                                                                       .bytes = vector->stride});
+    const embed_bool copied = legal && EMBED_CALL(args->write, CarcerMovableCfg, .cell = vector_cell(vector),
+                                                  .offset = args->index * vector->stride, .src = args->src,
+                                                  .bytes = vector->stride);
     vector_give(vector, args->index);
     return copied;
 }
 
-embed_bool mmgr_vector_push_back(const MemoriaVectorCfg *args)
+EMBED_HOST_DEVICE embed_bool mmgr_vector_push_back(const MemoriaVectorCfg *args)
 {
     VectorRecord *const vector = args->vector;
     size_t count = vector_count(vector);
@@ -277,10 +276,9 @@ embed_bool mmgr_vector_push_back(const MemoriaVectorCfg *args)
                 vector_give(vector, count);
                 return EMBED_FALSE;
             }
-            const embed_bool written = args->write(&(CarcerMovableCfg){.cell = vector_cell(vector),
-                                                                       .offset = count * vector->stride,
-                                                                       .src = args->src,
-                                                                       .bytes = vector->stride});
+            const embed_bool written =
+                EMBED_CALL(args->write, CarcerMovableCfg, .cell = vector_cell(vector),
+                           .offset = count * vector->stride, .src = args->src, .bytes = vector->stride);
             if (!written)
             {
                 vector_give(vector, count);
@@ -311,7 +309,7 @@ embed_bool mmgr_vector_push_back(const MemoriaVectorCfg *args)
     return EMBED_FALSE;
 }
 
-embed_bool mmgr_vector_pop_back(const MemoriaVectorCfg *args)
+EMBED_HOST_DEVICE embed_bool mmgr_vector_pop_back(const MemoriaVectorCfg *args)
 {
     VectorRecord *const vector = args->vector;
     size_t count = vector_count(vector);
@@ -327,10 +325,9 @@ embed_bool mmgr_vector_pop_back(const MemoriaVectorCfg *args)
             const embed_bool committed =
                 EMBED_CALL(embed_atomic_usize_table.swap_if, EmbedAtomicUsizeSwapIfCfg, .word = &vector->count,
                            .expected = &expected, .value = (embed_atomic_usize_value)last);
-            const embed_bool copied = committed && args->read(&(CarcerMovableCfg){.cell = vector_cell(vector),
-                                                                                  .offset = last * vector->stride,
-                                                                                  .dst = args->dst,
-                                                                                  .bytes = vector->stride});
+            const embed_bool copied =
+                committed && EMBED_CALL(args->read, CarcerMovableCfg, .cell = vector_cell(vector),
+                                        .offset = last * vector->stride, .dst = args->dst, .bytes = vector->stride);
             vector_give(vector, last);
             if (committed)
             {
@@ -346,12 +343,12 @@ embed_bool mmgr_vector_pop_back(const MemoriaVectorCfg *args)
     return EMBED_FALSE;
 }
 
-size_t mmgr_vector_size(const MemoriaVectorCfg *args)
+EMBED_HOST_DEVICE size_t mmgr_vector_size(const MemoriaVectorCfg *args)
 {
     return vector_count(args->vector);
 }
 
-embed_bool mmgr_vector_release(const MemoriaVectorCfg *args)
+EMBED_HOST_DEVICE embed_bool mmgr_vector_release(const MemoriaVectorCfg *args)
 {
     VectorRecord *const vector = args->vector;
     for (size_t index = vector->limit; index > 0u; index--)

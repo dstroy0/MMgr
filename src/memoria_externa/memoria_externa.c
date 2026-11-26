@@ -44,7 +44,7 @@ typedef struct
  * @note dram_reserve is as given. A reserve above free_dram refuses every request, size 0
  *       included. A reserve equal to it admits only a size of 0.
  */
-EMBED_INLINE embed_bool exter_dram_fits(const ExterCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool exter_dram_fits(const ExterCtx *args)
 {
     // Two tests in order. The first guards the subtraction in the second, since && stops
     // at the first that fails and a size past free_dram would otherwise wrap it
@@ -58,7 +58,7 @@ EMBED_INLINE embed_bool exter_dram_fits(const ExterCtx *args)
  * @return         EMBED_TRUE when the bytes fit.
  * @note A single comparison, where exter_dram_fits also checks dram_reserve.
  */
-EMBED_INLINE embed_bool exter_psram_fits(const ExterCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool exter_psram_fits(const ExterCtx *args)
 {
     return args->size <= args->free_psram;
 }
@@ -77,7 +77,7 @@ EMBED_INLINE embed_bool exter_psram_fits(const ExterCtx *args)
  * @warning The two tests are not the same shape. Internal placement must also leave dram_reserve
  *          free, where the external one is a size comparison alone.
  */
-EMBED_INLINE mmgr_place exter_place(const ExterCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE mmgr_place exter_place(const ExterCtx *args)
 {
     if (args->size == 0)
     {
@@ -125,7 +125,7 @@ EMBED_INLINE mmgr_place exter_place(const ExterCtx *args)
  * @warning args->pingpong must not be null. Nothing checks it and no assertion covers it, and the
  *          store below goes through it at once.
  */
-EMBED_INLINE void exter_pingpong_init(const ExterCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void exter_pingpong_init(const ExterCtx *args)
 {
     args->pingpong->fill_index = 0;
 }
@@ -139,7 +139,7 @@ EMBED_INLINE void exter_pingpong_init(const ExterCtx *args)
  * @warning Passes back fill_index as it is. It is 0 or 1 on a pair exter_pingpong_init set,
  *          and whatever the storage contained on one it did not.
  */
-EMBED_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
 {
     return args->pingpong->fill_index;
 }
@@ -155,7 +155,7 @@ EMBED_INLINE uint8_t exter_pingpong_fill_index(const ExterCtx *args)
  * @warning The answer is an index only while fill_index is 0 or 1. On a pair exter_pingpong_init has
  *          not set it is the flip of whatever the storage contained.
  */
-EMBED_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
 {
     // Explicit cast retains the result in uint8_t after the exclusive or promotes to int
     return (uint8_t)(args->pingpong->fill_index ^ 1u);
@@ -172,7 +172,7 @@ EMBED_INLINE uint8_t exter_pingpong_drain_index(const ExterCtx *args)
  *          no atomic and no lock. So two callers that swap the same pair can come away with the
  *          same index.
  */
-EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint8_t exter_pingpong_swap(const ExterCtx *args)
 {
     // The flip is on its own line and the read of the answer comes on the next. So neither is a side
     // effect inside the other. That second read is a fresh load, which is where a concurrent swap

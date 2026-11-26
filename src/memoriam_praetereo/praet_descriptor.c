@@ -19,7 +19,7 @@
 
 #if MMGR_ENABLE_DMA
 
-embed_word praet_descriptor_chain_length(const PraetDescriptor *first, embed_word limit)
+EMBED_HOST_DEVICE embed_word praet_descriptor_chain_length(const PraetDescriptor *first, embed_word limit)
 {
     if ((first == NULL) || (limit == 0u))
     {

@@ -39,6 +39,36 @@ function(mmgr_env_name entry out_name out_defs)
   set(${out_defs} "${_defs}" PARENT_SCOPE)
 endfunction()
 
+# The CUDA properties of each device target, a module or a suite. Separable compilation keeps each translation unit's
+# device code apart until the device link, which a call from one module to another needs. C++20 takes the designated
+# initializers of EMBED_CALL. The new preprocessor of cl counts __VA_ARGS__ the way the dispatch tables need.
+# Link time optimization stays off, since the device link is the step that joins the units. A call from device code
+# to a function with no device body stops the build.
+function(mmgr_device_properties target)
+  set_target_properties(${target} PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_STANDARD 20
+    CUDA_STANDARD_REQUIRED ON
+    CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
+    INTERPROCEDURAL_OPTIMIZATION OFF)
+  if(MSVC)
+    target_compile_options(${target} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-Xcompiler=/Zc:preprocessor>)
+  endif()
+  # nvcc warns, and does not stop, where device code calls a function that has no device body. The call then does
+  # nothing on the device. A case that passes that way tested nothing, and so the call is an error here
+  target_compile_options(${target} PRIVATE "$<$<COMPILE_LANGUAGE:CUDA>:SHELL:-Werror cross-execution-space-call>")
+endfunction()
+
+# The source of a CUDA translation unit that compiles one C source of the tree, and nothing else. A source has one
+# language in its directory, and the host environments compile each .c as C. So the device target compiles a .cu of
+# its own that includes the .c.
+function(mmgr_device_wrapper source out_wrapper)
+  get_filename_component(_stem "${source}" NAME_WE)
+  set(_wrapper "${CMAKE_CURRENT_BINARY_DIR}/device/${_stem}.cu")
+  file(CONFIGURE OUTPUT "${_wrapper}" CONTENT "#include \"${source}\"\n" @ONLY)
+  set(${out_wrapper} "${_wrapper}" PARENT_SCOPE)
+endfunction()
+
 function(mmgr_add_module name)
   cmake_parse_arguments(ARG "HEADER_ONLY;OPT_IN" "OPTIMIZE" "SOURCES;DEPS" ${ARGN})
 
@@ -134,4 +164,46 @@ function(mmgr_add_module name)
       set_property(GLOBAL APPEND PROPERTY MMGR_TARGETS_${env} ${target})
     endif()
   endforeach()
+
+  # The device form: the widths of the host environment, each source compiled as CUDA for both passes of nvcc. It
+  # takes the capabilities and the knobs as each environment does, and for the same reason
+  if(MMGR_DEVICE)
+    set(target mmgr_${name}_device)
+    if(ARG_HEADER_ONLY)
+      add_library(${target} INTERFACE)
+      set(scope INTERFACE)
+    else()
+      set(_wrappers "")
+      foreach(s IN LISTS ARG_SOURCES)
+        mmgr_device_wrapper("${CMAKE_CURRENT_SOURCE_DIR}/${s}" _wrapper)
+        list(APPEND _wrappers "${_wrapper}")
+      endforeach()
+      add_library(${target} STATIC ${_wrappers})
+      set(scope PUBLIC)
+      mmgr_device_properties(${target})
+      if(NOT ARG_OPTIMIZE)
+        set(ARG_OPTIMIZE -O2)
+      endif()
+      if(MMGR_MODULE_OPTIMIZE)
+        # nvcc hands the level to cl too, and cl refuses one beside the runtime checks of its Debug build
+        target_compile_options(${target} PRIVATE "$<$<NOT:$<AND:$<BOOL:${MSVC}>,$<CONFIG:Debug>>>:${ARG_OPTIMIZE}>")
+      endif()
+    endif()
+    target_include_directories(${target} ${scope} "${MMGR_INCLUDE_DIR}" "${MMgr_SOURCE_DIR}/include")
+    target_link_libraries(${target} ${scope} embedded_types::embedded_types)
+    set(_device_defs "")
+    foreach(cap IN LISTS MMGR_CAPABILITIES)
+      list(APPEND _device_defs MMGR_ENABLE_${cap}=$<BOOL:${MMGR_ENABLE_${cap}}>)
+    endforeach()
+    if(MMGR_ENABLE_DMA)
+      list(APPEND _device_defs ${MMGR_PRAET_KNOBS})
+    endif()
+    target_compile_definitions(${target} ${scope} ${_device_defs})
+    foreach(dep IN LISTS ARG_DEPS)
+      target_link_libraries(${target} ${scope} mmgr_${dep}_device)
+    endforeach()
+    if(NOT ARG_OPT_IN)
+      set_property(GLOBAL APPEND PROPERTY MMGR_TARGETS_device ${target})
+    endif()
+  endif()
 endfunction()

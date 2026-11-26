@@ -163,10 +163,11 @@ EMBED_BEGIN_DECLS
  *       lands at its own alignment at every width.
  * @note LocusCarcerum() puts this alignment on the storage it declares. This rounds only
  *       the offsets inside a cellblock.
+ * @note EMBED_ALIGNOF is _Alignof in C and alignof in C++, the language nvcc compiles.
  */
 #define MMGR_CARCER_ALIGN                                                                                              \
-    ((sizeof(embed_word) > _Alignof(embed_atomic_usize)) ? (size_t)sizeof(embed_word)                                  \
-                                                         : (size_t)_Alignof(embed_atomic_usize))
+    ((sizeof(embed_word) > EMBED_ALIGNOF(embed_atomic_usize)) ? (size_t)sizeof(embed_word)                             \
+                                                              : (size_t)EMBED_ALIGNOF(embed_atomic_usize))
 
 /**
  * @brief Asserts MMGR_CARCER_ALIGN is a power of two.
@@ -298,16 +299,18 @@ EMBED_STATIC_ASSERT((size_t)MMGR_CARCER_OWNERS < ((size_t)1u << MMGR_OWNER_PLACE
  * @note Weak, and the default answers 0 every time: a build that defines none stamps every take 0. A port
  *       defines this name to replace it.
  */
-uint64_t mmgr_carcer_hw_clock_ns(void);
+EMBED_HOST_DEVICE uint64_t mmgr_carcer_hw_clock_ns(void);
 
 /**
  * @brief The program's owner table and the owners in it, which MMGR_OWNERS defines once.
  *
  * @note A program that reaches a cellblock declares its owners with MMGR_OWNERS in one translation unit.
  *       A build with none fails at the link, and the link names these.
+ * @note Under nvcc each has a device twin, with `_device` after its name, that MMGR_OWNERS defines from the same
+ *       initializer. A read names it through EMBED_PASS_NAME, and so a kernel counts its cells in the device table.
  */
-extern CellOwner mmgr_owner_table[];
-extern const size_t mmgr_owner_table_count;
+EMBED_PASS_DECLARE(CellOwner, mmgr_owner_table, []);
+EMBED_PASS_DECLARE(const size_t, mmgr_owner_table_count, );
 
 /**
  * @brief One owner's place in the table, counted from 0, as the enumeration MMGR_OWNERS positions names it.
@@ -331,8 +334,11 @@ extern const size_t mmgr_owner_table_count;
  *
  * @param[in] name_ The owner's identity, as declared.
  * @param[in] text_ The owner's name as a reader prints it, unread here.
+ * @note EMBED_PASS_LOCAL gives each pass of nvcc its own identity, which points into the table of that pass.
+ * @warning Under nvcc the identity is local to the unit that expands MMGR_OWNERS, as EMBED_PASS_LOCAL states.
  */
-#define MMGR_OWNER_POINTER(name_, text_) const CellOwner *const name_ = &mmgr_owner_table[mmgr_owner_place_##name_];
+#define MMGR_OWNER_POINTER(name_, text_)                                                                               \
+    EMBED_PASS_LOCAL(const CellOwner *const, name_, &EMBED_PASS_NAME(mmgr_owner_table)[mmgr_owner_place_##name_]);
 
 /**
  * @brief One owner's identity declared, for the header the owner's module reads it through.
@@ -352,6 +358,11 @@ extern const size_t mmgr_owner_table_count;
  *       owner its place. The table has room for the owners declared and holds their records in that
  *       order. Each identity is a pointer into it that the linker resolves: there is no registration and
  *       nothing runs before the first take. A list longer than MMGR_CARCER_OWNERS fails the build.
+ * @note EMBED_PASS_OBJECT defines the table and its count, and under nvcc their device twins from the same
+ *       initializers.
+ * @note The initializer sets the extent of the table, one record for each owner. The host pass of nvcc declares
+ *       the device twin again at the declaration in this header, where the enumeration does not exist yet, and so
+ *       the extent names no enumerator.
  */
 #define MMGR_OWNERS(list_)                                                                                             \
     enum                                                                                                               \
@@ -360,8 +371,8 @@ extern const size_t mmgr_owner_table_count;
     };                                                                                                                 \
     EMBED_STATIC_ASSERT((size_t)mmgr_owner_table_positioned <= (size_t)MMGR_CARCER_OWNERS,                             \
                         "more owners are declared than MMGR_CARCER_OWNERS allows");                                    \
-    CellOwner mmgr_owner_table[(size_t)mmgr_owner_table_positioned] = {list_(MMGR_OWNER_RECORD)};                      \
-    const size_t mmgr_owner_table_count = (size_t)mmgr_owner_table_positioned;                                         \
+    EMBED_PASS_OBJECT(CellOwner, mmgr_owner_table, [], {list_(MMGR_OWNER_RECORD)});                                   \
+    EMBED_PASS_OBJECT(const size_t, mmgr_owner_table_count, , (size_t)mmgr_owner_table_positioned);                    \
     list_(MMGR_OWNER_POINTER)
 
 /**
@@ -370,7 +381,7 @@ extern const size_t mmgr_owner_table_count;
  * @param[in] owner The owner, which may be NULL [BORROWS].
  * @return          EMBED_TRUE where it is the record at its own place in the table.
  */
-embed_bool mmgr_owner_listed(const CellOwner *owner);
+EMBED_HOST_DEVICE embed_bool mmgr_owner_listed(const CellOwner *owner);
 
 /**
  * @brief The payload bytes of the cells an owner has now.
@@ -378,7 +389,7 @@ embed_bool mmgr_owner_listed(const CellOwner *owner);
  * @param[in] owner The owner [BORROWS].
  * @return          The bytes, off one word.
  */
-EMBED_INLINE size_t mmgr_owner_in_use(const CellOwner *owner)
+EMBED_HOST_DEVICE EMBED_INLINE size_t mmgr_owner_in_use(const CellOwner *owner)
 {
     // Explicit cast reads the word as the bytes it counts
     return (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &owner->in_use);
@@ -390,7 +401,7 @@ EMBED_INLINE size_t mmgr_owner_in_use(const CellOwner *owner)
  * @param[in] owner The owner [BORROWS].
  * @return          The bytes, off one word.
  */
-EMBED_INLINE size_t mmgr_owner_hw(const CellOwner *owner)
+EMBED_HOST_DEVICE EMBED_INLINE size_t mmgr_owner_hw(const CellOwner *owner)
 {
     // Explicit cast reads the word as the bytes it counts
     return (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &owner->hw);
@@ -407,7 +418,7 @@ EMBED_INLINE size_t mmgr_owner_hw(const CellOwner *owner)
  *       to its owner. A program that sees this has a give in the wrong place, and a port logs it.
  * @note Weak, and the default does nothing. A port defines this name to replace it.
  */
-void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes);
+EMBED_HOST_DEVICE void mmgr_carcer_hw_misnamed(const CellOwner *named, const CellOwner *cell_owner, size_t bytes);
 
 /**
  * @brief The bits each boundary has in the word that carries both, half the atomic size word, and the mask of a
@@ -647,7 +658,7 @@ typedef struct
  * @note The end as the word holds it. A trim a give left owed on the open word does not run here;
  *       mmgr_buf_available and the next take run it.
  */
-EMBED_INLINE size_t mmgr_series_cellularum_persistent_end(const SeriesCellularum *series)
+EMBED_HOST_DEVICE EMBED_INLINE size_t mmgr_series_cellularum_persistent_end(const SeriesCellularum *series)
 {
     // Explicit cast reads the word's low half as the offset it holds
     return (size_t)(EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds) &
@@ -662,7 +673,7 @@ EMBED_INLINE size_t mmgr_series_cellularum_persistent_end(const SeriesCellularum
  * @note The top as the word holds it. A trim a give left owed on the open word does not run here;
  *       mmgr_buf_available and the next take run it.
  */
-EMBED_INLINE size_t mmgr_series_cellularum_temporary_top(const SeriesCellularum *series)
+EMBED_HOST_DEVICE EMBED_INLINE size_t mmgr_series_cellularum_temporary_top(const SeriesCellularum *series)
 {
     // Explicit cast reads the word's high half as the offset it holds
     return (size_t)(EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds) >>
@@ -676,7 +687,7 @@ EMBED_INLINE size_t mmgr_series_cellularum_temporary_top(const SeriesCellularum 
  * @param[in] region The region, below MMGR_CARCER_REGION_COUNT; the large region is the last.
  * @return           The depth, in bytes, 0 where the temporary tier is one stack.
  */
-EMBED_INLINE size_t mmgr_series_cellularum_region_depth(const SeriesCellularum *series, size_t region)
+EMBED_HOST_DEVICE EMBED_INLINE size_t mmgr_series_cellularum_region_depth(const SeriesCellularum *series, size_t region)
 {
 #if MMGR_CARCER_REGIONS > 0u
     // Explicit cast reads the word as the bytes it counts
@@ -695,7 +706,7 @@ EMBED_INLINE size_t mmgr_series_cellularum_region_depth(const SeriesCellularum *
  * @param[in] series Cellblock to read [BORROWS].
  * @return           EMBED_TRUE where no region holds a cell, and where the temporary tier is one stack.
  */
-EMBED_INLINE embed_bool mmgr_series_cellularum_regions_idle(const SeriesCellularum *series)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool mmgr_series_cellularum_regions_idle(const SeriesCellularum *series)
 {
 #if MMGR_CARCER_REGIONS > 0u
     size_t held = 0u;
@@ -720,7 +731,7 @@ EMBED_INLINE embed_bool mmgr_series_cellularum_regions_idle(const SeriesCellular
  * @param[in] series Cellblock to read [BORROWS].
  * @return           EMBED_TRUE where both tiers are empty.
  */
-EMBED_INLINE embed_bool mmgr_series_cellularum_idle(const SeriesCellularum *series)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool mmgr_series_cellularum_idle(const SeriesCellularum *series)
 {
     // Explicit cast narrows the int result of the test to the embed_bool container. A cellblock over a hospes pool
     // not yet placed has size 0 and no cell out
@@ -736,7 +747,7 @@ EMBED_INLINE embed_bool mmgr_series_cellularum_idle(const SeriesCellularum *seri
  * @param[in] series Cellblock to read [BORROWS].
  * @return           The bytes, 0 where the build tracks none (MMGR_ENABLE_HW_MEM_CAPACITY_CB).
  */
-EMBED_INLINE size_t mmgr_series_cellularum_persistent_hw(const SeriesCellularum *series)
+EMBED_HOST_DEVICE EMBED_INLINE size_t mmgr_series_cellularum_persistent_hw(const SeriesCellularum *series)
 {
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
     // Explicit cast reads the word as the bytes it counts
@@ -753,7 +764,7 @@ EMBED_INLINE size_t mmgr_series_cellularum_persistent_hw(const SeriesCellularum 
  * @param[in] series Cellblock to read [BORROWS].
  * @return           The bytes, 0 where the build tracks none (MMGR_ENABLE_HW_MEM_CAPACITY_CB).
  */
-EMBED_INLINE size_t mmgr_series_cellularum_temporary_hw(const SeriesCellularum *series)
+EMBED_HOST_DEVICE EMBED_INLINE size_t mmgr_series_cellularum_temporary_hw(const SeriesCellularum *series)
 {
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
     // Explicit cast reads the word as the bytes it counts
@@ -867,32 +878,33 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, MMGR_GUARD_MEMBER_NAMES);
  * @param[in] series_cellularum_  The cellblock's record, as a pointer expression.
  */
 #define MMGR_CARCER_MOVABLE_ENTRIES(prisonsite_, name_, wipe_to_zero_on_release_, series_cellularum_)                  \
-    static embed_bool prisonsite_##_##name_##_movable_init(const CarcerMovableInitCfg *args)                           \
+    EMBED_HOST_DEVICE static embed_bool prisonsite_##_##name_##_movable_init(const CarcerMovableInitCfg *args)         \
     {                                                                                                                  \
         return mmgr_movable_init((series_cellularum_), args, (wipe_to_zero_on_release_));                              \
     }                                                                                                                  \
-    static const CarcerMovableEntry *prisonsite_##_##name_##_movable_buf_alloc(size_t size, const CellOwner *owner)    \
+    EMBED_HOST_DEVICE static const CarcerMovableEntry *prisonsite_##_##name_##_movable_buf_alloc(                      \
+        size_t size, const CellOwner *owner)                                                                           \
     {                                                                                                                  \
         return mmgr_movable_buf_alloc((series_cellularum_), size, owner);                                              \
     }                                                                                                                  \
-    static embed_bool prisonsite_##_##name_##_movable_buf_release(const CarcerMovableEntry *cell,                      \
-                                                                  const CellOwner *owner)                              \
+    EMBED_HOST_DEVICE static embed_bool prisonsite_##_##name_##_movable_buf_release(const CarcerMovableEntry *cell,    \
+                                                                                    const CellOwner *owner)            \
     {                                                                                                                  \
         return mmgr_movable_buf_release((series_cellularum_), cell, owner);                                            \
     }                                                                                                                  \
-    static embed_bool prisonsite_##_##name_##_movable_buf_read(const CarcerMovableCfg *args)                           \
+    EMBED_HOST_DEVICE static embed_bool prisonsite_##_##name_##_movable_buf_read(const CarcerMovableCfg *args)         \
     {                                                                                                                  \
         return mmgr_movable_buf_read((series_cellularum_), args);                                                      \
     }                                                                                                                  \
-    static embed_bool prisonsite_##_##name_##_movable_buf_write(const CarcerMovableCfg *args)                          \
+    EMBED_HOST_DEVICE static embed_bool prisonsite_##_##name_##_movable_buf_write(const CarcerMovableCfg *args)        \
     {                                                                                                                  \
         return mmgr_movable_buf_write((series_cellularum_), args);                                                     \
     }                                                                                                                  \
-    static embed_iword prisonsite_##_##name_##_movable_buf_compare(const CarcerMovableCfg *args)                       \
+    EMBED_HOST_DEVICE static embed_iword prisonsite_##_##name_##_movable_buf_compare(const CarcerMovableCfg *args)     \
     {                                                                                                                  \
         return mmgr_movable_buf_compare((series_cellularum_), args);                                                   \
     }                                                                                                                  \
-    static size_t prisonsite_##_##name_##_movable_buf_measure(const CarcerMovableCfg *args)                            \
+    EMBED_HOST_DEVICE static size_t prisonsite_##_##name_##_movable_buf_measure(const CarcerMovableCfg *args)          \
     {                                                                                                                  \
         return mmgr_movable_buf_measure((series_cellularum_), args);                                                   \
     }
@@ -924,7 +936,7 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, MMGR_GUARD_MEMBER_NAMES);
  */
 #define MMGR_CARCER_BODY(prisonsite_, type_, name_, wipe_to_zero_on_release_, hospes_)                                 \
     MMGR_PARS_CLAIMED_ONCE(name_);                                                                                     \
-    EMBED_CAT(MMGR_CARCER_STORAGE_, hospes_)(prisonsite_, name_) MMGR_ALLOC_SIZE(1) static void *                      \
+    EMBED_CAT(MMGR_CARCER_STORAGE_, hospes_)(prisonsite_, name_) MMGR_ALLOC_SIZE(1) EMBED_HOST_DEVICE static void *    \
     prisonsite_##_##name_##_persistent_buf_alloc(size_t size, const CellOwner *owner)                                  \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
@@ -933,7 +945,8 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, MMGR_GUARD_MEMBER_NAMES);
         }                                                                                                              \
         return mmgr_persistent_buf_alloc(&prisonsite_##_##name_##_ctx, size, owner);                                   \
     }                                                                                                                  \
-    static void prisonsite_##_##name_##_persistent_buf_release(void *prisoner, const CellOwner *owner)                 \
+    EMBED_HOST_DEVICE static void prisonsite_##_##name_##_persistent_buf_release(void *prisoner,                       \
+                                                                                 const CellOwner *owner)               \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
@@ -945,7 +958,7 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, MMGR_GUARD_MEMBER_NAMES);
         }                                                                                                              \
     }                                                                                                                  \
     MMGR_ALLOC_SIZE(1)                                                                                                 \
-    static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size, const CellOwner *owner)                      \
+    EMBED_HOST_DEVICE static void *prisonsite_##_##name_##_temporary_buf_alloc(size_t size, const CellOwner *owner)    \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
@@ -953,17 +966,18 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, MMGR_GUARD_MEMBER_NAMES);
         }                                                                                                              \
         return mmgr_temporary_buf_alloc(&prisonsite_##_##name_##_ctx, size, owner);                                    \
     }                                                                                                                  \
-    static embed_bool prisonsite_##_##name_##_who_owns_buf(const void *at)                                             \
+    EMBED_HOST_DEVICE static embed_bool prisonsite_##_##name_##_who_owns_buf(const void *at)                           \
     {                                                                                                                  \
         return mmgr_who_owns_buf(&prisonsite_##_##name_##_ctx, at);                                                    \
     }                                                                                                                  \
-    static size_t prisonsite_##_##name_##_buf_available(void)                                                          \
+    EMBED_HOST_DEVICE static size_t prisonsite_##_##name_##_buf_available(void)                                        \
     {                                                                                                                  \
         const size_t available = mmgr_buf_available(&prisonsite_##_##name_##_ctx);                                     \
         return available;                                                                                              \
     }                                                                                                                  \
     MMGR_ALLOC_SIZE(2)                                                                                                 \
-    static void *prisonsite_##_##name_##_buf_grow(void *prisoner, size_t size, const CellOwner *owner)                 \
+    EMBED_HOST_DEVICE static void *prisonsite_##_##name_##_buf_grow(void *prisoner, size_t size,                       \
+                                                                    const CellOwner *owner)                            \
     {                                                                                                                  \
         if (wipe_to_zero_on_release_)                                                                                  \
         {                                                                                                              \
@@ -985,7 +999,8 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, MMGR_GUARD_MEMBER_NAMES);
                         #prisonsite_ "." #name_ " is too small for its regions and one cell");                         \
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) <= MMGR_CARCER_BYTES_MAX,                                    \
                         #prisonsite_ "." #name_ " is larger than a tier boundary's half word can name");               \
-    static SeriesCellularum prisonsite_##_##name_##_ctx = MMGR_CARCER_STATE(mmgr_pars_storage_##name_, name_##_bytes);
+    static EMBED_PASS_MEMORY SeriesCellularum prisonsite_##_##name_##_ctx =                                            \
+        MMGR_CARCER_STATE(mmgr_pars_storage_##name_, name_##_bytes);
 
 /**
  * @brief A cellblock's record over a hospes pool: empty until the program places it.
@@ -994,7 +1009,7 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, MMGR_GUARD_MEMBER_NAMES);
  * @param[in] name_       Pool under the cellblock.
  */
 #define MMGR_CARCER_STORAGE_1(prisonsite_, name_)                                                                      \
-    static SeriesCellularum prisonsite_##_##name_##_ctx = MMGR_CARCER_STATE_HOSPES;
+    static EMBED_PASS_MEMORY SeriesCellularum prisonsite_##_##name_##_ctx = MMGR_CARCER_STATE_HOSPES;
 
 /**
  * @brief One cellblock as a member of its site's type.
@@ -1307,7 +1322,7 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, MMGR_GUARD_MEMBER_NAMES);
  *          carries what that prisoner left. A cellblock declared MMGR_MAXIMUM_SECURITY zeroes, and it
  *          zeroes on release.
  */
-MMGR_ALLOC_SIZE(2) void *mmgr_persistent_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner);
+MMGR_ALLOC_SIZE(2) EMBED_HOST_DEVICE void *mmgr_persistent_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner);
 
 /**
  * @brief Takes size bytes from a max security cellblock's persistent tier.
@@ -1319,7 +1334,7 @@ MMGR_ALLOC_SIZE(2) void *mmgr_persistent_buf_alloc(SeriesCellularum *series, siz
  * @note The take mmgr_persistent_buf_alloc makes. A max security cellblock zeroes on release.
  */
 MMGR_ALLOC_SIZE(2)
-void *mmgr_persistent_max_security_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner);
+EMBED_HOST_DEVICE void *mmgr_persistent_max_security_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner);
 
 /**
  * @brief Releases a prisoner and leaves the cell's bytes as they are.
@@ -1344,7 +1359,7 @@ void *mmgr_persistent_max_security_buf_alloc(SeriesCellularum *series, size_t si
  * @warning The bound is the cellblock's storage and never a cell boundary. An address inside these
  *          bytes that is not the first byte of a cell is still read as a cell's word.
  */
-void mmgr_persistent_buf_release(SeriesCellularum *series, void *prisoner, const CellOwner *owner);
+EMBED_HOST_DEVICE void mmgr_persistent_buf_release(SeriesCellularum *series, void *prisoner, const CellOwner *owner);
 
 /**
  * @brief Zeroes a cell, then releases the prisoner.
@@ -1363,7 +1378,7 @@ void mmgr_persistent_buf_release(SeriesCellularum *series, void *prisoner, const
  *          bytes that is not the first byte of a cell still gets its extent from the bytes ahead
  *          of it. The zero fill then runs for whatever length those hold.
  */
-void mmgr_persistent_max_security_buf_release(SeriesCellularum *series, void *prisoner, const CellOwner *owner);
+EMBED_HOST_DEVICE void mmgr_persistent_max_security_buf_release(SeriesCellularum *series, void *prisoner, const CellOwner *owner);
 
 /**
  * @brief Grows a cell to size payload bytes in place, where it is the newest cell of its tier.
@@ -1392,7 +1407,8 @@ void mmgr_persistent_max_security_buf_release(SeriesCellularum *series, void *pr
  *          answered address is the cell's from then on. A prisoner outside this cellblock's own
  *          bytes stops with MMGR_FATAL, as a release does.
  */
-MMGR_ALLOC_SIZE(3) void *mmgr_buf_grow(SeriesCellularum *series, void *prisoner, size_t size, const CellOwner *owner);
+MMGR_ALLOC_SIZE(3)
+EMBED_HOST_DEVICE void *mmgr_buf_grow(SeriesCellularum *series, void *prisoner, size_t size, const CellOwner *owner);
 
 /**
  * @brief Grows a cell in place as mmgr_buf_grow does, and zeroes the bytes the growth adds.
@@ -1406,7 +1422,7 @@ MMGR_ALLOC_SIZE(3) void *mmgr_buf_grow(SeriesCellularum *series, void *prisoner,
  *       for a temporary cell.
  */
 MMGR_ALLOC_SIZE(3)
-void *mmgr_max_security_buf_grow(SeriesCellularum *series, void *prisoner, size_t size, const CellOwner *owner);
+EMBED_HOST_DEVICE void *mmgr_max_security_buf_grow(SeriesCellularum *series, void *prisoner, size_t size, const CellOwner *owner);
 
 /**
  * @brief Takes size bytes from a cellblock's temporary tier.
@@ -1428,7 +1444,7 @@ void *mmgr_max_security_buf_grow(SeriesCellularum *series, void *prisoner, size_
  * @warning The bytes stay as they are, and an allocation returns whatever the last prisoner left. A
  *          cellblock declared MMGR_MAXIMUM_SECURITY zeroes, and it zeroes on release.
  */
-void *mmgr_temporary_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner);
+EMBED_HOST_DEVICE void *mmgr_temporary_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner);
 
 /**
  * @brief Takes size bytes from a max security cellblock's temporary tier.
@@ -1440,7 +1456,8 @@ void *mmgr_temporary_buf_alloc(SeriesCellularum *series, size_t size, const Cell
  * @note The take mmgr_temporary_buf_alloc makes. A max security cellblock zeroes on release.
  */
 MMGR_ALLOC_SIZE(2)
-void *mmgr_temporary_max_security_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner);
+EMBED_HOST_DEVICE void *mmgr_temporary_max_security_buf_alloc(SeriesCellularum *series, size_t size,
+                                                                const CellOwner *owner);
 
 /**
  * @brief Whether at lies inside the cellblock's bytes.
@@ -1454,7 +1471,7 @@ void *mmgr_temporary_max_security_buf_alloc(SeriesCellularum *series, size_t siz
  *          where an address is and nothing of what is there. A true answer is not a warrant for a
  *          release of at. The releases read a cell's word from whatever address they receive.
  */
-embed_bool mmgr_who_owns_buf(const SeriesCellularum *series, const void *at);
+EMBED_HOST_DEVICE embed_bool mmgr_who_owns_buf(const SeriesCellularum *series, const void *at);
 
 /**
  * @brief The owner a cell counts to, read off the word behind its payload.
@@ -1469,7 +1486,7 @@ embed_bool mmgr_who_owns_buf(const SeriesCellularum *series, const void *at);
  * @warning The bound is the cellblock's storage and never a cell boundary, as for a release. An address
  *          inside these bytes that is not the first byte of a cell reads as a cell's word.
  */
-const CellOwner *mmgr_owner_of_buf(const SeriesCellularum *series, const void *prisoner);
+EMBED_HOST_DEVICE const CellOwner *mmgr_owner_of_buf(const SeriesCellularum *series, const void *prisoner);
 
 /**
  * @brief The bytes between the two tiers.
@@ -1482,7 +1499,7 @@ const CellOwner *mmgr_owner_of_buf(const SeriesCellularum *series, const void *p
  * @warning The answer is a snapshot. Any allocation at all leaves it stale before the caller can act
  *          on it.
  */
-size_t mmgr_buf_available(SeriesCellularum *series);
+EMBED_HOST_DEVICE size_t mmgr_buf_available(SeriesCellularum *series);
 
 /**
  * @brief Zeroes size bytes at prisoner and releases nothing.
@@ -1494,7 +1511,7 @@ size_t mmgr_buf_available(SeriesCellularum *series);
  * @note The extent is the caller's to state. A release that zeroes takes it from the cell's own word.
  * @warning prisoner must be writable for size bytes.
  */
-void mmgr_zero_buf(void *prisoner, size_t size);
+EMBED_HOST_DEVICE void mmgr_zero_buf(void *prisoner, size_t size);
 
 /**
  * @brief Rounds size up to a whole machine word.
@@ -1507,7 +1524,7 @@ void mmgr_zero_buf(void *prisoner, size_t size);
  * @warning The round adds MMGR_CARCER_ALIGN - 1 before the mask. A size within a word of SIZE_MAX wraps
  *          to 0.
  */
-size_t mmgr_align_up_buf(size_t size);
+EMBED_HOST_DEVICE size_t mmgr_align_up_buf(size_t size);
 
 /**
  * @brief Puts a cellblock back to the state of its declaration. Both tiers are empty, the closed word and
@@ -1519,7 +1536,7 @@ size_t mmgr_align_up_buf(size_t size);
  *       reaches it has a cellblock whose cells that context still holds.
  * @note Nothing outside the tiers reads as a cell, and so no cell's words change.
  */
-void mmgr_series_cellularum_emptied(SeriesCellularum *series);
+EMBED_HOST_DEVICE void mmgr_series_cellularum_emptied(SeriesCellularum *series);
 
 /**
  * @brief Places a cellblock declared over a hospes pool on the storage the program gives: its base and its size
@@ -1536,7 +1553,7 @@ void mmgr_series_cellularum_emptied(SeriesCellularum *series);
  *       from the linker and is never placed. theory/locus_carcerum/LocusCarcerum/Idle.lean proves that a cellblock
  *       of size 0 refuses every take.
  */
-embed_bool mmgr_series_cellularum_placed(SeriesCellularum *series, uint8_t *storage, size_t bytes);
+EMBED_HOST_DEVICE embed_bool mmgr_series_cellularum_placed(SeriesCellularum *series, uint8_t *storage, size_t bytes);
 
 /** @brief A span of a cellblock's storage no cell holds, passed to the program: where it starts and its bytes. */
 typedef void (*CarcerIdleEach)(void *context, void *at, size_t bytes);
@@ -1554,7 +1571,7 @@ typedef void (*CarcerIdleEach)(void *context, void *at, size_t bytes);
  *       theory/locus_carcerum/LocusCarcerum/Idle.lean proves that no byte of a span lies in a cell.
  * @note A free cell inside a tier, under a busy one, is no span: its words are the tier's.
  */
-void mmgr_series_cellularum_idle_each(SeriesCellularum *series, CarcerIdleEach each, void *context);
+EMBED_HOST_DEVICE void mmgr_series_cellularum_idle_each(SeriesCellularum *series, CarcerIdleEach each, void *context);
 
 /**
  * @brief Counts bytes that lie in no cellblock to an owner, as a ring's or a page's are.
@@ -1564,7 +1581,7 @@ void mmgr_series_cellularum_idle_each(SeriesCellularum *series, CarcerIdleEach e
  * @note An owner's counts are the program's total, and memory a program takes outside a
  *       cellblock belongs in it. No cellblock's own total moves.
  */
-void mmgr_owner_bytes_taken(const CellOwner *owner, size_t bytes);
+EMBED_HOST_DEVICE void mmgr_owner_bytes_taken(const CellOwner *owner, size_t bytes);
 
 /**
  * @brief Takes bytes mmgr_owner_bytes_taken counted off their owner.
@@ -1572,7 +1589,7 @@ void mmgr_owner_bytes_taken(const CellOwner *owner, size_t bytes);
  * @param[in]     owner The owner that counted them [BORROWS].
  * @param[in]     bytes The bytes.
  */
-void mmgr_owner_bytes_given(const CellOwner *owner, size_t bytes);
+EMBED_HOST_DEVICE void mmgr_owner_bytes_given(const CellOwner *owner, size_t bytes);
 
 /**
  * @brief A cellblock's fragmentation: the bytes its persistent tier occupies and no cell's payload holds, as
@@ -1587,7 +1604,7 @@ void mmgr_owner_bytes_given(const CellOwner *owner, size_t bytes);
  *       free cell no movable cell is above is no work for a mover either. The mover remembers a sort
  *       that finds nothing to move, and does not run it again until the reading rises.
  */
-size_t mmgr_series_cellularum_fragmentation(const SeriesCellularum *series);
+EMBED_HOST_DEVICE size_t mmgr_series_cellularum_fragmentation(const SeriesCellularum *series);
 
 /**
  * @brief Assigns a cellblock's movable option: the translation table, its claim bits, the rows of touches and
@@ -1603,7 +1620,8 @@ size_t mmgr_series_cellularum_fragmentation(const SeriesCellularum *series);
  * @note Assigned once, at a time no context reaches a movable cell. The cellblock's turnstiles are what the
  *       mover reads as occupancy: the lanes open against the option's width.
  */
-embed_bool mmgr_movable_init(SeriesCellularum *series, const CarcerMovableInitCfg *args, embed_bool wipes);
+EMBED_HOST_DEVICE embed_bool mmgr_movable_init(SeriesCellularum *series, const CarcerMovableInitCfg *args,
+                                               embed_bool wipes);
 
 /**
  * @brief Takes a persistent cell a move may move, and names it in the table.
@@ -1617,7 +1635,7 @@ embed_bool mmgr_movable_init(SeriesCellularum *series, const CarcerMovableInitCf
  *       the cell, and the movable_buf_ calls are the only way from it to the bytes.
  * @warning A pointer retained past mmgr_movable_buf_release names an entry a later take may reuse.
  */
-const CarcerMovableEntry *mmgr_movable_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner);
+EMBED_HOST_DEVICE const CarcerMovableEntry *mmgr_movable_buf_alloc(SeriesCellularum *series, size_t size, const CellOwner *owner);
 
 /**
  * @brief Gives a movable cell back and frees its entry.
@@ -1631,7 +1649,7 @@ const CarcerMovableEntry *mmgr_movable_buf_alloc(SeriesCellularum *series, size_
  *       the entry's word and claim bit cleared. A move is a writer, which drains the passes before it and
  *       closes the cellblock to those after. The two never reach the entry at once.
  */
-embed_bool mmgr_movable_buf_release(SeriesCellularum *series, const CarcerMovableEntry *cell, const CellOwner *owner);
+EMBED_HOST_DEVICE embed_bool mmgr_movable_buf_release(SeriesCellularum *series, const CarcerMovableEntry *cell, const CellOwner *owner);
 
 /**
  * @brief Copies args->bytes from args->offset of a movable cell to args->dst.
@@ -1644,7 +1662,7 @@ embed_bool mmgr_movable_buf_release(SeriesCellularum *series, const CarcerMovabl
  *       entry's word read, the bytes copied, and the lane let go. A pass that finds the cellblock closed to a move
  *       backs off one step and tries once more.
  */
-embed_bool mmgr_movable_buf_read(const SeriesCellularum *series, const CarcerMovableCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_movable_buf_read(const SeriesCellularum *series, const CarcerMovableCfg *args);
 
 /**
  * @brief Copies args->bytes from args->src to args->offset of a movable cell.
@@ -1655,7 +1673,7 @@ embed_bool mmgr_movable_buf_read(const SeriesCellularum *series, const CarcerMov
  * @note Atomic against a move and not against another writer: two contexts that write the same bytes order
  *       themselves.
  */
-embed_bool mmgr_movable_buf_write(SeriesCellularum *series, const CarcerMovableCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_movable_buf_write(SeriesCellularum *series, const CarcerMovableCfg *args);
 
 /**
  * @brief Orders args->bytes of a movable cell against args->src, or against another cell where
@@ -1667,7 +1685,7 @@ embed_bool mmgr_movable_buf_write(SeriesCellularum *series, const CarcerMovableC
  *                       free.
  * @note Two cells are the max one call reaches, both read under the one pass.
  */
-embed_iword mmgr_movable_buf_compare(const SeriesCellularum *series, const CarcerMovableCfg *args);
+EMBED_HOST_DEVICE embed_iword mmgr_movable_buf_compare(const SeriesCellularum *series, const CarcerMovableCfg *args);
 
 /**
  * @brief The bytes from args->offset of a movable cell to the next zero byte.
@@ -1676,7 +1694,7 @@ embed_iword mmgr_movable_buf_compare(const SeriesCellularum *series, const Carce
  * @param[in]     args   The cell and offset [BORROWS].
  * @return               The bytes, or the bytes to the cell's end where no zero is before it.
  */
-size_t mmgr_movable_buf_measure(const SeriesCellularum *series, const CarcerMovableCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_movable_buf_measure(const SeriesCellularum *series, const CarcerMovableCfg *args);
 
 /**
  * @brief Moves one movable cell into the first free cell below it, highest cell first.
@@ -1696,7 +1714,7 @@ size_t mmgr_movable_buf_measure(const SeriesCellularum *series, const CarcerMova
  * @warning Each cell moved, and each smaller size refused, costs a read of the named part of the table.
  *          It costs a walk of the tier below the cell too.
  */
-embed_bool mmgr_movable_buf_move(SeriesCellularum *series);
+EMBED_HOST_DEVICE embed_bool mmgr_movable_buf_move(SeriesCellularum *series);
 
 /**
  * @brief The mover: what the thread the program gave runs, until its thread_wait answers EMBED_FALSE.
@@ -1712,7 +1730,7 @@ embed_bool mmgr_movable_buf_move(SeriesCellularum *series);
  *       to move resets the wait, and the mover remembers the fragmentation it left. Nothing runs again until
  *       the reading rises past that or falls under the threshold first.
  */
-void mmgr_movable_run(SeriesCellularum *series);
+EMBED_HOST_DEVICE void mmgr_movable_run(SeriesCellularum *series);
 
 /**
  * @brief The contexts queued at the cellblock's turnstiles now: those that found every open lane busy and wait for
@@ -1721,7 +1739,7 @@ void mmgr_movable_run(SeriesCellularum *series);
  * @param[in] series Cellblock to read [BORROWS].
  * @return           The queued contexts, 0 without the option.
  */
-size_t mmgr_movable_queue_depth(const SeriesCellularum *series);
+EMBED_HOST_DEVICE size_t mmgr_movable_queue_depth(const SeriesCellularum *series);
 
 /**
  * @brief One row of touches a lane, counted as passes go through it.
@@ -1736,7 +1754,8 @@ size_t mmgr_movable_queue_depth(const SeriesCellularum *series);
  * @note A telemetry row, counted by one add as each pass badges in, and nothing decides on it. The option's last
  *       row counts every lane past the rest, and answers an id of SIZE_MAX.
  */
-embed_bool mmgr_movable_touches(const SeriesCellularum *series, size_t at, size_t *id, size_t *touches);
+EMBED_HOST_DEVICE embed_bool mmgr_movable_touches(const SeriesCellularum *series, size_t at, size_t *id,
+                                                  size_t *touches);
 
 EMBED_END_DECLS
 

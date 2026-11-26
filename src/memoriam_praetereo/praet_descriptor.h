@@ -453,7 +453,7 @@ struct PraetDescriptor
  *       returns to the head and not one that closes further along. A chain that loops back to its
  *       middle reaches the limit, the honest answer for a walk that cannot see where it is.
  */
-embed_word praet_descriptor_chain_length(const PraetDescriptor *first, embed_word limit);
+EMBED_HOST_DEVICE embed_word praet_descriptor_chain_length(const PraetDescriptor *first, embed_word limit);
 
 EMBED_END_DECLS
 

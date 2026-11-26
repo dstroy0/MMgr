@@ -42,7 +42,7 @@ typedef struct
  *       builtin halves the search five times, then tests the top bit.
  * @warning An args->val of 0 returns 63, the same answer as an args->val of 1.
  */
-EMBED_INLINE embed_iword clz_lead(const ClzCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_iword clz_lead(const ClzCtx *args)
 {
 #if EMBED_HAS_BUILTIN(__builtin_clzll)
     // The low bit set cannot move the highest set one. It turns the zero the builtin leaves
@@ -91,7 +91,7 @@ EMBED_INLINE embed_iword clz_lead(const ClzCtx *args)
  * @note An or of the top bit gives a zero value a bit to find, and so no step branches on the data.
  * @warning An args->val of 0 returns 63, the same answer as an args->val of 2^63.
  */
-EMBED_INLINE embed_iword clz_trail(const ClzCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_iword clz_trail(const ClzCtx *args)
 {
     // Explicit cast builds the top bit at embed_u64 width, which is in for an absent lowest bit
     const embed_u64 with_floor = args->val | ((embed_u64)1 << 63);

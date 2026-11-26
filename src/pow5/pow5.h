@@ -69,10 +69,11 @@ typedef struct
  *       that converts to embed_iword.
  * @note static const at header scope, and each translation unit gets its own copy. EMBED_UNUSED retains a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
+ * @note EMBED_PASS_MEMORY gives each pass of nvcc its own copy, and so a kernel reads the table from device memory.
  * @warning transformo settles a positive exponent from its exact powers of ten and returns before the walk.
  *          The only exponent that reaches this table there is zero, which sets no bit.
  */
-static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
+static EMBED_PASS_MEMORY const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
     {0xA000000000000000ULL, 0x0000000000000000ULL, -125}, {0xC800000000000000ULL, 0x0000000000000000ULL, -123},
     {0x9C40000000000000ULL, 0x0000000000000000ULL, -118}, {0xBEBC200000000000ULL, 0x0000000000000000ULL, -109},
     {0x8E1BC9BF04000000ULL, 0x0000000000000000ULL, -90},  {0x9DC5ADA82B70B59DULL, 0xF020000000000000ULL, -53},
@@ -92,8 +93,9 @@ static const MmgrPow5 mmgr_pow5_up[MMGR_POW5_STEPS] EMBED_UNUSED = {
  *       that converts to embed_iword.
  * @note static const at header scope, and each translation unit gets its own copy. EMBED_UNUSED retains a unit
  *       that never reads it quiet, and an entry's address stays good for the whole program [BORROWS].
+ * @note EMBED_PASS_MEMORY gives each pass of nvcc its own copy, as it does mmgr_pow5_up.
  */
-static const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {
+static EMBED_PASS_MEMORY const MmgrPow5 mmgr_pow5_down[MMGR_POW5_STEPS] EMBED_UNUSED = {
     {0xCCCCCCCCCCCCCCCCULL, 0xCCCCCCCCCCCCCCCCULL, -130}, {0xA3D70A3D70A3D70AULL, 0x3D70A3D70A3D70A3ULL, -132},
     {0xD1B71758E219652BULL, 0xD3C36113404EA4A8ULL, -137}, {0xABCC77118461CEFCULL, 0xFDC20D2B36BA7C3DULL, -146},
     {0xE69594BEC44DE15BULL, 0x4C2EBE687989A9B3ULL, -165}, {0xCFB11EAD453994BAULL, 0x67DE18EDA5814AF2ULL, -202},

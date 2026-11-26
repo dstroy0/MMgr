@@ -193,6 +193,8 @@
  *       come from separate places.
  * @note Aligned to MMGR_ALIGN_BYTES, and that leaves that knob the contract the header states.
  *       No caller writes it out.
+ * @note EMBED_PASS_MEMORY gives each pass of nvcc its own bytes and its own name for them. A kernel takes from the
+ *       pool in device memory, and host code from the one in host memory. The two pools are separate.
  */
 #define ParsMemoriaeInternae(name_, bytes_)                                                                            \
     MMGR_PARS_DECLARED_ONCE(name_);                                                                                    \
@@ -201,8 +203,8 @@
     {                                                                                                                  \
         name_##_bytes = (bytes_)                                                                                       \
     };                                                                                                                 \
-    EMBED_ALIGN(MMGR_ALIGN_BYTES) static uint8_t mmgr_pars_storage_##name_[bytes_];                                    \
-    static const uint8_t *const name_ EMBED_UNUSED = mmgr_pars_storage_##name_;                                        \
+    EMBED_ALIGN(MMGR_ALIGN_BYTES) static EMBED_PASS_MEMORY uint8_t mmgr_pars_storage_##name_[bytes_];                  \
+    static EMBED_PASS_MEMORY const uint8_t *const name_ EMBED_UNUSED = mmgr_pars_storage_##name_;                      \
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) == name_##_bytes, #name_ " is not the size it was declared")
 
 /**
@@ -242,8 +244,8 @@
     {                                                                                                                  \
         name_##_bytes = (bytes_)                                                                                       \
     };                                                                                                                 \
-    EMBED_ALIGN(MMGR_ALIGN_BYTES) static uint8_t mmgr_pars_storage_##name_[bytes_] MMGR_EXTRAM_ATTR;                   \
-    static const uint8_t *const name_ EMBED_UNUSED = mmgr_pars_storage_##name_;                                        \
+    EMBED_ALIGN(MMGR_ALIGN_BYTES) static EMBED_PASS_MEMORY uint8_t mmgr_pars_storage_##name_[bytes_] MMGR_EXTRAM_ATTR; \
+    static EMBED_PASS_MEMORY const uint8_t *const name_ EMBED_UNUSED = mmgr_pars_storage_##name_;                      \
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) == name_##_bytes, #name_ " is not the size it was declared")
 #endif
 
@@ -305,7 +307,7 @@
  * @note The spin is the whole body, and so no code follows it. A spin inside a do-while has the exit of
  *       the do-while after it, which no run reaches and which clang's coverage counts as a line.
  */
-EMBED_INLINE MMGR_NORETURN_ATTR void mmgr_fatal_halt(void)
+EMBED_HOST_DEVICE EMBED_INLINE MMGR_NORETURN_ATTR void mmgr_fatal_halt(void)
 {
     for (;;)
     {

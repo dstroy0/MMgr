@@ -71,7 +71,7 @@ typedef struct
  * @note A line over a refused take stores nothing and mmgr_line_finish answers 0, and therefore a
  *       caller tests the take once and writes the line either way.
  */
-VerbaLinea mmgr_line_over(char *out, size_t capacity);
+EMBED_HOST_DEVICE VerbaLinea mmgr_line_over(char *out, size_t capacity);
 
 /**
  * @brief Passes what the line holds to its flush and empties it.
@@ -81,7 +81,7 @@ VerbaLinea mmgr_line_over(char *out, size_t capacity);
  *                     the line has no flush, is full, or its flush refused.
  * @note A flush that refuses leaves the line full.
  */
-embed_bool mmgr_line_flush(VerbaLinea *line);
+EMBED_HOST_DEVICE embed_bool mmgr_line_flush(VerbaLinea *line);
 
 /**
  * @brief Writes length bytes of text.
@@ -95,7 +95,7 @@ embed_bool mmgr_line_flush(VerbaLinea *line);
  * @note A line of fewer than two bytes holds none past its terminator, and so any text fills it.
  * @warning text must be readable for length bytes.
  */
-size_t mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length);
+EMBED_HOST_DEVICE size_t mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length);
 
 /**
  * @brief Writes a terminated text.
@@ -107,7 +107,7 @@ size_t mmgr_line_put_n(VerbaLinea *line, const char *text, size_t length);
  *       line with a flush takes a text of any length and needs no bound on it. A text longer than its
  *       room fills a line with none, what fits written.
  */
-size_t mmgr_line_put(VerbaLinea *line, const char *text);
+EMBED_HOST_DEVICE size_t mmgr_line_put(VerbaLinea *line, const char *text);
 
 /**
  * @brief Writes a terminated text, at max max bytes of it.
@@ -117,7 +117,7 @@ size_t mmgr_line_put(VerbaLinea *line, const char *text);
  * @param[in]     max The max bytes of text read.
  * @return             Bytes of text the line took, passed on included.
  */
-size_t mmgr_line_put_max(VerbaLinea *line, const char *text, size_t max);
+EMBED_HOST_DEVICE size_t mmgr_line_put_max(VerbaLinea *line, const char *text, size_t max);
 
 /**
  * @brief Writes a terminated text and spaces after it out to columns.
@@ -127,7 +127,7 @@ size_t mmgr_line_put_max(VerbaLinea *line, const char *text, size_t max);
  * @param[in]     columns Bytes the text and its spaces fill. A longer text gets no spaces.
  * @note The read of the text goes as mmgr_line_put reads it.
  */
-void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int columns);
+EMBED_HOST_DEVICE void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int columns);
 
 /**
  * @brief Writes spaces out to columns and then a terminated text, and so the text is right aligned.
@@ -137,7 +137,7 @@ void mmgr_line_put_columns(VerbaLinea *line, const char *text, unsigned int colu
  * @param[in]     columns Bytes the spaces and the text fill. A text of columns bytes or more gets no spaces.
  * @note The measure of the text reads at max columns bytes of it. The text then goes as mmgr_line_put reads it.
  */
-void mmgr_line_put_right(VerbaLinea *line, const char *text, unsigned int columns);
+EMBED_HOST_DEVICE void mmgr_line_put_right(VerbaLinea *line, const char *text, unsigned int columns);
 
 /**
  * @brief Writes one character.
@@ -145,7 +145,7 @@ void mmgr_line_put_right(VerbaLinea *line, const char *text, unsigned int column
  * @param[in,out] line      The line [BORROWS].
  * @param[in]     character The character.
  */
-void mmgr_line_ch(VerbaLinea *line, char character);
+EMBED_HOST_DEVICE void mmgr_line_ch(VerbaLinea *line, char character);
 
 /**
  * @brief Writes value in base ten, padded on the left with zeros to digits_least digits.
@@ -154,7 +154,7 @@ void mmgr_line_ch(VerbaLinea *line, char character);
  * @param[in]     value        The value.
  * @param[in]     digits_least Fewest digits written, clamped at 255.
  */
-void mmgr_line_decimal(VerbaLinea *line, uint64_t value, unsigned int digits_least);
+EMBED_HOST_DEVICE void mmgr_line_decimal(VerbaLinea *line, uint64_t value, unsigned int digits_least);
 
 /**
  * @brief Writes value in base ten, right aligned in columns with spaces before it.
@@ -163,7 +163,7 @@ void mmgr_line_decimal(VerbaLinea *line, uint64_t value, unsigned int digits_lea
  * @param[in]     value   The value.
  * @param[in]     columns Bytes the value and its spaces fill, clamped at 255.
  */
-void mmgr_line_decimal_columns(VerbaLinea *line, uint64_t value, unsigned int columns);
+EMBED_HOST_DEVICE void mmgr_line_decimal_columns(VerbaLinea *line, uint64_t value, unsigned int columns);
 
 /**
  * @brief Writes a signed value in base ten, a minus sign before a negative one.
@@ -171,7 +171,7 @@ void mmgr_line_decimal_columns(VerbaLinea *line, uint64_t value, unsigned int co
  * @param[in,out] line  The line [BORROWS].
  * @param[in]     value The value. INT64_MIN goes out whole.
  */
-void mmgr_line_decimal_signed(VerbaLinea *line, int64_t value);
+EMBED_HOST_DEVICE void mmgr_line_decimal_signed(VerbaLinea *line, int64_t value);
 
 /**
  * @brief Writes value in lower case base sixteen, padded on the left with zeros to digits_least digits.
@@ -180,7 +180,7 @@ void mmgr_line_decimal_signed(VerbaLinea *line, int64_t value);
  * @param[in]     value        The value.
  * @param[in]     digits_least Fewest digits written, clamped at 255.
  */
-void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least);
+EMBED_HOST_DEVICE void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least);
 
 /**
  * @brief Writes a double with decimals digits after the point, right aligned in columns with spaces before it.
@@ -195,7 +195,8 @@ void mmgr_line_hex(VerbaLinea *line, uint64_t value, unsigned int digits_least);
  * @warning A magnitude too large for 64 bits of integer part goes out as mmgr_verba_g writes it, at ten
  *          significant digits.
  */
-void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus);
+EMBED_HOST_DEVICE void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns,
+                                       embed_bool plus);
 
 /**
  * @brief Writes a double as one digit, a point, decimals digits, e, a sign and a power of two digits or more, right
@@ -210,7 +211,8 @@ void mmgr_line_fixed(VerbaLinea *line, double value, unsigned int decimals, unsi
  *       rounds it. A zero writes zeros and a power of +00.
  * @note An infinity or a NaN goes out as mmgr_verba_fixed writes it.
  */
-void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns, embed_bool plus);
+EMBED_HOST_DEVICE void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, unsigned int columns,
+                                          embed_bool plus);
 
 /**
  * @brief Writes a double to significant digits in the shorter form that printf's %g chooses, right aligned in columns
@@ -226,7 +228,8 @@ void mmgr_line_exponent(VerbaLinea *line, double value, unsigned int decimals, u
  *       and a point with no digit after it.
  * @note A zero writes 0. An infinity or a NaN goes out as mmgr_verba_fixed writes it.
  */
-void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant, unsigned int columns, embed_bool plus);
+EMBED_HOST_DEVICE void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant,
+                                         unsigned int columns, embed_bool plus);
 
 /**
  * @brief Stores the terminator, the one store a line no write reached yet still needs.
@@ -235,7 +238,7 @@ void mmgr_line_general(VerbaLinea *line, double value, unsigned int significant,
  * @return             The length the line holds, or 0 where it is full.
  * @note A full line holds the terminator in its last byte, and capacity minus one bytes before it.
  */
-size_t mmgr_line_finish(VerbaLinea *line);
+EMBED_HOST_DEVICE size_t mmgr_line_finish(VerbaLinea *line);
 
 /**
  * @brief Reports whether every write fit.
@@ -243,7 +246,7 @@ size_t mmgr_line_finish(VerbaLinea *line);
  * @param[in] line The line [BORROWS].
  * @return         EMBED_TRUE while the line has room, EMBED_FALSE once a write did not fit.
  */
-embed_bool mmgr_line_ok(const VerbaLinea *line);
+EMBED_HOST_DEVICE embed_bool mmgr_line_ok(const VerbaLinea *line);
 
 EMBED_END_DECLS
 

@@ -117,7 +117,7 @@ EMBED_TABLE_LAYOUT(MemoriamPraetereoNs, open, tx_submit, close, poll);
  * @note The default mmgr_praet_hw_open refuses, and so this returns EMBED_FALSE until a port replaces it.
  * @warning args->channel must be below PRAET_CHANNELS, and args->on_complete must not be NULL.
  */
-embed_bool mmgr_praet_open(const PraetCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_praet_open(const PraetCfg *args);
 
 /**
  * @brief Submits args->bytes of args->buf on args->channel.
@@ -128,7 +128,7 @@ embed_bool mmgr_praet_open(const PraetCfg *args);
  * @warning args->buf must stay valid until the completion callback runs [BORROWS].
  * @warning args->channel must be below PRAET_CHANNELS.
  */
-embed_bool mmgr_praet_tx_submit(const PraetTransferCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_praet_tx_submit(const PraetTransferCfg *args);
 
 /**
  * @brief Closes args->channel.
@@ -137,7 +137,7 @@ embed_bool mmgr_praet_tx_submit(const PraetTransferCfg *args);
  * @note It reads only args->channel. buf and bytes take no part.
  * @warning args->channel must be below PRAET_CHANNELS.
  */
-void mmgr_praet_close(const PraetTransferCfg *args);
+EMBED_HOST_DEVICE void mmgr_praet_close(const PraetTransferCfg *args);
 
 /**
  * @brief Drives the port layer's poll hook.
@@ -146,7 +146,7 @@ void mmgr_praet_close(const PraetTransferCfg *args);
  * @note Passes args straight to mmgr_praet_hw_poll, unlike the other three entries, which assert first.
  * @warning No assertion runs here. args and args->channel reach the port layer exactly as the caller gave them.
  */
-void mmgr_praet_poll(const PraetCfg *args);
+EMBED_HOST_DEVICE void mmgr_praet_poll(const PraetCfg *args);
 
 /**
  * @brief Opens a DMA channel on real hardware.
@@ -157,9 +157,10 @@ void mmgr_praet_poll(const PraetCfg *args);
  * @note The default in memoriam_praetereo.c refuses every request. A build links without a port.
  * @note An application definition of this name replaces that default where EMBED_HAS_ATTRIBUTE(weak)
  *       is non-zero.
+ * @note A program that opens a channel from a kernel defines this for the device, as EMBED_WEAK_NAME states.
  * @warning Reached through mmgr_praet_open, which asserts the channel and the callback first.
  */
-embed_bool mmgr_praet_hw_open(const PraetCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_praet_hw_open(const PraetCfg *args);
 
 /**
  * @brief Submits a transfer on real hardware.
@@ -172,7 +173,7 @@ embed_bool mmgr_praet_hw_open(const PraetCfg *args);
  * @warning Reached through mmgr_praet_tx_submit, which asserts the channel first.
  * @warning args->buf must stay valid until this reports completion through the registered callback [BORROWS].
  */
-embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args);
 
 /**
  * @brief Closes a DMA channel on real hardware.
@@ -184,7 +185,7 @@ embed_bool mmgr_praet_hw_tx_submit(const PraetTransferCfg *args);
  * @note It forwards only args->channel. buf and bytes take no part.
  * @warning Reached through mmgr_praet_close, which asserts the channel first.
  */
-void mmgr_praet_hw_close(const PraetTransferCfg *args);
+EMBED_HOST_DEVICE void mmgr_praet_hw_close(const PraetTransferCfg *args);
 
 /**
  * @brief Advances whatever poll work the port layer needs.
@@ -196,7 +197,7 @@ void mmgr_praet_hw_close(const PraetTransferCfg *args);
  * @warning mmgr_praet_poll calls this directly, with no check call in between. args and
  *          args->channel arrive exactly as the caller wrote them, unasserted.
  */
-void mmgr_praet_hw_poll(const PraetCfg *args);
+EMBED_HOST_DEVICE void mmgr_praet_hw_poll(const PraetCfg *args);
 
 /**
  * @brief Dispatch table instance named praet.

@@ -290,7 +290,7 @@ EMBED_TABLE_LAYOUT(NumerosScriboNs, build, append, emit, emit_append);
  *       or when values remain. That leaves the text written before this call whole.
  * @warning args->spec must reach an MMGR_FK_END field, and args->vals must hold args->nvals values.
  */
-size_t mmgr_numer_build(const NumerosCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_numer_build(const NumerosCfg *args);
 
 /**
  * @brief Writes args->spec and args->vals into args->out after the string already there.
@@ -304,7 +304,7 @@ size_t mmgr_numer_build(const NumerosCfg *args);
  * @warning args->spec must reach an MMGR_FK_END field. The args->out buffer must hold a terminated
  *          string when args->at is 0, since that is the only time the call measures the length.
  */
-size_t mmgr_numer_append(const NumerosCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_numer_append(const NumerosCfg *args);
 
 /**
  * @brief Writes args->vals into args->out, from args->at on and with no field list.
@@ -316,7 +316,7 @@ size_t mmgr_numer_append(const NumerosCfg *args);
  * @warning args->vals must hold args->nvals values.
  * @warning A value of type MMGR_FK_END or MMGR_FK_LIT formats nothing, which abandons the write and returns 0.
  */
-size_t mmgr_numer_emit(const NumerosCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_numer_emit(const NumerosCfg *args);
 
 /**
  * @brief Writes args->vals into args->out after the string already there, reading no field list.
@@ -330,7 +330,7 @@ size_t mmgr_numer_emit(const NumerosCfg *args);
  * @warning args->vals must hold args->nvals values. The args->out buffer must hold a terminated
  *          string when args->at is 0, since that is the only time the call measures the length.
  */
-size_t mmgr_numer_emit_append(const NumerosCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_numer_emit_append(const NumerosCfg *args);
 
 /**
  * @brief Dispatch table instance named numer.

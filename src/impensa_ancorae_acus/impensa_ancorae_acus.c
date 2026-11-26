@@ -32,9 +32,9 @@ typedef struct
  * @return         The cost, 1 through 255.
  * @note The table holds 256 entries, and so every uint8_t value indexes it in range.
  */
-EMBED_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
 {
-    return mmgr_ancorae_impensa_table[args->byte];
+    return EMBED_PASS_NAME(mmgr_ancorae_impensa_table)[args->byte];
 }
 
 /**
@@ -42,7 +42,7 @@ EMBED_INLINE uint8_t ancorae_impensa(const AncoraeCtx *args)
  *
  * @note Documented at the declaration in impensa_ancorae_acus.h.
  */
-uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args)
+EMBED_HOST_DEVICE uint8_t mmgr_ancorae_impensa(const AncoraeCfg *args)
 {
     return EMBED_CALL(ancorae_impensa, AncoraeCtx, .byte = args->byte);
 }

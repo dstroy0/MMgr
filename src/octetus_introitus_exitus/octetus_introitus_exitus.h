@@ -87,7 +87,7 @@ EMBED_TABLE_LAYOUT(OctetusIntroitusExitusNs, put, put_be, raw, take_be, rd_str, 
  * @warning An append past the span's cap is a build failure. It asserts, stores nothing and latches
  *          overflow. pos counts the byte either way.
  */
-void mmgr_byteio_put(const OctetusCfg *args);
+EMBED_HOST_DEVICE void mmgr_byteio_put(const OctetusCfg *args);
 
 /**
  * @brief Appends the low args->bytes of args->value to args->write_span, most significant byte first.
@@ -99,7 +99,7 @@ void mmgr_byteio_put(const OctetusCfg *args);
  *          overflow. pos advances either way.
  * @warning args->bytes must be 1 through 8.
  */
-void mmgr_byteio_put_be(const OctetusCfg *args);
+EMBED_HOST_DEVICE void mmgr_byteio_put_be(const OctetusCfg *args);
 
 /**
  * @brief Appends args->bytes from args->src to args->write_span as they are.
@@ -109,7 +109,7 @@ void mmgr_byteio_put_be(const OctetusCfg *args);
  *          overflow. pos advances either way.
  * @warning args->src must be readable for args->bytes, and must not overlap the span's buffer.
  */
-void mmgr_byteio_raw(const OctetusCfg *args);
+EMBED_HOST_DEVICE void mmgr_byteio_raw(const OctetusCfg *args);
 
 /**
  * @brief Reads a big endian value of args->bytes at args->read_span's cursor and advances past it.
@@ -120,7 +120,7 @@ void mmgr_byteio_raw(const OctetusCfg *args);
  * @note A read that reaches past the end sets the span's err and leaves the cursor and args->out untouched.
  * @warning args->bytes must be 1 through 8.
  */
-embed_bool mmgr_byteio_take_be(const OctetusCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_byteio_take_be(const OctetusCfg *args);
 
 /**
  * @brief Reads a big endian 32-bit length at args->read_span's cursor, then points args->blob at the
@@ -136,7 +136,7 @@ embed_bool mmgr_byteio_take_be(const OctetusCfg *args);
  *       writes nothing through args->blob or args->blob_bytes. The length alone read does
  *       not move the cursor either, since a partial read is not a read.
  */
-embed_bool mmgr_byteio_rd_str(const OctetusCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_byteio_rd_str(const OctetusCfg *args);
 
 /**
  * @brief Right-aligns the big endian integer at args->src into args->write_span's whole buffer, with a
@@ -153,7 +153,7 @@ embed_bool mmgr_byteio_rd_str(const OctetusCfg *args);
  *       stays set. A span tested later reports the failure too.
  * @warning args->src must be readable for args->bytes, and must not overlap args->write_span's buffer.
  */
-embed_bool mmgr_byteio_mpint_fixed(const OctetusCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_byteio_mpint_fixed(const OctetusCfg *args);
 
 /**
  * @brief Dispatch table instance named byteio, with each member set to its mmgr_byteio_ function.

@@ -66,7 +66,7 @@ EMBED_TABLE_LAYOUT(MemoriaOperorNs, cpy, move_down, move_up, cmp, chr, set, sort
  * @warning The backend's argument type qualifies both pointers restrict, and so the regions must not overlap.
  * @warning args->dst must be writable and args->src readable for args->bytes.
  */
-void mmgr_memor_cpy(const MemoriaCfg *args);
+EMBED_HOST_DEVICE void mmgr_memor_cpy(const MemoriaCfg *args);
 
 /**
  * @brief Copies args->bytes from args->src to args->dst, on a downward walk from the far end.
@@ -75,7 +75,7 @@ void mmgr_memor_cpy(const MemoriaCfg *args);
  * @note Works back from the end. An args->dst above args->src is safe even when the regions overlap.
  * @warning args->dst must be writable and args->src readable for args->bytes.
  */
-void mmgr_memor_move_up(const MemoriaCfg *args);
+EMBED_HOST_DEVICE void mmgr_memor_move_up(const MemoriaCfg *args);
 
 /**
  * @brief Compares args->bytes of args->src against args->other.
@@ -86,7 +86,7 @@ void mmgr_memor_move_up(const MemoriaCfg *args);
  * @warning Both regions must be readable for args->bytes rounded up to a whole word. A count that
  *          does not fill the last one still reads a whole word at a time.
  */
-embed_iword mmgr_memor_cmp(const MemoriaCfg *args);
+EMBED_HOST_DEVICE embed_iword mmgr_memor_cmp(const MemoriaCfg *args);
 
 /**
  * @brief Finds the first byte in args->src equal to args->val, within args->bytes.
@@ -97,7 +97,7 @@ embed_iword mmgr_memor_cmp(const MemoriaCfg *args);
  * @warning args->src must be readable for args->bytes rounded up to a whole word. A count that
  *          does not fill the last one still reads a whole word at a time.
  */
-const void *mmgr_memor_chr(const MemoriaCfg *args);
+EMBED_HOST_DEVICE const void *mmgr_memor_chr(const MemoriaCfg *args);
 
 /**
  * @brief Writes args->val into args->bytes of args->dst.
@@ -106,7 +106,7 @@ const void *mmgr_memor_chr(const MemoriaCfg *args);
  * @note Stores whole words built from args->val, then finishes byte by byte.
  * @warning args->dst must be writable for args->bytes.
  */
-void mmgr_memor_set(const MemoriaCfg *args);
+EMBED_HOST_DEVICE void mmgr_memor_set(const MemoriaCfg *args);
 
 /**
  * @brief Sorts args->count elements of args->bytes bytes each at args->dst in the order of args->order.
@@ -122,7 +122,7 @@ void mmgr_memor_set(const MemoriaCfg *args);
  *       order is transitive and total.
  * @warning args->dst and args->scratch must each hold args->count times args->bytes bytes, and must not overlap.
  */
-embed_bool mmgr_memor_sort(const MemoriaCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_memor_sort(const MemoriaCfg *args);
 
 /**
  * @brief Dispatch table instance named memor.

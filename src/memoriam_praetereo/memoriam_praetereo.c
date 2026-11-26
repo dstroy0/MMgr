@@ -54,7 +54,7 @@ typedef struct
  * @note The (void)args discards the argument, since this body reads nothing.
  */
 EMBED_WEAK_DEFAULT(mmgr_praet_hw_open)
-EMBED_WEAK embed_bool EMBED_WEAK_NAME(mmgr_praet_hw_open)(const PraetCfg *args)
+EMBED_WEAK EMBED_HOST_DEVICE embed_bool EMBED_WEAK_NAME(mmgr_praet_hw_open)(const PraetCfg *args)
 {
     (void)args;
     return EMBED_FALSE;
@@ -70,7 +70,7 @@ EMBED_WEAK embed_bool EMBED_WEAK_NAME(mmgr_praet_hw_open)(const PraetCfg *args)
  * @note The (void)args discards the argument, since this body reads nothing.
  */
 EMBED_WEAK_DEFAULT(mmgr_praet_hw_tx_submit)
-EMBED_WEAK embed_bool EMBED_WEAK_NAME(mmgr_praet_hw_tx_submit)(const PraetTransferCfg *args)
+EMBED_WEAK EMBED_HOST_DEVICE embed_bool EMBED_WEAK_NAME(mmgr_praet_hw_tx_submit)(const PraetTransferCfg *args)
 {
     (void)args;
     return EMBED_FALSE;
@@ -85,7 +85,7 @@ EMBED_WEAK embed_bool EMBED_WEAK_NAME(mmgr_praet_hw_tx_submit)(const PraetTransf
  * @note The (void)args discards the argument, since this body reads nothing.
  */
 EMBED_WEAK_DEFAULT(mmgr_praet_hw_close)
-EMBED_WEAK void EMBED_WEAK_NAME(mmgr_praet_hw_close)(const PraetTransferCfg *args)
+EMBED_WEAK EMBED_HOST_DEVICE void EMBED_WEAK_NAME(mmgr_praet_hw_close)(const PraetTransferCfg *args)
 {
     (void)args;
 }
@@ -99,7 +99,7 @@ EMBED_WEAK void EMBED_WEAK_NAME(mmgr_praet_hw_close)(const PraetTransferCfg *arg
  * @note The (void)args discards the argument, since this body reads nothing.
  */
 EMBED_WEAK_DEFAULT(mmgr_praet_hw_poll)
-EMBED_WEAK void EMBED_WEAK_NAME(mmgr_praet_hw_poll)(const PraetCfg *args)
+EMBED_WEAK EMBED_HOST_DEVICE void EMBED_WEAK_NAME(mmgr_praet_hw_poll)(const PraetCfg *args)
 {
     (void)args;
 }
@@ -111,7 +111,7 @@ EMBED_WEAK void EMBED_WEAK_NAME(mmgr_praet_hw_poll)(const PraetCfg *args)
  * @return         Whatever mmgr_praet_hw_open returns.
  * @warning args->channel must be below PRAET_CHANNELS, and args->on_complete must not be NULL.
  */
-EMBED_INLINE embed_bool praet_open(const PraetOpenCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool praet_open(const PraetOpenCtx *args)
 {
     MMGR_ASSERT(args->channel < PRAET_CHANNELS, "no such channel");
     MMGR_ASSERT(args->on_complete != NULL, "an open channel reports completion");
@@ -129,7 +129,7 @@ EMBED_INLINE embed_bool praet_open(const PraetOpenCtx *args)
  *       declares it, and a port bounds what it accepts.
  * @warning args->channel must be below PRAET_CHANNELS.
  */
-EMBED_INLINE embed_bool praet_tx_submit(const PraetTransferCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool praet_tx_submit(const PraetTransferCtx *args)
 {
     MMGR_ASSERT(args->channel < PRAET_CHANNELS, "no such channel");
 
@@ -144,7 +144,7 @@ EMBED_INLINE embed_bool praet_tx_submit(const PraetTransferCtx *args)
  * @note Passes only the channel on. buf and bytes take no part.
  * @warning args->channel must be below PRAET_CHANNELS.
  */
-EMBED_INLINE void praet_close(const PraetTransferCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void praet_close(const PraetTransferCtx *args)
 {
     MMGR_ASSERT(args->channel < PRAET_CHANNELS, "no such channel");
 
@@ -199,7 +199,7 @@ PRAET_ENTRY_V(PraetTransferCtx, PraetTransferCfg, close, .channel = args->channe
  *       praet_ backend for EMBED_ENTRY to name.
  * @note Documented at the declaration in memoriam_praetereo.h.
  */
-void mmgr_praet_poll(const PraetCfg *args)
+EMBED_HOST_DEVICE void mmgr_praet_poll(const PraetCfg *args)
 {
     mmgr_praet_hw_poll(args);
 }

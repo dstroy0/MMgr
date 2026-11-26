@@ -22,13 +22,14 @@
 /**
  * @brief Arguments for the forward copy.
  *
+ * @note EMBED_RESTRICT is the restrict qualifier in the spelling of the language that compiles this file.
  * @warning Both pointers are restrict qualified, and so the two regions must not overlap.
  */
 typedef struct
 {
-    uint8_t *restrict dst;       /**< Destination [BORROWS]. */
-    const uint8_t *restrict src; /**< Source [BORROWS]. */
-    size_t bytes;                /**< Bytes to copy. */
+    uint8_t *EMBED_RESTRICT dst;       /**< Destination [BORROWS]. */
+    const uint8_t *EMBED_RESTRICT src; /**< Source [BORROWS]. */
+    size_t bytes;                      /**< Bytes to copy. */
 } MemorCpyCtx;
 
 /**
@@ -75,7 +76,7 @@ typedef struct
  * @warning The regions must not overlap. MemorCpyCtx declares both pointers restrict.
  * @warning args->dst must be writable and args->src readable for args->bytes.
  */
-EMBED_INLINE void memor_cpy(MemorCpyCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void memor_cpy(MemorCpyCtx *args)
 {
     // Explicit cast holds the remainder mask at size_t, as the byte count it works on
     size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
@@ -154,7 +155,7 @@ EMBED_INLINE void memor_cpy(MemorCpyCtx *args)
  *       worth nothing on the S3 and 1.27x on the C6.
  * @warning args->dst must be writable and args->src readable for args->bytes.
  */
-EMBED_INLINE void memor_move_up(MemorMoveCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void memor_move_up(MemorMoveCtx *args)
 {
     // Explicit cast holds the remainder mask at size_t, as the byte count it works on
     size_t tail_bytes = args->bytes & (size_t)(sizeof(embed_word) - 1u);
@@ -219,7 +220,7 @@ EMBED_INLINE void memor_move_up(MemorMoveCtx *args)
  *          passes here with no catch. The answer stops at bytes, and so it is a safe number of steps
  *          only when bytes is.
  */
-EMBED_INLINE size_t memor_head_bytes(const uint8_t *at, size_t bytes)
+EMBED_HOST_DEVICE EMBED_INLINE size_t memor_head_bytes(const uint8_t *at, size_t bytes)
 {
     // Explicit cast reads the address as an integer so a test of its low bits is possible. The value is
     // never dereferenced through it and never converted back
@@ -237,7 +238,7 @@ EMBED_INLINE size_t memor_head_bytes(const uint8_t *at, size_t bytes)
  * @note Takes a word and not a context type. memor_cmp shares it between the loop that reads
  *       whole words and the tail that reads the last one. Nothing dispatches to it.
  */
-EMBED_INLINE embed_word memor_diff_lanes(embed_word difference)
+EMBED_HOST_DEVICE EMBED_INLINE embed_word memor_diff_lanes(embed_word difference)
 {
     return MMGR_VERBUM_SCRUTOR_HIGH & ~EMBED_CALL(lane.has_zero, ScrutLaneCfg, .word = difference);
 }
@@ -256,7 +257,7 @@ EMBED_INLINE embed_word memor_diff_lanes(embed_word difference)
  * @warning Both args->src and args->other must be readable for args->bytes rounded up to a whole word.
  *          The tail goes through word.load, which takes MMGR_SWAR_BYTES whatever the count leaves.
  */
-EMBED_INLINE embed_iword memor_cmp(const MemorScanCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_iword memor_cmp(const MemorScanCtx *args)
 {
     const size_t full = (args->bytes / MMGR_SWAR_BYTES) * MMGR_SWAR_BYTES;
     const size_t rest = args->bytes - full;
@@ -365,7 +366,7 @@ EMBED_INLINE embed_iword memor_cmp(const MemorScanCtx *args)
  * @warning args->src must be readable for args->bytes rounded up to a whole word. The tail goes
  *          through word.load, which takes MMGR_SWAR_BYTES whatever the count leaves.
  */
-EMBED_INLINE const void *memor_chr(const MemorScanCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE const void *memor_chr(const MemorScanCtx *args)
 {
     // Bytes to the first word boundary, and so the walk below reads through the aligned load. Normally
     // none, since this library expects memory that arrives aligned. The unaligned load is not one
@@ -446,7 +447,7 @@ EMBED_INLINE const void *memor_chr(const MemorScanCtx *args)
  * @warning args->dst must be writable for args->bytes. No write lands past the count. The word
  *          stores cover a whole number of words, and the stores of the odd bytes finish what they leave.
  */
-EMBED_INLINE void memor_set(MemorSetCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void memor_set(MemorSetCtx *args)
 {
     // Explicit casts broadcast the byte into every lane. MMGR_SWAR_ONES has a 1 in each lane's low bit
     const embed_word fill = (embed_word)(MMGR_SWAR_ONES * (embed_word)args->val);
@@ -532,8 +533,8 @@ typedef struct
  * @note The left element goes first where the order of the two is 0 or less, and the right one otherwise, and so two
  *       equal elements keep the order that they had. theory/linea/Linea/Sort.lean models the merge as List.merge.
  */
-EMBED_INLINE void memor_sort_merge(const MemorSortCtx *args, const uint8_t *from, uint8_t *to, size_t left,
-                                   size_t middle, size_t right)
+EMBED_HOST_DEVICE EMBED_INLINE void memor_sort_merge(const MemorSortCtx *args, const uint8_t *from, uint8_t *to,
+                                                     size_t left, size_t middle, size_t right)
 {
     size_t taken_left = left;
     size_t taken_right = middle;
@@ -543,20 +544,18 @@ EMBED_INLINE void memor_sort_merge(const MemorSortCtx *args, const uint8_t *from
         const uint8_t *const left_element = &from[taken_left * args->size];
         const uint8_t *const right_element = &from[taken_right * args->size];
         const embed_bool left_first = (args->order(left_element, right_element) <= 0) ? EMBED_TRUE : EMBED_FALSE;
-        memor_cpy(&(MemorCpyCtx){
-            .dst = &to[written * args->size], .src = left_first ? left_element : right_element, .bytes = args->size});
+        EMBED_CALL(memor_cpy, MemorCpyCtx, .dst = &to[written * args->size],
+                   .src = left_first ? left_element : right_element, .bytes = args->size);
         taken_left += left_first ? 1u : 0u;
         taken_right += left_first ? 0u : 1u;
         written += 1u;
     }
     // what is left of either run goes after the merge as it lies, and the other run has nothing left
-    memor_cpy(&(MemorCpyCtx){.dst = &to[written * args->size],
-                             .src = &from[taken_left * args->size],
-                             .bytes = (middle - taken_left) * args->size});
+    EMBED_CALL(memor_cpy, MemorCpyCtx, .dst = &to[written * args->size], .src = &from[taken_left * args->size],
+               .bytes = (middle - taken_left) * args->size);
     written += middle - taken_left;
-    memor_cpy(&(MemorCpyCtx){.dst = &to[written * args->size],
-                             .src = &from[taken_right * args->size],
-                             .bytes = (right - taken_right) * args->size});
+    EMBED_CALL(memor_cpy, MemorCpyCtx, .dst = &to[written * args->size], .src = &from[taken_right * args->size],
+               .bytes = (right - taken_right) * args->size);
 }
 
 /**
@@ -575,7 +574,7 @@ EMBED_INLINE void memor_sort_merge(const MemorSortCtx *args, const uint8_t *from
  *       the order is transitive and total.
  * @warning base and scratch must each hold args->count times args->size bytes, and must not overlap.
  */
-EMBED_INLINE embed_bool memor_sort(const MemorSortCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool memor_sort(const MemorSortCtx *args)
 {
     if (args->count < 2u)
     {
@@ -605,7 +604,7 @@ EMBED_INLINE embed_bool memor_sort(const MemorSortCtx *args)
     }
     if (from != args->base)
     {
-        memor_cpy(&(MemorCpyCtx){.dst = args->base, .src = from, .bytes = args->count * args->size});
+        EMBED_CALL(memor_cpy, MemorCpyCtx, .dst = args->base, .src = from, .bytes = args->count * args->size);
     }
     return EMBED_TRUE;
 }

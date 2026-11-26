@@ -46,6 +46,13 @@ instead of in somebody's shell history:
   build-extram    external memory on
   build-fuzz      the libFuzzer harnesses, one for each module, under the address and undefined behavior sanitizers
 
+One more tree answers a question about the GPU:
+
+  build-device    MMGR_DEVICE on: every module also as CUDA, for the GPU
+
+The device tree needs nvcc, and on Windows it runs in the environment of vcvarsall, since nvcc takes cl as the
+compiler of its host pass. It names its own generator and compiler, Ninja and cl, and borrows none.
+
 The device benches are ESP-IDF projects, which is a second build system with its own toolchain and
 environment. To reach it needs a shell: this file writes the shell script out, runs it, and
 removes it when it succeeds. A script retained in the tree is a second place the paths live, and it
@@ -678,18 +685,73 @@ TREES = {
         "args": ["-DMMGR_FUZZ=ON", "-DMMGR_LTO=OFF", "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
                  "-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded"],
     },
+    # nvcc on Windows takes cl as the compiler of its host pass, and cl and link read their paths from the
+    # environment that vcvarsall sets. So this tree names its own generator and compiler, and it runs in that
+    # environment. It borrows no toolchain from another tree and lends none: a toolchain of another tree has no CUDA.
+    "build-device": {
+        "what": "every module for the GPU as well, through nvcc",
+        "args": ["-DMMGR_DEVICE=ON", "-G", "Ninja", "-DCMAKE_C_COMPILER=cl"],
+        "own_toolchain": True,
+        "msvc": True,
+    },
 }
 
 
-def run(cmd, quiet=True, stdin=None):
+def msvc_environment_script():
+    """The vcvarsall.bat of the newest Visual Studio on this host, or None where there is none."""
+    if os.name != "nt":
+        return None
+    found = []
+    for root in (r"C:\Program Files (x86)\Microsoft Visual Studio", r"C:\Program Files\Microsoft Visual Studio"):
+        found += glob.glob(os.path.join(root, "*", "*", "VC", "Auxiliary", "Build", "vcvarsall.bat"))
+    return sorted(found)[-1] if found else None
+
+
+_MSVC_ENVIRONMENT = []
+
+
+def msvc_environment():
+    """The environment of this process with MSVC's for x64 on top, or None where this host has no MSVC.
+
+    vcvarsall runs once, and each later call takes its answer.
+    """
+    if _MSVC_ENVIRONMENT:
+        return _MSVC_ENVIRONMENT[0]
+    script = msvc_environment_script()
+    if script is None:
+        return None
+    told = subprocess.run(["cmd", "/c", "call", script, "x64", ">nul", "&&", "set"], capture_output=True, text=True)
+    if told.returncode != 0:
+        return None
+    env = dict(os.environ)
+    for line in told.stdout.splitlines():
+        name, sep, value = line.partition("=")
+        if sep:
+            env[name] = value
+    _MSVC_ENVIRONMENT.append(env)
+    return env
+
+
+def tree_environment(tree):
+    """The environment the commands of @p tree run in: MSVC's for a tree that asks for it, and this process's else."""
+    if TREES[tree].get("msvc"):
+        env = msvc_environment()
+        if env is None:
+            raise SystemExit("%s needs MSVC and nvcc on Windows, and this host has no vcvarsall.bat" % tree)
+        return env
+    return None
+
+
+def run(cmd, quiet=True, stdin=None, env=None):
     """Run a command from the repository root and hand back its completed process.
 
     @p stdin feeds text in. cmd_vectors drives a helper that reads a message per line. A file of
     those would put a temporary beside whatever directory it ran from.
+    @p env is the environment of the command, and None is the environment of this process.
     """
     if quiet:
-        return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, input=stdin)
-    return subprocess.run(cmd, cwd=ROOT, text=True, input=stdin)
+        return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, input=stdin, env=env)
+    return subprocess.run(cmd, cwd=ROOT, text=True, input=stdin, env=env)
 
 
 def borrowed_toolchain(skip_path):
@@ -737,8 +799,9 @@ def configure(tree, fresh=False):
     if os.path.isfile(os.path.join(path, "CMakeCache.txt")):
         return 0
     cmd = ["cmake", "-S", ".", "-B", path, "-DCMAKE_BUILD_TYPE=Debug", "-DMMGR_BUILD_TESTS=ON"]
-    cmd += TREES[tree]["args"] + borrowed_toolchain(tree) + shlex.split(CMAKE_ARGS)
-    r = run(cmd)
+    own = TREES[tree].get("own_toolchain", False)
+    cmd += TREES[tree]["args"] + ([] if own else borrowed_toolchain(tree)) + shlex.split(CMAKE_ARGS)
+    r = run(cmd, env=tree_environment(tree))
     if r.returncode != 0:
         sys.stderr.write(r.stdout[-3000:] + r.stderr[-3000:])
         print("configure of %s failed" % tree)
@@ -757,7 +820,8 @@ def configure(tree, fresh=False):
             current.pop(tree, None)
         write_pointer(current)
         return 1
-    remember_toolchain(path)
+    if not own:
+        remember_toolchain(path)
     print("configured %s - %s" % (os.path.relpath(path, BUILD_ROOT), TREES[tree]["what"]))
     return 0
 
@@ -766,7 +830,7 @@ def build(tree, jobs, fresh=False):
     """Build @p tree, and report only what went wrong."""
     if configure(tree, fresh) != 0:
         return 1
-    r = run(["cmake", "--build", tree_path(tree), "-j", str(jobs)])
+    r = run(["cmake", "--build", tree_path(tree), "-j", str(jobs)], env=tree_environment(tree))
     if r.returncode != 0:
         sys.stdout.write(r.stdout[-4000:])
         sys.stderr.write(r.stderr[-4000:])
@@ -782,7 +846,7 @@ def ctest(tree, pattern):
     cmd = ["ctest", "--test-dir", tree_path(tree), "--output-on-failure"]
     if pattern:
         cmd += ["-R", pattern]
-    r = run(cmd)
+    r = run(cmd, env=tree_environment(tree))
 
     for line in r.stdout.splitlines():
         if "tests passed" in line or "tests failed" in line:
@@ -1579,6 +1643,7 @@ def cmd_runners_gen(a):
         out = generate_runner(d, a.unity)
         print("wrote %s" % os.path.relpath(out, ROOT).replace("\\", "/"))
     return 0
+
 
 
 # ------------------------------------------------------------------------------------------------

@@ -50,7 +50,7 @@ typedef struct
  *          MMGR_DEBUG_CHECKS build. A larger count writes zeros past the sixty-fourth bit and
  *          advances the writer as though they were data.
  */
-EMBED_INLINE void bitor_put(const BitorCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void bitor_put(const BitorCtx *args)
 {
     mmgr_bitor *const writer = args->writer;
 
@@ -134,7 +134,7 @@ EMBED_INLINE void bitor_put(const BitorCtx *args)
  * @note Does nothing when writer->overflow is already set.
  * @warning Sets writer->overflow when the byte would pass writer->cap.
  */
-EMBED_INLINE void bitor_align(const BitorCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void bitor_align(const BitorCtx *args)
 {
     mmgr_bitor *const writer = args->writer;
 
@@ -164,7 +164,7 @@ EMBED_INLINE void bitor_align(const BitorCtx *args)
  *          MMGR_DEBUG_CHECKS build, and a null out passes here. bitor_put writes through it
  *          on the first whole byte.
  */
-EMBED_INLINE mmgr_bitor bitor_init(const BitorCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE mmgr_bitor bitor_init(const BitorCtx *args)
 {
     MMGR_ASSERT(args->out != NULL, "a bit writer needs a buffer");
     MMGR_ASSERT(args->cap != 0, "a bit writer needs a capacity");

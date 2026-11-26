@@ -84,7 +84,7 @@ EMBED_TABLE_LAYOUT(EndianNs, wr, rd, rev);
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value writes eight
  *          bytes.
  */
-size_t mmgr_wr_le(const EndianCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_wr_le(const EndianCfg *args);
 
 /**
  * @brief Reads args->width bytes from args->src and does not reverse them.
@@ -96,7 +96,7 @@ size_t mmgr_wr_le(const EndianCfg *args);
  * @warning args->width must be one of the mmgr_endian_width enumerators. Any other value reads eight
  *          bytes.
  */
-uint64_t mmgr_rd_le(const EndianCfg *args);
+EMBED_HOST_DEVICE uint64_t mmgr_rd_le(const EndianCfg *args);
 
 /**
  * @brief Reverses args->val, then writes args->width bytes of it to args->dst.
@@ -109,7 +109,7 @@ uint64_t mmgr_rd_le(const EndianCfg *args);
  *          bytes. One above eight wraps the reversal's shift count, and a width of 0 shifts by 64,
  *          which has no definition.
  */
-size_t mmgr_wr_be(const EndianCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_wr_be(const EndianCfg *args);
 
 /**
  * @brief Reads args->width bytes from args->src, then reverses them.
@@ -122,7 +122,7 @@ size_t mmgr_wr_be(const EndianCfg *args);
  *          bytes. One above eight wraps the reversal's shift count, and a width of 0 shifts by 64,
  *          which has no definition.
  */
-uint64_t mmgr_rd_be(const EndianCfg *args);
+EMBED_HOST_DEVICE uint64_t mmgr_rd_be(const EndianCfg *args);
 
 /**
  * @brief Reverses the byte order of args->val at args->width bytes.
@@ -137,7 +137,7 @@ uint64_t mmgr_rd_be(const EndianCfg *args);
  *          arithmetic does. A width above eight wraps into a very large shift count, and a width of 0
  *          shifts a 64-bit value by 64, which has no definition.
  */
-uint64_t mmgr_endian_rev(const EndianCfg *args);
+EMBED_HOST_DEVICE uint64_t mmgr_endian_rev(const EndianCfg *args);
 
 /**
  * @brief Dispatch table instance named parva_extremitas, the little endian order.

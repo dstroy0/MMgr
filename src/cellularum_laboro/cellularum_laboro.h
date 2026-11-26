@@ -171,7 +171,7 @@ EMBED_TABLE_LAYOUT(CellularumLaboroNs, init, len, diff, eq, starts, find, has, c
  * @return         A copy of *args.
  * @note Copies the members only. It reads nothing they point at.
  */
-CatenaFinitaCfg mmgr_cellul_init(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE CatenaFinitaCfg mmgr_cellul_init(const CatenaFinitaCfg *args);
 
 /**
  * @brief Returns the bytes in src before its terminator, from args->at on.
@@ -182,7 +182,7 @@ CatenaFinitaCfg mmgr_cellul_init(const CatenaFinitaCfg *args);
  * @warning args->at must not exceed args->cap, and src must be readable to args->cap. The last partial
  *          word comes in whole and gets a mask after. So the read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap.
  */
-size_t mmgr_cellul_len(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_cellul_len(const CatenaFinitaCfg *args);
 
 /**
  * @brief Returns the offset of the first byte where src and other differ.
@@ -193,7 +193,7 @@ size_t mmgr_cellul_len(const CatenaFinitaCfg *args);
  * @warning Both src and other must be readable for cap bytes. The last partial word comes in whole and
  *          gets a mask after. The read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap in each.
  */
-size_t mmgr_cellul_diff(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_cellul_diff(const CatenaFinitaCfg *args);
 
 /**
  * @brief Reports whether src and other hold the same terminated string.
@@ -203,7 +203,7 @@ size_t mmgr_cellul_diff(const CatenaFinitaCfg *args);
  * @warning Both src and other must be readable for cap bytes. The last partial word comes in whole and
  *          gets a mask after. The read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap in each.
  */
-embed_bool mmgr_cellul_eq(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_cellul_eq(const CatenaFinitaCfg *args);
 
 /**
  * @brief Reports whether src begins with other.
@@ -214,7 +214,7 @@ embed_bool mmgr_cellul_eq(const CatenaFinitaCfg *args);
  * @warning Both src and other must be readable for cap bytes. The last partial word comes in whole and
  *          gets a mask after. The read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap in each.
  */
-embed_bool mmgr_cellul_starts(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_cellul_starts(const CatenaFinitaCfg *args);
 
 /**
  * @brief Finds the first occurrence of other within src.
@@ -226,7 +226,7 @@ embed_bool mmgr_cellul_starts(const CatenaFinitaCfg *args);
  *          whole word at a time and gets a mask after. So the read reaches up to MMGR_SWAR_BYTES - 1
  *          bytes past other_cap. The haystack walk holds itself inside cap.
  */
-const char *mmgr_cellul_find(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE const char *mmgr_cellul_find(const CatenaFinitaCfg *args);
 
 /**
  * @brief Reports whether other occurs within src.
@@ -236,7 +236,7 @@ const char *mmgr_cellul_find(const CatenaFinitaCfg *args);
  * @warning src must be readable for cap bytes and other for other_cap bytes, with the needle read past
  *          other_cap exactly as mmgr_cellul_find describes.
  */
-embed_bool mmgr_cellul_has(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_cellul_has(const CatenaFinitaCfg *args);
 
 /**
  * @brief Finds the first occurrence of args->byte in src, before the terminator.
@@ -247,7 +247,7 @@ embed_bool mmgr_cellul_has(const CatenaFinitaCfg *args);
  * @warning src must be readable for cap bytes. The last partial word comes in whole and gets a mask after.
  *          The read reaches up to MMGR_SWAR_BYTES - 1 bytes past cap.
  */
-const char *mmgr_cellul_chr(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE const char *mmgr_cellul_chr(const CatenaFinitaCfg *args);
 
 /**
  * @brief Copies src into dst, and writes at max cap bytes, the terminator among them.
@@ -257,7 +257,7 @@ const char *mmgr_cellul_chr(const CatenaFinitaCfg *args);
  * @note A cap of 0 writes nothing at all and not even a terminator.
  * @warning dst must be writable for cap bytes and src readable for cap minus one.
  */
-size_t mmgr_cellul_copy(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_cellul_copy(const CatenaFinitaCfg *args);
 
 /**
  * @brief Tests src[at] for whitespace.
@@ -266,7 +266,7 @@ size_t mmgr_cellul_copy(const CatenaFinitaCfg *args);
  * @return         EMBED_TRUE for space, tab, newline, carriage return, form feed or vertical tab.
  * @warning src[at] must be readable. cap does not bound this call.
  */
-embed_bool mmgr_cellul_ws(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_cellul_ws(const CatenaFinitaCfg *args);
 
 /**
  * @brief Tests src[at] for a decimal digit.
@@ -275,7 +275,7 @@ embed_bool mmgr_cellul_ws(const CatenaFinitaCfg *args);
  * @return         EMBED_TRUE for the ten decimal digits, '0' through '9'.
  * @warning src[at] must be readable. cap does not bound this call.
  */
-embed_bool mmgr_cellul_digit(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_cellul_digit(const CatenaFinitaCfg *args);
 
 /**
  * @brief Compares one word pair and reports whether a walk should continue.
@@ -285,7 +285,7 @@ embed_bool mmgr_cellul_digit(const CatenaFinitaCfg *args);
  * @note MMGR_SWAR_YES means word_left's terminator arrived before the first difference.
  * @note end_wins makes a terminator in the same lane as the difference count as agreement.
  */
-embed_iword mmgr_cellul_step_word(const VerboProgrediorCfg *args);
+EMBED_HOST_DEVICE embed_iword mmgr_cellul_step_word(const VerboProgrediorCfg *args);
 
 /**
  * @brief Compares one byte pair and reports whether a walk should continue.
@@ -295,7 +295,7 @@ embed_iword mmgr_cellul_step_word(const VerboProgrediorCfg *args);
  * @note A byte_left that terminates gives MMGR_SWAR_YES when byte_right also terminates, or when
  *       end_wins holds.
  */
-embed_iword mmgr_cellul_step_byte(const VerboProgrediorCfg *args);
+EMBED_HOST_DEVICE embed_iword mmgr_cellul_step_byte(const VerboProgrediorCfg *args);
 
 /**
  * @brief Reads a signed decimal integer from args->src.
@@ -307,7 +307,7 @@ embed_iword mmgr_cellul_step_byte(const VerboProgrediorCfg *args);
  * @warning The read stops at the first byte that is not part of the number. No length bounds it.
  * @warning The digit accumulator is embed_word wide and wraps on a longer run.
  */
-embed_iword mmgr_cellul_to_long(const TransfiguroCfg *args);
+EMBED_HOST_DEVICE embed_iword mmgr_cellul_to_long(const TransfiguroCfg *args);
 
 /**
  * @brief Reads an unsigned decimal integer from args->src.
@@ -319,7 +319,7 @@ embed_iword mmgr_cellul_to_long(const TransfiguroCfg *args);
  * @warning The read stops at the first byte that is not part of the number. No length bounds it.
  * @warning The digit accumulator is embed_word wide and wraps on a longer run.
  */
-embed_word mmgr_cellul_to_ulong(const TransfiguroCfg *args);
+EMBED_HOST_DEVICE embed_word mmgr_cellul_to_ulong(const TransfiguroCfg *args);
 
 /**
  * @brief Reads a decimal floating point number from args->src.
@@ -331,7 +331,7 @@ embed_word mmgr_cellul_to_ulong(const TransfiguroCfg *args);
  * @note When end is not NULL the call sets it past the number, or back to src when no digit came.
  * @warning The read stops at the first byte that is not part of the number. No length bounds it.
  */
-double mmgr_cellul_to_double(const TransfiguroCfg *args);
+EMBED_HOST_DEVICE double mmgr_cellul_to_double(const TransfiguroCfg *args);
 
 /**
  * @brief Reads a decimal floating point number from args->src and narrows it to float.
@@ -341,7 +341,7 @@ double mmgr_cellul_to_double(const TransfiguroCfg *args);
  * @note Accepts the same input as mmgr_cellul_to_double, with only a different result width.
  * @warning The read stops at the first byte that is not part of the number. No length bounds it.
  */
-float mmgr_cellul_to_float(const TransfiguroCfg *args);
+EMBED_HOST_DEVICE float mmgr_cellul_to_float(const TransfiguroCfg *args);
 
 /**
  * @brief Reads an unsigned integer in base args->base from args->src.
@@ -356,7 +356,7 @@ float mmgr_cellul_to_float(const TransfiguroCfg *args);
  * @note When end is not NULL the call sets it past the last digit, or back to src when no digit came.
  * @warning The read stops at the first byte that is not a digit of the base. No length bounds it.
  */
-embed_word mmgr_cellul_to_ulong_in(const TransfiguroCfg *args);
+EMBED_HOST_DEVICE embed_word mmgr_cellul_to_ulong_in(const TransfiguroCfg *args);
 
 /**
  * @brief Counts the bytes at the start of src that the set other holds.
@@ -366,7 +366,7 @@ embed_word mmgr_cellul_to_ulong_in(const TransfiguroCfg *args);
  * @note An empty set counts 0.
  * @warning src must be readable for cap bytes, and other must end in a terminator.
  */
-size_t mmgr_cellul_span(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_cellul_span(const CatenaFinitaCfg *args);
 
 /**
  * @brief Counts the bytes at the start of src that the set other does not hold.
@@ -376,7 +376,7 @@ size_t mmgr_cellul_span(const CatenaFinitaCfg *args);
  * @note An empty set counts every byte before the terminator or cap.
  * @warning src must be readable for cap bytes, and other must end in a terminator.
  */
-size_t mmgr_cellul_span_not(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE size_t mmgr_cellul_span_not(const CatenaFinitaCfg *args);
 
 /**
  * @brief Finds the last occurrence of args->byte in src, before the terminator.
@@ -387,7 +387,7 @@ size_t mmgr_cellul_span_not(const CatenaFinitaCfg *args);
  *       mmgr_cellul_chr does.
  * @warning src must be readable for cap bytes.
  */
-const char *mmgr_cellul_chr_last(const CatenaFinitaCfg *args);
+EMBED_HOST_DEVICE const char *mmgr_cellul_chr_last(const CatenaFinitaCfg *args);
 
 /**
  * @brief Dispatch table instance named cellul, with each member set to its mmgr_cellul_ function.

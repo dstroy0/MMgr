@@ -46,7 +46,7 @@ typedef struct
  * @warning args->dst must be writable for args->width bytes. Nothing checks it here, and nothing checks
  *          it in proximus_operor either, where the store is a plain dereference.
  */
-EMBED_INLINE void endian_put(const EndianCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void endian_put(const EndianCtx *args)
 {
     switch (args->width)
     {
@@ -73,7 +73,7 @@ EMBED_INLINE void endian_put(const EndianCtx *args)
  * @warning args->src must be readable for args->width bytes. Nothing checks it here, and nothing checks
  *          it in proximus_operor either, where the load is a plain dereference.
  */
-EMBED_INLINE uint64_t endian_get(const EndianCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint64_t endian_get(const EndianCtx *args)
 {
     switch (args->width)
     {
@@ -97,7 +97,7 @@ EMBED_INLINE uint64_t endian_get(const EndianCtx *args)
  * @warning The expression 8u - args->width wraps as unsigned arithmetic does. An args->width above 8 wraps into a very
  * large shift count, and a width of 0 shifts a 64-bit value by 64, which has no definition.
  */
-EMBED_INLINE uint64_t endian_rev(const EndianCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint64_t endian_rev(const EndianCtx *args)
 {
     uint64_t reversed = args->val;
 
@@ -117,7 +117,7 @@ EMBED_INLINE uint64_t endian_rev(const EndianCtx *args)
  * @note Passes back args->width as it came, which is not what endian_put wrote when the width is
  *       outside the enumerators.
  */
-EMBED_INLINE size_t endian_wr_le(const EndianCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE size_t endian_wr_le(const EndianCtx *args)
 {
     endian_put(args);
     return args->width;
@@ -135,7 +135,7 @@ EMBED_INLINE size_t endian_wr_le(const EndianCtx *args)
  * @warning The width reaches endian_rev unchanged, and one above 8 wraps its shift count and one of 0
  *          shifts by 64, which has no definition.
  */
-EMBED_INLINE size_t endian_wr_be(const EndianCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE size_t endian_wr_be(const EndianCtx *args)
 {
     EMBED_CALL(endian_put, EndianCtx, .dst = args->dst, .val = endian_rev(args), .width = args->width);
     return args->width;
@@ -149,7 +149,7 @@ EMBED_INLINE size_t endian_wr_be(const EndianCtx *args)
  * @note Calls endian_get directly, where endian_rd_be reverses the result.
  * @note The upper bytes are zero, since the narrow loads widen into the uint64_t and do not fill it.
  */
-EMBED_INLINE uint64_t endian_rd_le(const EndianCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint64_t endian_rd_le(const EndianCtx *args)
 {
     return endian_get(args);
 }
@@ -164,7 +164,7 @@ EMBED_INLINE uint64_t endian_rd_le(const EndianCtx *args)
  * @warning The width reaches endian_rev unchanged, and one above 8 wraps its shift count and one of 0
  *          shifts by 64, which has no definition.
  */
-EMBED_INLINE uint64_t endian_rd_be(const EndianCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint64_t endian_rd_be(const EndianCtx *args)
 {
     return EMBED_CALL(endian_rev, EndianCtx, .val = endian_get(args), .width = args->width);
 }

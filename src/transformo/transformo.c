@@ -29,8 +29,9 @@
  *
  * @note Every entry is exact, since 22 is the last power of ten a double represents with no round.
  * @note muto_scale multiplies by one of these for a positive exponent and divides by one for a negative one.
+ * @note EMBED_PASS_MEMORY gives each pass of nvcc its own copy, and so a kernel reads the table from device memory.
  */
-static const double mmgr_muto_ten[MMGR_MUTO_EXACT_POW10 + 1] = {1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,
+static EMBED_PASS_MEMORY const double mmgr_muto_ten[MMGR_MUTO_EXACT_POW10 + 1] = {1e0,  1e1,  1e2,  1e3,  1e4,  1e5,  1e6,  1e7,
                                                                 1e8,  1e9,  1e10, 1e11, 1e12, 1e13, 1e14, 1e15,
                                                                 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22};
 
@@ -79,7 +80,7 @@ typedef struct
  * @note MMGR_MUTO_MANT_MAX is (~0 - 9) / 10, and so the multiply and the add both stay inside a 64-bit value.
  * @warning Writes through args->mant, and so the caller's mantissa changes [BORROWS].
  */
-EMBED_INLINE embed_bool muto_take(const MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool muto_take(const MutoCtx *args)
 {
     if (*args->mant > MMGR_MUTO_MANT_MAX)
     {
@@ -100,7 +101,7 @@ EMBED_INLINE embed_bool muto_take(const MutoCtx *args)
  *       value.
  * @warning Writes through args->mant, and so the caller's mantissa changes [BORROWS].
  */
-EMBED_INLINE embed_bool muto_take_in(const MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_bool muto_take_in(const MutoCtx *args)
 {
     // Explicit cast reads the digit's byte as the unsigned byte its value comes from
     const unsigned int value = mmgr_muto_digit_value((uint8_t)args->digit);
@@ -124,7 +125,7 @@ EMBED_INLINE embed_bool muto_take_in(const MutoCtx *args)
  * @note The halves stay at 32 bits. So each partial product is a 32 by 32 wide multiply the target
  *       carries in hardware and not one a compiler must narrow for itself.
  */
-EMBED_INLINE void muto_mul(MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void muto_mul(MutoCtx *args)
 {
     // Explicit casts hold each half at the 32 bits it actually carries, and so the products below are
     // wide multiplies and not full 64-bit ones
@@ -156,7 +157,7 @@ EMBED_INLINE void muto_mul(MutoCtx *args)
  * @note A count of zero gets a test and no shift, since the complementary shift would then be by
  *       the full width, which has no definition.
  */
-EMBED_INLINE void muto_norm(MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void muto_norm(MutoCtx *args)
 {
     if (args->hi == 0u)
     {
@@ -186,7 +187,7 @@ EMBED_INLINE void muto_norm(MutoCtx *args)
  * @note Sets args->rest when either discarded column contained anything, and so the round still sees those bits.
  * @note Adds args->pow->e2 and 128 to args->fe2, the 128 for the bits the product came down by.
  */
-EMBED_INLINE void muto_mul_pow5(MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void muto_mul_pow5(MutoCtx *args)
 {
     const embed_u64 fhi = args->hi;
     const embed_u64 flo = args->lo;
@@ -256,8 +257,9 @@ EMBED_INLINE void muto_mul_pow5(MutoCtx *args)
  * @note muto_apply_pow10 applies these for a positive decimal exponent. It applies one outright when the
  *       exponent is within the table, and otherwise chunks of the largest. That replaces a walk of
  *       the pow5 tables a set bit at a time.
+ * @note EMBED_PASS_MEMORY gives each pass of nvcc its own copy, as it does mmgr_muto_ten.
  */
-static const embed_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {1ULL,
+static EMBED_PASS_MEMORY const embed_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {1ULL,
                                                                          10ULL,
                                                                          100ULL,
                                                                          1000ULL,
@@ -286,7 +288,7 @@ static const embed_u64 mmgr_muto_pow10[MMGR_MUTO_EXACT_U64_POW10 + 1] = {1ULL,
  * @note Sets args->rest from the discarded low 64 bits, as muto_mul_pow5 does from its columns.
  * @note Adds 64 to args->fe2, for the bits the 192-bit product came down by.
  */
-EMBED_INLINE void muto_mul_pow10(MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void muto_mul_pow10(MutoCtx *args)
 {
     const embed_u64 fhi = args->hi;
     const embed_u64 flo = args->lo;
@@ -332,7 +334,7 @@ EMBED_INLINE void muto_mul_pow10(MutoCtx *args)
  * @warning The walk covers only MMGR_POW5_STEPS bits. A magnitude above MMGR_POW5_MAX that reaches the
  *          walk loses its higher bits.
  */
-EMBED_INLINE void muto_apply_pow10(MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void muto_apply_pow10(MutoCtx *args)
 {
     // A positive exponent applies as exact powers of ten and not as a walk of the bits of the
     // wide tables. Ten to the eighteenth is the widest that fits 64 bits. A larger exponent goes
@@ -388,7 +390,7 @@ EMBED_INLINE void muto_apply_pow10(MutoCtx *args)
  * @note Puts the mantissa in args->hi with args->lo zero. args->fe2 starts 64 below args->e2.
  * @note Carries args->dropped into args->rest. A truncation the caller already made still reaches the round.
  */
-EMBED_INLINE void muto_seat(MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE void muto_seat(MutoCtx *args)
 {
     args->hi = *args->mant;
     args->lo = 0u;
@@ -407,7 +409,7 @@ EMBED_INLINE void muto_seat(MutoCtx *args)
  * @note Rounds up on a halfway bit only when something remains below it or the mantissa is odd, which ties to even.
  * @warning Returns a signed infinity at MMGR_DBL_EXP_ALL, and a signed zero when the value falls below the range.
  */
-EMBED_INLINE double muto_round(const MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE double muto_round(const MutoCtx *args)
 {
     if ((args->hi | args->lo) == 0u)
     {
@@ -479,7 +481,7 @@ EMBED_INLINE double muto_round(const MutoCtx *args)
  *       the compiler to carry than a gather of the bits below the half and then a test of them.
  * @note Reads neither args->rest nor args->above. A half goes up whatever either holds.
  */
-EMBED_INLINE embed_u64 muto_to_u64(const MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_u64 muto_to_u64(const MutoCtx *args)
 {
     if ((args->hi | args->lo) == 0u)
     {
@@ -549,7 +551,7 @@ EMBED_INLINE embed_u64 muto_to_u64(const MutoCtx *args)
  *       the fixed point path below, which measures about three times the divide.
  * @warning Returns a signed infinity above MMGR_POW5_MAX and a signed zero below its negative.
  */
-EMBED_INLINE double muto_scale(MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE double muto_scale(MutoCtx *args)
 {
     if (*args->mant == 0u)
     {
@@ -599,7 +601,7 @@ EMBED_INLINE double muto_scale(MutoCtx *args)
  * @note Reads args->e2, which muto_scale leaves at zero.
  * @warning Does not bound args->ex against MMGR_POW5_MAX the way muto_scale does. A larger one loses its high bits.
  */
-EMBED_INLINE embed_u64 muto_scale_to_u64(MutoCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE embed_u64 muto_scale_to_u64(MutoCtx *args)
 {
     if (*args->mant == 0u)
     {

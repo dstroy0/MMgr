@@ -82,7 +82,7 @@ EMBED_STATIC_ASSERT((PRAET_CLEARED_BITS & (uint32_t)~PRAET_MAP_MASK) == 0u,
  *          to its declared state is the fixture at its start again. A count of that as a run of
  *          transitions would fill the table with one set per case.
  */
-static void praet_ordo_write_flags(PraetOrdo *context, embed_word channel, uint32_t now)
+EMBED_HOST_DEVICE static void praet_ordo_write_flags(PraetOrdo *context, embed_word channel, uint32_t now)
 {
     const uint32_t was = context->flags[channel];
 
@@ -95,7 +95,7 @@ static void praet_ordo_write_flags(PraetOrdo *context, embed_word channel, uint3
     context->flags[channel] = now;
 }
 
-void praet_ordo_reset(PraetOrdo *context)
+EMBED_HOST_DEVICE void praet_ordo_reset(PraetOrdo *context)
 {
     for (embed_word channel = 0u; channel < PRAET_CHANNELS; channel++)
     {
@@ -107,13 +107,13 @@ void praet_ordo_reset(PraetOrdo *context)
     }
     // memor.set zeroes the arrays of counts. Zero stores to them in the loop are stores that clang joins into one
     // call to memset
-    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->keepalive_deadline, .val = 0u,
-               .bytes = sizeof(context->keepalive_deadline));
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->keepalive_deadline,
+               .bytes = sizeof(context->keepalive_deadline), .val = 0u);
 #if PRAET_RECOVERY
-    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->bound_bytes, .val = 0u, .bytes = sizeof(context->bound_bytes));
-    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->length, .val = 0u, .bytes = sizeof(context->length));
-    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->position, .val = 0u, .bytes = sizeof(context->position));
-    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->boundary_crc, .val = 0u, .bytes = sizeof(context->boundary_crc));
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->bound_bytes, .bytes = sizeof(context->bound_bytes), .val = 0u);
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->length, .bytes = sizeof(context->length), .val = 0u);
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->position, .bytes = sizeof(context->position), .val = 0u);
+    EMBED_CALL(memor.set, MemoriaCfg, .dst = context->boundary_crc, .bytes = sizeof(context->boundary_crc), .val = 0u);
 #endif
     context->settle_deadline = 0u;
     context->elapsed_micros = 0u;
@@ -121,7 +121,8 @@ void praet_ordo_reset(PraetOrdo *context)
     context->praet_busy_bitflag = 0u;
 }
 
-embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t *bound, embed_word bytes,
+EMBED_HOST_DEVICE embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t *bound,
+                                                  embed_word bytes,
                                 embed_word region)
 {
     praet_procurator_opus(PRAET_OPUS_ADNECTERE);
@@ -170,7 +171,7 @@ embed_bool praet_ordo_adnectere(PraetOrdo *context, embed_word channel, uint8_t 
     return EMBED_TRUE;
 }
 
-void praet_ordo_separare(PraetOrdo *context, embed_word channel)
+EMBED_HOST_DEVICE void praet_ordo_separare(PraetOrdo *context, embed_word channel)
 {
     praet_procurator_opus(PRAET_OPUS_SEPARARE);
 
@@ -188,9 +189,10 @@ void praet_ordo_separare(PraetOrdo *context, embed_word channel)
 }
 
 #if PRAET_RECOVERY
-embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word offset, embed_word length)
+EMBED_HOST_DEVICE embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel, embed_word offset,
+                                                embed_word length)
 #else
-embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel)
+EMBED_HOST_DEVICE embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel)
 #endif
 {
     praet_procurator_opus(PRAET_OPUS_RELATIO);
@@ -229,9 +231,9 @@ embed_bool praet_ordo_relatio(PraetOrdo *context, embed_word channel)
 }
 
 #if PRAET_RECOVERY
-void praet_ordo_efficere(PraetOrdo *context, embed_word channel, embed_word position)
+EMBED_HOST_DEVICE void praet_ordo_efficere(PraetOrdo *context, embed_word channel, embed_word position)
 #else
-void praet_ordo_efficere(PraetOrdo *context, embed_word channel)
+EMBED_HOST_DEVICE void praet_ordo_efficere(PraetOrdo *context, embed_word channel)
 #endif
 {
     praet_procurator_opus(PRAET_OPUS_EFFICERE);
@@ -261,7 +263,7 @@ void praet_ordo_efficere(PraetOrdo *context, embed_word channel)
     context->praet_set_bitflag = 1u;
 }
 
-void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool failed)
+EMBED_HOST_DEVICE void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool failed)
 {
     praet_procurator_opus(PRAET_OPUS_COMPLETED);
 
@@ -314,7 +316,7 @@ void praet_ordo_completed(PraetOrdo *context, embed_word channel, embed_bool fai
  *       a path that runs once per stalled transfer.
  * @note Reads the caller's storage and writes none of it.
  */
-static uint32_t praet_boundary_crc(const PraetOrdo *context, embed_word channel)
+EMBED_HOST_DEVICE static uint32_t praet_boundary_crc(const PraetOrdo *context, embed_word channel)
 {
     const embed_word word_bytes = (embed_word)sizeof(embed_word);
     const embed_word sampled = context->position[channel];
@@ -353,7 +355,7 @@ static uint32_t praet_boundary_crc(const PraetOrdo *context, embed_word channel)
     return running ^ 0xFFFFFFFFu;
 }
 
-embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word recovery)
+EMBED_HOST_DEVICE embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word recovery)
 {
     praet_procurator_opus(PRAET_OPUS_RESOLVE);
 
@@ -396,18 +398,18 @@ embed_bool praet_ordo_resolve(PraetOrdo *context, embed_word channel, embed_word
 }
 #endif
 
-void praet_ordo_advance(PraetOrdo *context, embed_word micros)
+EMBED_HOST_DEVICE void praet_ordo_advance(PraetOrdo *context, embed_word micros)
 {
     context->elapsed_micros += micros;
     context->praet_set_bitflag = 1u;
 }
 
-void praet_ordo_advance_ticks(PraetOrdo *context, embed_word ticks)
+EMBED_HOST_DEVICE void praet_ordo_advance_ticks(PraetOrdo *context, embed_word ticks)
 {
     praet_ordo_advance(context, EMBED_CLOCK_MICROS(ticks));
 }
 
-void praet_ordo_raise(PraetOrdo *context)
+EMBED_HOST_DEVICE void praet_ordo_raise(PraetOrdo *context)
 {
     context->praet_set_bitflag = 1u;
 }
@@ -422,7 +424,7 @@ void praet_ordo_raise(PraetOrdo *context)
  * @note The (void)channel discards the argument, since this body reads nothing.
  */
 EMBED_WEAK_DEFAULT(praet_hw_progress)
-EMBED_WEAK uint16_t EMBED_WEAK_NAME(praet_hw_progress)(embed_word channel)
+EMBED_WEAK EMBED_HOST_DEVICE uint16_t EMBED_WEAK_NAME(praet_hw_progress)(embed_word channel)
 {
     (void)channel;
     return 0u;
@@ -441,7 +443,7 @@ EMBED_WEAK uint16_t EMBED_WEAK_NAME(praet_hw_progress)(embed_word channel)
  * @note Clears a stall and pushes the keepalive window for a channel that moved. A channel that
  *       reports progress is a channel that did not stop.
  */
-static embed_bool praet_ordo_take_progress(PraetOrdo *context)
+EMBED_HOST_DEVICE static embed_bool praet_ordo_take_progress(PraetOrdo *context)
 {
     embed_bool moved = EMBED_FALSE;
 
@@ -476,7 +478,7 @@ static embed_bool praet_ordo_take_progress(PraetOrdo *context)
     return moved;
 }
 
-void praet_ordo_poll(PraetOrdo *context)
+EMBED_HOST_DEVICE void praet_ordo_poll(PraetOrdo *context)
 {
     praet_procurator_opus(PRAET_OPUS_POLL);
 
@@ -560,7 +562,7 @@ void praet_ordo_poll(PraetOrdo *context)
     context->praet_busy_bitflag = 0u;
 }
 
-uint32_t praet_ordo_flags(const PraetOrdo *context, embed_word channel)
+EMBED_HOST_DEVICE uint32_t praet_ordo_flags(const PraetOrdo *context, embed_word channel)
 {
     if (channel >= PRAET_CHANNELS)
     {
@@ -570,7 +572,7 @@ uint32_t praet_ordo_flags(const PraetOrdo *context, embed_word channel)
 }
 
 #if PRAET_RECOVERY
-embed_word praet_ordo_situs(const PraetOrdo *context, embed_word channel)
+EMBED_HOST_DEVICE embed_word praet_ordo_situs(const PraetOrdo *context, embed_word channel)
 {
     if (channel >= PRAET_CHANNELS)
     {
@@ -579,7 +581,7 @@ embed_word praet_ordo_situs(const PraetOrdo *context, embed_word channel)
     return context->position[channel];
 }
 
-embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel)
+EMBED_HOST_DEVICE embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel)
 {
     if (channel >= PRAET_CHANNELS)
     {
@@ -614,7 +616,7 @@ embed_word praet_ordo_commotus_est(const PraetOrdo *context, embed_word channel)
     return (embed_word)(sampled + needed);
 }
 
-uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel)
+EMBED_HOST_DEVICE uint32_t praet_ordo_boundary_crc(const PraetOrdo *context, embed_word channel)
 {
     if (channel >= PRAET_CHANNELS)
     {

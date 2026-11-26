@@ -101,7 +101,7 @@ EMBED_TABLE_LAYOUT(AsciiPersonaBitorumNs, in, lower, upper);
  *          MMGR_DEBUG_CHECKS build. It indexes the bitmap, and a byte under 0x80 then reads
  *          past the table.
  */
-embed_bool mmgr_ascii_in(const AsciiCfg *args);
+EMBED_HOST_DEVICE embed_bool mmgr_ascii_in(const AsciiCfg *args);
 
 /**
  * @brief Returns args->byte with an upper case letter folded to its lower case, as tolower folds it.
@@ -109,7 +109,7 @@ embed_bool mmgr_ascii_in(const AsciiCfg *args);
  * @param[in] args The byte, and args->type, which the call does not read [BORROWS].
  * @return         'a' to 'z' for 'A' to 'Z', and any other byte as it is.
  */
-uint8_t mmgr_ascii_lower(const AsciiCfg *args);
+EMBED_HOST_DEVICE uint8_t mmgr_ascii_lower(const AsciiCfg *args);
 
 /**
  * @brief Returns args->byte with a lower case letter folded to its upper case, as toupper folds it.
@@ -117,7 +117,7 @@ uint8_t mmgr_ascii_lower(const AsciiCfg *args);
  * @param[in] args The byte, and args->type, which the call does not read [BORROWS].
  * @return         'A' to 'Z' for 'a' to 'z', and any other byte as it is.
  */
-uint8_t mmgr_ascii_upper(const AsciiCfg *args);
+EMBED_HOST_DEVICE uint8_t mmgr_ascii_upper(const AsciiCfg *args);
 
 /**
  * @brief Dispatch table instance named ascii, with each member set to its mmgr_ascii_ function.

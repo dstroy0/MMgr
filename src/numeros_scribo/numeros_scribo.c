@@ -42,7 +42,7 @@ typedef struct
  * @return         args->one->as.text, or a literal empty string when that arm is NULL [BORROWS].
  * @note Returns a literal empty string in place of NULL, and so the verba call always receives a valid pointer.
  */
-EMBED_INLINE const char *numer_str(const NumerCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE const char *numer_str(const NumerCtx *args)
 {
     if (args->one->as.text == NULL)
     {
@@ -82,19 +82,19 @@ typedef struct
 } NumerKind;
 
 /* The table names these and they read the table, and so the names come first. */
-static size_t numer_refuse(const NumerCtx *args);
-static size_t numer_verba_put(const NumerCtx *args);
-static size_t numer_verba_json(const NumerCtx *args);
-static size_t numer_verba_xml(const NumerCtx *args);
-static size_t numer_verba_ch(const NumerCtx *args);
-static size_t numer_verba_u32(const NumerCtx *args);
-static size_t numer_verba_u64(const NumerCtx *args);
-static size_t numer_verba_i64(const NumerCtx *args);
-static size_t numer_verba_u32w(const NumerCtx *args);
-static size_t numer_verba_hex(const NumerCtx *args);
-static size_t numer_verba_uint(const NumerCtx *args);
-static size_t numer_verba_g(const NumerCtx *args);
-static size_t numer_verba_fixed(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_refuse(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_put(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_json(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_xml(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_ch(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_u32(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_u64(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_i64(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_u32w(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_hex(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_uint(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_g(const NumerCtx *args);
+EMBED_HOST_DEVICE static size_t numer_verba_fixed(const NumerCtx *args);
 
 /**
  * @brief One entry per field type, indexed by the mmgr_fk value itself.
@@ -102,22 +102,26 @@ static size_t numer_verba_fixed(const NumerCtx *args);
  * @note Sized to MMGR_FK_XML plus one, and so every enumerator has a row.
  * @note MMGR_FK_DEC and MMGR_FK_U32 share the U32 arm but differ in call and default width.
  * @note MMGR_FK_G defaults to six significant digits. Every other type defaults to 1 or 0.
+ * @note The rows come in the order of mmgr_fk, from MMGR_FK_END to MMGR_FK_XML, and the comment at the end of each
+ *       names its type. C++ has no array designator, and nvcc compiles this file as C++.
+ * @note EMBED_PASS_MEMORY gives each pass of nvcc its own copy. The device copy holds the device address of each
+ *       function, and so a kernel calls through it.
  */
-static const NumerKind s_type[MMGR_FK_XML + 1u] = {
-    [MMGR_FK_END] = {numer_refuse, NUMER_ARM_NONE, 0u, 0u},
-    [MMGR_FK_LIT] = {numer_refuse, NUMER_ARM_NONE, 0u, 0u},
-    [MMGR_FK_STR] = {numer_verba_put, NUMER_ARM_STR, 0u, 0u},
-    [MMGR_FK_U32] = {numer_verba_u32, NUMER_ARM_U32, 10u, 1u},
-    [MMGR_FK_U64] = {numer_verba_u64, NUMER_ARM_U64, 10u, 1u},
-    [MMGR_FK_I64] = {numer_verba_i64, NUMER_ARM_I64, 10u, 1u},
-    [MMGR_FK_DEC] = {numer_verba_u32w, NUMER_ARM_U32, 10u, 0u},
-    [MMGR_FK_HEX] = {numer_verba_hex, NUMER_ARM_U64, 16u, 1u},
-    [MMGR_FK_OCT] = {numer_verba_uint, NUMER_ARM_U64, 8u, 1u},
-    [MMGR_FK_G] = {numer_verba_g, NUMER_ARM_D, 0u, 6u},
-    [MMGR_FK_FIX] = {numer_verba_fixed, NUMER_ARM_D, 0u, 0u},
-    [MMGR_FK_CH] = {numer_verba_ch, NUMER_ARM_CH, 0u, 0u},
-    [MMGR_FK_JSON] = {numer_verba_json, NUMER_ARM_STR, 0u, 0u},
-    [MMGR_FK_XML] = {numer_verba_xml, NUMER_ARM_STR, 0u, 0u},
+static EMBED_PASS_MEMORY const NumerKind s_type[MMGR_FK_XML + 1u] = {
+    {numer_refuse, NUMER_ARM_NONE, 0u, 0u},      // MMGR_FK_END
+    {numer_refuse, NUMER_ARM_NONE, 0u, 0u},      // MMGR_FK_LIT
+    {numer_verba_put, NUMER_ARM_STR, 0u, 0u},    // MMGR_FK_STR
+    {numer_verba_u32, NUMER_ARM_U32, 10u, 1u},   // MMGR_FK_U32
+    {numer_verba_u64, NUMER_ARM_U64, 10u, 1u},   // MMGR_FK_U64
+    {numer_verba_i64, NUMER_ARM_I64, 10u, 1u},   // MMGR_FK_I64
+    {numer_verba_u32w, NUMER_ARM_U32, 10u, 0u},  // MMGR_FK_DEC
+    {numer_verba_hex, NUMER_ARM_U64, 16u, 1u},   // MMGR_FK_HEX
+    {numer_verba_uint, NUMER_ARM_U64, 8u, 1u},   // MMGR_FK_OCT
+    {numer_verba_g, NUMER_ARM_D, 0u, 6u},        // MMGR_FK_G
+    {numer_verba_fixed, NUMER_ARM_D, 0u, 0u},    // MMGR_FK_FIX
+    {numer_verba_ch, NUMER_ARM_CH, 0u, 0u},      // MMGR_FK_CH
+    {numer_verba_json, NUMER_ARM_STR, 0u, 0u},   // MMGR_FK_JSON
+    {numer_verba_xml, NUMER_ARM_STR, 0u, 0u},    // MMGR_FK_XML
 };
 
 /**
@@ -129,7 +133,7 @@ static const NumerKind s_type[MMGR_FK_XML + 1u] = {
  * @note One indirect call through the type's own function, which passes that entry only what it reads.
  * @warning args->one->type above MMGR_FK_XML returns args->cap without a lookup, since s_type ends at MMGR_FK_XML.
  */
-EMBED_INLINE size_t numer_emit_one(const NumerCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE size_t numer_emit_one(const NumerCtx *args)
 {
     if (args->one->type > MMGR_FK_XML)
     {
@@ -148,7 +152,7 @@ EMBED_INLINE size_t numer_emit_one(const NumerCtx *args)
  * @note Reads args->out and args->at. cap and the value members take no part.
  * @warning args->out must be writable at args->at.
  */
-EMBED_INLINE size_t numer_abandon(const NumerCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE size_t numer_abandon(const NumerCtx *args)
 {
     args->out[args->at] = '\0';
     return 0;
@@ -162,7 +166,7 @@ EMBED_INLINE size_t numer_abandon(const NumerCtx *args)
  * @note Writes no terminator of its own. A 0 return is the caller's to act on, and only the caller
  *       knows where the write began.
  */
-EMBED_INLINE size_t numer_finish(const NumerCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE size_t numer_finish(const NumerCtx *args)
 {
     // Reports and terminates nothing on failure. Here args->at is the offset the walk reached, not where
     // it began, and so this cannot restore the buffer. The caller holds the start cursor and abandons
@@ -180,7 +184,7 @@ EMBED_INLINE size_t numer_finish(const NumerCtx *args)
  * @note Calls numer_abandon when a value is absent, when its type differs, and when values remain.
  * @warning args->spec must reach an MMGR_FK_END field, as ends the walk.
  */
-EMBED_INLINE size_t numer_build(const NumerCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE size_t numer_build(const NumerCtx *args)
 {
     // Begins at the caller's cursor and not the first byte. A run of writes never re-measures
     // what the last one left. An unset at is 0, which is where a single write starts anyway.
@@ -230,7 +234,7 @@ EMBED_INLINE size_t numer_build(const NumerCtx *args)
  * @note Passes every value to numer_emit_one whatever its type, and so MMGR_FK_END and MMGR_FK_LIT reach numer_refuse.
  * @warning args->vals must hold args->nvals values.
  */
-EMBED_INLINE size_t numer_emit(const NumerCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE size_t numer_emit(const NumerCtx *args)
 {
     // Begins at the caller's cursor, as numer_build does
     size_t at = args->at;
@@ -259,7 +263,7 @@ EMBED_INLINE size_t numer_emit(const NumerCtx *args)
  * @return         What cellul.len returned, given args->out and args->cap.
  * @note Called by mmgr_numer_append and mmgr_numer_emit_append to find where the next write goes.
  */
-EMBED_INLINE size_t numer_used(const NumerCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE size_t numer_used(const NumerCtx *args)
 {
     return EMBED_CALL(cellul.len, CatenaFinitaCfg, .src = args->out, .cap = args->cap);
 }
@@ -295,7 +299,7 @@ NUMER_ENTRY(size_t, emit, .out = args->out, .cap = args->cap, .at = args->at, .v
  * @note Documented at the declaration in numeros_scribo.h.
  * @warning args->out must already hold a terminated string, and args->spec must reach an MMGR_FK_END field.
  */
-size_t mmgr_numer_append(const NumerosCfg *args)
+EMBED_HOST_DEVICE size_t mmgr_numer_append(const NumerosCfg *args)
 {
     if (args->cap == 0u)
     {
@@ -333,7 +337,7 @@ size_t mmgr_numer_append(const NumerosCfg *args)
  * @note Documented at the declaration in numeros_scribo.h.
  * @warning args->out must already hold a terminated string, and args->vals must hold args->nvals values.
  */
-size_t mmgr_numer_emit_append(const NumerosCfg *args)
+EMBED_HOST_DEVICE size_t mmgr_numer_emit_append(const NumerosCfg *args)
 {
     if (args->cap == 0u)
     {
@@ -367,7 +371,7 @@ size_t mmgr_numer_emit_append(const NumerosCfg *args)
  * @note Bound to MMGR_FK_END and MMGR_FK_LIT in s_type. numer_build handles both before they reach
  *       numer_emit_one.
  */
-static size_t numer_refuse(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_refuse(const NumerCtx *args)
 {
     return args->cap;
 }
@@ -378,7 +382,7 @@ static size_t numer_refuse(const NumerCtx *args)
  * @param[in] args The value and its override [BORROWS].
  * @return         The width every write function below passes on.
  */
-EMBED_INLINE uint8_t numer_latitudo(const NumerCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint8_t numer_latitudo(const NumerCtx *args)
 {
     const uint8_t own = s_type[args->one->type].width;
 
@@ -391,7 +395,7 @@ EMBED_INLINE uint8_t numer_latitudo(const NumerCtx *args)
  * @param[in] args The value [BORROWS].
  * @return         as.u32 widened, or as.u64 as it is.
  */
-EMBED_INLINE uint64_t numer_numerus(const NumerCtx *args)
+EMBED_HOST_DEVICE EMBED_INLINE uint64_t numer_numerus(const NumerCtx *args)
 {
     // Explicit cast widens the u32 arm to the width of every unsigned entry
     return (s_type[args->one->type].arm == NUMER_ARM_U32) ? (uint64_t)args->one->as.u32 : args->one->as.u64;
@@ -403,7 +407,7 @@ EMBED_INLINE uint64_t numer_numerus(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_put(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_put(const NumerCtx *args)
 {
     return EMBED_CALL(verba_textus.put, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .text = numer_str(args));
@@ -415,7 +419,7 @@ static size_t numer_verba_put(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_json(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_json(const NumerCtx *args)
 {
     return EMBED_CALL(verba_textus.json, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .text = numer_str(args));
@@ -427,7 +431,7 @@ static size_t numer_verba_json(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_xml(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_xml(const NumerCtx *args)
 {
     return EMBED_CALL(verba_textus.xml, VerbaTextusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .text = numer_str(args));
@@ -439,7 +443,7 @@ static size_t numer_verba_xml(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_ch(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_ch(const NumerCtx *args)
 {
     return EMBED_CALL(verba_littera.ch, VerbaLitteraCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .ch = args->one->as.character);
@@ -451,7 +455,7 @@ static size_t numer_verba_ch(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_u32(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_u32(const NumerCtx *args)
 {
     return EMBED_CALL(verba_numerus.u32, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .val = numer_numerus(args));
@@ -463,7 +467,7 @@ static size_t numer_verba_u32(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_u64(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_u64(const NumerCtx *args)
 {
     return EMBED_CALL(verba_numerus.u64, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .val = numer_numerus(args));
@@ -475,7 +479,7 @@ static size_t numer_verba_u64(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_i64(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_i64(const NumerCtx *args)
 {
     return EMBED_CALL(verba_numerus.i64, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .sval = args->one->as.i64);
@@ -487,7 +491,7 @@ static size_t numer_verba_i64(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_u32w(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_u32w(const NumerCtx *args)
 {
     return EMBED_CALL(verba_numerus.u32w, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .val = numer_numerus(args), .min = numer_latitudo(args));
@@ -499,7 +503,7 @@ static size_t numer_verba_u32w(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_hex(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_hex(const NumerCtx *args)
 {
     return EMBED_CALL(verba_numerus.hex, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .val = numer_numerus(args), .min = numer_latitudo(args));
@@ -511,7 +515,7 @@ static size_t numer_verba_hex(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_uint(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_uint(const NumerCtx *args)
 {
     return EMBED_CALL(verba_numerus.uint, VerbaNumerusCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .val = numer_numerus(args), .base = s_type[args->one->type].base, .min = numer_latitudo(args));
@@ -523,7 +527,7 @@ static size_t numer_verba_uint(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_g(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_g(const NumerCtx *args)
 {
     return EMBED_CALL(verba_fractio.g, VerbaFractioCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .real = args->one->as.real, .sig = numer_latitudo(args));
@@ -535,7 +539,7 @@ static size_t numer_verba_g(const NumerCtx *args)
  * @param[in] args The arguments this entry reads [BORROWS].
  * @return         The offset past the write, or args->cap when it did not fit.
  */
-static size_t numer_verba_fixed(const NumerCtx *args)
+EMBED_HOST_DEVICE static size_t numer_verba_fixed(const NumerCtx *args)
 {
     return EMBED_CALL(verba_fractio.fixed, VerbaFractioCfg, .out = args->out, .cap = args->cap, .at = args->at,
                       .real = args->one->as.real, .decimals = numer_latitudo(args));
