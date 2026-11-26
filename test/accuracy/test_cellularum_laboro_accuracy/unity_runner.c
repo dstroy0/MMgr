@@ -86,9 +86,9 @@ int main(void)
   run_test(test_a_decimal_no_double_holds_comes_back_correctly_rounded, "test_a_decimal_no_double_holds_comes_back_correctly_rounded", 223);
   run_test(test_the_float_entry_is_the_double_entry_narrowed, "test_the_float_entry_is_the_double_entry_narrowed", 246);
   run_test(test_a_case_insensitive_compare_holds_on_an_accented_word, "test_a_case_insensitive_compare_holds_on_an_accented_word", 281);
-  run_test(test_a_case_insensitive_search_finds_a_word_after_an_accented_one, "test_a_case_insensitive_search_finds_a_word_after_an_accented_one", 318);
-  run_test(test_a_case_insensitive_compare_holds_for_every_planted_byte, "test_a_case_insensitive_compare_holds_for_every_planted_byte", 343);
-  run_test(test_a_sign_in_the_text_reaches_the_value, "test_a_sign_in_the_text_reaches_the_value", 388);
+  run_test(test_a_case_insensitive_search_finds_a_word_after_an_accented_one, "test_a_case_insensitive_search_finds_a_word_after_an_accented_one", 320);
+  run_test(test_a_case_insensitive_compare_holds_for_every_planted_byte, "test_a_case_insensitive_compare_holds_for_every_planted_byte", 345);
+  run_test(test_a_sign_in_the_text_reaches_the_value, "test_a_sign_in_the_text_reaches_the_value", 390);
 
   return UNITY_END();
 }
