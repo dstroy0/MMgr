@@ -95,6 +95,23 @@ EMBED_HOST_DEVICE EMBED_INLINE void memor_cpy(MemorCpyCtx *args)
         args->src += EMBED_LANE_BYTES;
         word_bytes -= EMBED_LANE_BYTES;
     }
+    // Explicit casts read both addresses as integers so one mask answers for both. The aligned load and store below
+    // need both addresses on a word boundary. Where either is off it, the words go through the load and the store
+    // that take any address (proxim.load, proxim.put). A device faults on a word access off the boundary, and those
+    // two read and write it a byte at a time there
+    const embed_bool level =
+        (embed_bool)(((((uintptr_t)args->src) | ((uintptr_t)args->dst)) & (uintptr_t)(sizeof(embed_word) - 1u)) == 0u);
+
+    while (!level && (word_bytes != 0u))
+    {
+        EMBED_CALL(proxim.put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.load, ProximusCfg, .at = args->src));
+
+        // Advances separated from the move above so the loop body carries no side effect
+        args->dst += sizeof(embed_word);
+        args->src += sizeof(embed_word);
+        word_bytes -= sizeof(embed_word);
+    }
     // Four words an iteration while there are four to take. At one word the two pointer bumps, the
     // counter and the branch cost as much as the move itself. At four, the same three steps cover
     // four times the bytes. ROM memcpy has the same unroll for the same reason. A one-word loop here costs
@@ -170,6 +187,21 @@ EMBED_HOST_DEVICE EMBED_INLINE void memor_move_up(MemorMoveCtx *args)
         {
             *--args->dst = *--args->src;
         } while (--tail_bytes);
+    }
+    // Explicit casts read both addresses as integers so one mask answers for both. Where either is off a word
+    // boundary, the words go through the load and the store that take any address, for the reason memor_cpy gives.
+    // The test reads the two addresses after the tail, where the word walk starts
+    const embed_bool level =
+        (embed_bool)(((((uintptr_t)args->src) | ((uintptr_t)args->dst)) & (uintptr_t)(sizeof(embed_word) - 1u)) == 0u);
+
+    while (!level && (word_bytes != 0u))
+    {
+        // Moves separated from the load and the store so the loop body carries no side effect in a call
+        args->dst -= sizeof(embed_word);
+        args->src -= sizeof(embed_word);
+        EMBED_CALL(proxim.put, ProximusCfg, .dst = args->dst,
+                   .val = EMBED_CALL(proxim.load, ProximusCfg, .at = args->src));
+        word_bytes -= sizeof(embed_word);
     }
     // Four words an iteration while there are four to take, for the reason memor_cpy gives. At one
     // word a pass the two pointer bumps, the counter and the branch cost as much as the move. All
@@ -467,6 +499,18 @@ EMBED_HOST_DEVICE EMBED_INLINE void memor_set(MemorSetCtx *args)
         // Advances separated from the store above so the loop body carries no side effect
         args->dst += EMBED_LANE_BYTES;
         word_bytes -= EMBED_LANE_BYTES;
+    }
+    // Explicit cast reads the address as an integer for the test of its low bits. Where it is off a word boundary,
+    // the words go through the store that takes any address, for the reason memor_cpy gives
+    const embed_bool level = (embed_bool)((((uintptr_t)args->dst) & (uintptr_t)(sizeof(embed_word) - 1u)) == 0u);
+
+    while (!level && (word_bytes != 0u))
+    {
+        EMBED_CALL(proxim.put, ProximusCfg, .dst = args->dst, .val = fill);
+
+        // Advances separated from the store above so the loop body carries no side effect
+        args->dst += sizeof(embed_word);
+        word_bytes -= sizeof(embed_word);
     }
     // Four words an iteration while there are four to take, for the reason memor_cpy gives. The
     // pointer bump, the counter and the branch cost as much as the store at one word a pass.
