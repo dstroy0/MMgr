@@ -54,6 +54,12 @@
 /** @brief The state of a cell a context holds. */
 #define CARCER_BUSY ((embed_atomic_usize_value)1u)
 
+/**
+ * @brief The bit of a busy cell's header that names the temporary tier. A give reads its cell's tier here, and so it
+ *        reads no frame.
+ */
+#define CARCER_DOWNWARD ((embed_atomic_usize_value)2u)
+
 /** @brief The bits of a cell's header that carry its state. */
 #define CARCER_STATE ((embed_atomic_usize_value)3u)
 
@@ -71,6 +77,10 @@
 
 /** @brief Both trim bits. */
 #define CARCER_TRIM_PENDING (CARCER_TRIM_PERSISTENT | CARCER_TRIM_TEMPORARY)
+
+/** @brief The two frame fields of the closed word. */
+#define CARCER_FRAMES                                                                                                  \
+    ((MMGR_CARCER_BANK_FIELD_MASK << MMGR_CARCER_BANK_END_AT) | (MMGR_CARCER_BANK_FIELD_MASK << MMGR_CARCER_BANK_TOP_AT))
 
 /**
  * @brief Bytes one of a cell's two words occupies, rounded up so the payload between them stays aligned.
@@ -114,6 +124,12 @@
 EMBED_STATIC_ASSERT(MMGR_CARCER_BYTES_MAX + ((size_t)EMBED_TURNSTILE_LANES * (CARCER_HDR + MMGR_CARCER_WANT_MAX)) <
                         ((size_t)1u << MMGR_CARCER_HALF_BITS),
                     "the bumps the turnstiles' lanes put in flight can move a boundary past its half");
+
+// A writer's frame leaves each position below two banks, which MMGR_CARCER_BYTES_MAX must reach. Banks.lean proves
+// the frames
+EMBED_STATIC_ASSERT(MMGR_CARCER_BANK_SHIFT <= (MMGR_CARCER_HALF_BITS - 2u),
+                    "MMGR_CARCER_BANK_SHIFT gives a bank past half a position's reach");
+EMBED_STATIC_ASSERT(MMGR_CARCER_BANK_FIELD_BITS >= 1u, "the closed word has no bits for the bank fields");
 
 /**
  * @brief The two boundaries as their shared word carries them: the persistent end in the low half, the temporary top in
@@ -197,13 +213,146 @@ EMBED_HOST_DEVICE EMBED_INLINE void *carcer_pick_at(size_t mask, void *when_set,
 }
 
 /**
+ * @brief The base of the persistent tier's frame: the bank the closed word names for it, as an offset.
+ *
+ * @param[in] closed The closed word as read.
+ * @return           The offset the persistent position counts from.
+ */
+EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_end_base(embed_atomic_word_value closed)
+{
+    // Explicit cast reads the field as the bank it holds
+    return (size_t)((closed >> MMGR_CARCER_BANK_END_AT) & MMGR_CARCER_BANK_FIELD_MASK) << MMGR_CARCER_BANK_SHIFT;
+}
+
+/**
+ * @brief The base of the temporary tier's frame: the bank the closed word names for it, as an offset.
+ *
+ * @param[in] closed The closed word as read.
+ * @return           The offset the temporary position counts from.
+ */
+EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_top_base(embed_atomic_word_value closed)
+{
+    // Explicit cast reads the field as the bank it holds
+    return (size_t)((closed >> MMGR_CARCER_BANK_TOP_AT) & MMGR_CARCER_BANK_FIELD_MASK) << MMGR_CARCER_BANK_SHIFT;
+}
+
+/** @brief Both boundaries as offsets in the pool. */
+typedef struct
+{
+    size_t end; /**< The persistent end. */
+    size_t top; /**< The temporary top. */
+} CarcerBounds;
+
+/**
+ * @brief Both boundaries a bounds word carries, as offsets: each frame's base and its position.
+ *
+ * @param[in] frames The closed word as its holder read it: a pass's one read, or a writer's fetch-or of the bit.
+ * @param[in] word   The bounds word.
+ * @return           The two boundaries.
+ * @note The translation reads no word of the cellblock. A pass and a writer each hold the frames that the closed
+ *       word holds (Banks.pass_reads_current, Banks.writer_reads_current).
+ */
+EMBED_HOST_DEVICE EMBED_INLINE CarcerBounds carcer_bounds_at(embed_atomic_word_value frames,
+                                                            embed_atomic_usize_value word)
+{
+    const CarcerBounds bounds = {carcer_end_base(frames) + carcer_bounds_end(word),
+                                 carcer_top_base(frames) + carcer_bounds_top(word)};
+
+    return bounds;
+}
+
+/**
+ * @brief Every bit set where an offset and a position agree modulo a bank. There the offset can be the boundary that
+ *        the position names, whatever its frame.
+ *
+ * @param[in] off      The offset.
+ * @param[in] position The position.
+ * @return             The mask.
+ * @note A give reads no frame. An offset at the boundary always agrees (Banks.at_boundary_mod). One that agrees away
+ *       from the boundary sends the give to the writer's trim, which finds the boundary as it is (Boundary.readAny).
+ */
+EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_bank_met(size_t off, size_t position)
+{
+    return carcer_all(((off - position) & (MMGR_CARCER_BANK_BYTES - 1u)) == 0u);
+}
+
+/**
+ * @brief The boundary word alone stored, the row of a store whose frames stay as they are.
+ *
+ * @param[in,out] series Cellblock to store, its closed bit this context's [BORROWS].
+ * @param[in]     moved  The change of the frame fields, 0 on this row.
+ * @param[in]     word   The boundary word.
+ */
+EMBED_HOST_DEVICE static void carcer_bounds_kept(SeriesCellularum *series, embed_atomic_word_value moved,
+                                                 embed_atomic_usize_value word)
+{
+    (void)moved;
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->bounds, .value = word);
+}
+
+/**
+ * @brief The frames moved and the boundary word stored, between two moves of the epoch.
+ *
+ * @param[in,out] series Cellblock to store, its closed bit this context's [BORROWS].
+ * @param[in]     moved  The change of the frame fields, modulo the word.
+ * @param[in]     word   The boundary word.
+ * @note The epoch is odd from the first add to the last. A reader outside a pass that reads it odd, or reads two
+ *       values, reads again. One fetch-add moves the frames and leaves the flags, so a give's fetch-or of a trim bit
+ *       keeps its bit (Banks.fields_add, Banks.reader_pair).
+ */
+EMBED_HOST_DEVICE static void carcer_bounds_reframed(SeriesCellularum *series, embed_atomic_word_value moved,
+                                                     embed_atomic_usize_value word)
+{
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_add, EmbedAtomicWordFetchAddCfg, .word = &series->epoch,
+                     .value = 1u);
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_add, EmbedAtomicWordFetchAddCfg, .word = &series->closed,
+                     .value = moved);
+    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->bounds, .value = word);
+    (void)EMBED_CALL(embed_atomic_word_table.fetch_add, EmbedAtomicWordFetchAddCfg, .word = &series->epoch,
+                     .value = 1u);
+}
+
+/**
+ * @brief Both boundaries stored on the writer's path, each as a position in the frame that leaves it a bank of room.
+ *
+ * @param[in,out] series Cellblock to store, its closed bit this context's [BORROWS].
+ * @param[in]     held   The closed word as the writer holds it.
+ * @param[in]     end    The persistent end, an offset.
+ * @param[in]     top    The temporary top, an offset.
+ * @return               The closed word as the writer holds it after the store, with the frames it picked.
+ * @note The persistent end takes its own bank, and the temporary top the bank below its own. Each frame stops at
+ *       MMGR_CARCER_FRAME_CAP, and so a cellblock of two banks or less never changes a frame. Each position is then
+ *       at most two banks, and a bump has a bank of room before its position refuses it. Where both frames stay as
+ *       they are, the store is the boundary word alone. Banks.lean proves the frames (endFrameIn_room,
+ *       topFrameIn_room, frames_still, inv_reframeIn).
+ */
+EMBED_HOST_DEVICE EMBED_INLINE embed_atomic_word_value carcer_bounds_stored(SeriesCellularum *series,
+                                                                            embed_atomic_word_value held, size_t end,
+                                                                            size_t top)
+{
+    static void (*const stores[2])(SeriesCellularum *, embed_atomic_word_value,
+                                   embed_atomic_usize_value) = {carcer_bounds_kept, carcer_bounds_reframed};
+    const size_t end_bank = MMGR_CARCER_END_FRAME(end, series->size);
+    const size_t top_bank = MMGR_CARCER_TOP_FRAME(top, series->size);
+    const embed_atomic_word_value was = held & CARCER_FRAMES;
+    // Explicit casts carry each bank into its field of the closed word
+    const embed_atomic_word_value frames = ((embed_atomic_word_value)end_bank << MMGR_CARCER_BANK_END_AT) |
+                                           ((embed_atomic_word_value)top_bank << MMGR_CARCER_BANK_TOP_AT);
+
+    stores[(unsigned int)(frames != was)](
+        series, frames - was,
+        carcer_bounds(end - (end_bank << MMGR_CARCER_BANK_SHIFT), top - (top_bank << MMGR_CARCER_BANK_SHIFT)));
+    return (held & ~CARCER_FRAMES) | frames;
+}
+
+/**
  * @brief Rounds want up to a whole machine word.
  *
  * @param[in] want Count to round.
  * @return         want rounded up to a multiple of MMGR_CARCER_ALIGN, and want itself when it already is one.
  * @warning The round adds MMGR_CARCER_ALIGN - 1 before the mask, and a want within a word of SIZE_MAX wraps to 0.
  *          Every take and growth refuses a request over the cellblock's size before it reaches here. That size
- *          is at max MMGR_CARCER_BYTES_MAX, and no request they pass wraps.
+ *          is at max MMGR_CARCER_POOL_BYTES_MAX, and no request they pass wraps.
  */
 EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_round(size_t want)
 {
@@ -279,7 +428,7 @@ EMBED_HOST_DEVICE EMBED_INLINE embed_atomic_usize *carcer_word_picked(SeriesCell
  * @brief A cell's header built from a size and a state.
  *
  * @param[in] size  The payload size, a multiple of MMGR_CARCER_ALIGN.
- * @param[in] state CARCER_FREE or CARCER_BUSY.
+ * @param[in] state CARCER_FREE, or CARCER_BUSY with CARCER_DOWNWARD for a temporary cell.
  * @return          The header.
  */
 EMBED_HOST_DEVICE EMBED_INLINE embed_atomic_usize_value carcer_word(size_t size, embed_atomic_usize_value state)
@@ -304,7 +453,7 @@ EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_word_size(embed_atomic_usize_value 
  * @brief The state a cell's header carries.
  *
  * @param[in] word The header.
- * @return         CARCER_FREE or CARCER_BUSY.
+ * @return         CARCER_FREE, or CARCER_BUSY with CARCER_DOWNWARD for a temporary cell.
  */
 EMBED_HOST_DEVICE EMBED_INLINE embed_atomic_usize_value carcer_word_state(embed_atomic_usize_value word)
 {
@@ -445,21 +594,46 @@ EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_region_depth(const SeriesCellularum
 }
 
 /**
+ * @brief The top of the region that holds a cell: its lowest cell.
+ *
+ * @param[in] series Cellblock the cell is in [BORROWS].
+ * @param[in] off    The cell's offset.
+ * @param[in] down   Every bit set where the cell is in the temporary tier.
+ * @return           The top.
+ */
+EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_region_top(const SeriesCellularum *series, size_t off, size_t down)
+{
+    const size_t region = carcer_region_of_off(series, off, down);
+
+    return carcer_region_end(series, region) - carcer_region_depth(series, region);
+}
+
+/**
  * @brief The top of the temporary tier at a cell: the lowest cell of the region that holds it.
  *
  * @param[in] series Cellblock the cell is in [BORROWS].
  * @param[in] off    The cell's offset.
- * @param[in] bounds The boundary word as read, which the regions do not need.
+ * @param[in] bounds The boundaries as the writer holds them, which the regions do not need.
  * @param[in] down   Every bit set where the cell is in the temporary tier.
  * @return           The top.
  */
-EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_top(const SeriesCellularum *series, size_t off,
+EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_top(const SeriesCellularum *series, size_t off, CarcerBounds bounds,
+                                                      size_t down)
+{
+    (void)bounds;
+    return carcer_region_top(series, off, down);
+}
+
+/**
+ * @brief Every bit set where a given cell is at the top of the region that holds it.
+ *
+ * @note A region's depth counts from the region's end, which no frame moves, and so the test is exact.
+ */
+EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_met(const SeriesCellularum *series, size_t off,
                                                       embed_atomic_usize_value bounds, size_t down)
 {
-    const size_t region = carcer_region_of_off(series, off, down);
-
     (void)bounds;
-    return carcer_region_end(series, region) - carcer_region_depth(series, region);
+    return carcer_all(off == carcer_region_top(series, off, down));
 }
 
 /**
@@ -468,13 +642,13 @@ EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_top(const SeriesCellularum *se
  *
  * @param[in,out] series Cellblock the cell is in [BORROWS].
  * @param[in]     off    The cell's offset.
- * @param[in]     bounds The boundary word as read, which the regions do not need.
+ * @param[in]     bounds The boundaries as the writer holds them, which the regions do not need.
  * @param[in]     extra  The bytes the growth adds, 0 for no growth.
  * @param[in]     down   Every bit set where the cell is in the temporary tier.
  * @return               The top for the high-water mark: the cellblock's size less the region's depth after.
  * @note The writer's path. A growth of 0 bytes, a persistent cell's or one refused, adds 0 to region 0's depth.
  */
-EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_grown(SeriesCellularum *series, size_t off, embed_atomic_usize_value bounds,
+EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_grown(SeriesCellularum *series, size_t off, CarcerBounds bounds,
                                       size_t extra, size_t down)
 {
     const size_t region = carcer_region_of_off(series, off, down);
@@ -492,13 +666,13 @@ EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_grown(SeriesCellularum *series
  *
  * @param[in] series Cellblock the cell is in [BORROWS].
  * @param[in] off    The cell's offset.
- * @param[in] bounds The boundary word as read, which the regions do not need.
+ * @param[in] bounds The boundaries as the writer holds them, which the regions do not need.
  * @param[in] extra  The bytes the growth adds.
  * @param[in] down   Every bit set where the cell is in the temporary tier.
  * @return           Every bit set where the region holds the growth.
  */
 EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_room(const SeriesCellularum *series, size_t off,
-                                                       embed_atomic_usize_value bounds, size_t extra, size_t down)
+                                                       CarcerBounds bounds, size_t extra, size_t down)
 {
     const size_t region = carcer_region_of_off(series, off, down);
 
@@ -513,14 +687,28 @@ EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_region_of_place(size_t want)
     return 0u;
 }
 
-/** @brief The top of the temporary tier at a cell where the tier is one stack: the tier's top. */
-EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_top(const SeriesCellularum *series, size_t off,
-                                                      embed_atomic_usize_value bounds, size_t down)
+/** @brief The top of the temporary tier at a cell where the tier is one stack: the tier's top, on the writer's path. */
+EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_top(const SeriesCellularum *series, size_t off, CarcerBounds bounds,
+                                                      size_t down)
 {
     (void)series;
     (void)off;
     (void)down;
-    return carcer_bounds_top(bounds);
+    return bounds.top;
+}
+
+/**
+ * @brief Every bit set where a given cell can be at the top of the one temporary stack. Its offset and the top's
+ *        position agree modulo a bank.
+ *
+ * @note A give reads no frame, and the test holds for each cell at the top (carcer_bank_met).
+ */
+EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_met(const SeriesCellularum *series, size_t off,
+                                                      embed_atomic_usize_value bounds, size_t down)
+{
+    (void)series;
+    (void)down;
+    return carcer_bank_met(off, carcer_bounds_top(bounds));
 }
 
 /**
@@ -528,26 +716,23 @@ EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_top(const SeriesCellularum *se
  *
  * @note This arm writes nothing, and so its cellblock is const. The regions' arm writes the region's depth.
  */
-EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_grown(const SeriesCellularum *series, size_t off, embed_atomic_usize_value bounds,
+EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_grown(const SeriesCellularum *series, size_t off, CarcerBounds bounds,
                                       size_t extra, size_t down)
 {
     (void)series;
     (void)off;
     (void)down;
-    return carcer_bounds_top(bounds) - extra;
+    return bounds.top - extra;
 }
 
-/** @brief Whether the gap holds a growth where the temporary tier is one stack. */
+/** @brief Whether the gap holds a growth where the temporary tier is one stack, on the writer's path. */
 EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_down_room(const SeriesCellularum *series, size_t off,
-                                                       embed_atomic_usize_value bounds, size_t extra, size_t down)
+                                                       CarcerBounds bounds, size_t extra, size_t down)
 {
-    const size_t end = carcer_bounds_end(bounds);
-    const size_t top = carcer_bounds_top(bounds);
-
     (void)series;
     (void)off;
     (void)down;
-    return carcer_all(top >= end) & carcer_all((top - end) >= extra);
+    return carcer_all(bounds.top >= bounds.end) & carcer_all((bounds.top - bounds.end) >= extra);
 }
 #endif
 
@@ -879,11 +1064,13 @@ EMBED_HOST_DEVICE EMBED_INLINE void carcer_settled(SeriesCellularum *series)
  *        each fetch-or that found it taken. Every pass begun before the drain waited out.
  *
  * @param[in,out] series Cellblock to close [BORROWS].
+ * @return               The closed word as the fetch-or that took the bit read it. The writer holds its frames until
+ *                       it opens: only the writer changes them (Banks.writer_reads_current).
  * @note The writer's path. A pass that badges in after this reads the closed bit and touches nothing. The drain
  *       waits on a pass that badged in before. Two writers take turns on the bit. The boundaries settle once
  *       the drain is over, and every exclusive section reads each at its chain.
  */
-EMBED_HOST_DEVICE EMBED_INLINE void carcer_shut(SeriesCellularum *series)
+EMBED_HOST_DEVICE EMBED_INLINE embed_atomic_word_value carcer_shut(SeriesCellularum *series)
 {
     EmbedTurnstileBackoff backoff;
     embed_atomic_word_value previous_word = EMBED_CALL(embed_atomic_word_table.fetch_or, EmbedAtomicWordFetchOrCfg,
@@ -903,9 +1090,10 @@ EMBED_HOST_DEVICE EMBED_INLINE void carcer_shut(SeriesCellularum *series)
     EMBED_ATOMIC_ORDERED();
     EMBED_CALL(embed_turnstile_table.drain, EmbedTurnstilesDrainCfg, .set = &series->turnstiles);
     carcer_settled(series);
+    return previous_word;
 }
 
-EMBED_HOST_DEVICE static void carcer_owed_trimmed(SeriesCellularum *series, embed_atomic_word_value owed);
+EMBED_HOST_DEVICE static void carcer_owed_trimmed(SeriesCellularum *series, embed_atomic_word_value held);
 
 /**
  * @brief The cellblock opened to passes again. The trims the word owes taken with one fetch-and and run, then the
@@ -924,9 +1112,10 @@ EMBED_HOST_DEVICE EMBED_INLINE void carcer_opened(SeriesCellularum *series)
     const embed_atomic_word_value taken = EMBED_CALL(embed_atomic_word_table.fetch_and, EmbedAtomicWordFetchAndCfg,
                                                      .word = &series->closed, .value = ~CARCER_TRIM_PENDING);
 
-    // A full fence between the trim bits taken and the headers the trim reads, as in carcer_shut
+    // A full fence between the trim bits taken and the headers the trim reads, as in carcer_shut. The word the
+    // fetch-and read holds the frames as the writer holds them, and the trim reads its frames there
     EMBED_ATOMIC_ORDERED();
-    carcer_owed_trimmed(series, taken & CARCER_TRIM_PENDING);
+    carcer_owed_trimmed(series, taken);
     const embed_atomic_word_value was =
         EMBED_CALL(embed_atomic_word_table.fetch_and, EmbedAtomicWordFetchAndCfg, .word = &series->closed,
                    .value = ~(CARCER_CLOSED | CARCER_CLOSED_SLEEPERS));
@@ -942,7 +1131,7 @@ EMBED_HOST_DEVICE static void carcer_owed_none(SeriesCellularum *series) // NOSO
 /** @brief The trims a word owes, run: the cellblock shut and opened, and the open takes the trim bits and runs them. */
 EMBED_HOST_DEVICE static void carcer_owed_run(SeriesCellularum *series)
 {
-    carcer_shut(series);
+    (void)carcer_shut(series);
     carcer_opened(series);
 }
 
@@ -970,9 +1159,12 @@ EMBED_HOST_DEVICE EMBED_INLINE void carcer_owed_serviced(SeriesCellularum *serie
  * @param[in,out] series  Cellblock the pass is through [BORROWS].
  * @param[in]     context The work's arguments [BORROWS].
  * @param[in]     permit  Every bit set for the work, none for a pass that found the cellblock closed or no lane.
+ * @param[in]     frames  The closed word as the pass's one read found it. Its frames hold still for the pass
+ *                        (Banks.pass_reads_current).
  * @return                The work's answer as an integer, 0 where the permit was none.
  */
-typedef uintptr_t (*CarcerWork)(SeriesCellularum *series, const void *context, size_t permit);
+typedef uintptr_t (*CarcerWork)(SeriesCellularum *series, const void *context, size_t permit,
+                                embed_atomic_word_value frames);
 
 /** @brief One row of touches, counted to a lane: its key and its touches. */
 typedef struct
@@ -1129,7 +1321,7 @@ EMBED_HOST_DEVICE static void carcer_pass_counted_none(CarcerMovable *movable) /
  * @note The entry's address is `missed`, a word on the caller's stack. Each thread's stack has its own place, so the
  *       threads start at lanes of their own, and the entry spills where a lane is busy.
  * @note The permit is the closed bit as read after the entry. That drain waits on a pass that entered before it
- *       read the lanes; one that entered after reads the closed bit.
+ *       read the lanes; one that entered after reads the closed bit. The same read gives the work its frames.
  */
 EMBED_HOST_DEVICE static uintptr_t carcer_attempted(SeriesCellularum *series, embed_atomic_word_value id,
                                                     CarcerWork work, const void *context, size_t *missed)
@@ -1140,9 +1332,9 @@ EMBED_HOST_DEVICE static uintptr_t carcer_attempted(SeriesCellularum *series, em
     // Explicit cast carries the address of the caller's word as the entry's integer
     const unsigned int at = EMBED_CALL(embed_turnstile_table.enter, EmbedTurnstileEnterCfg, .set = &series->turnstiles,
                                        .address = (embed_atomic_uptr_value)(uintptr_t)missed);
-    const size_t closed =
-        carcer_all((EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &series->closed) &
-                    CARCER_CLOSED) != 0u);
+    const embed_atomic_word_value frames =
+        EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &series->closed);
+    const size_t closed = carcer_all((frames & CARCER_CLOSED) != 0u);
     const size_t permit = ~closed;
     CarcerMovable *const movable = carcer_movable_of(series);
     const size_t has = permit & carcer_all(movable != NULL);
@@ -1151,7 +1343,7 @@ EMBED_HOST_DEVICE static uintptr_t carcer_attempted(SeriesCellularum *series, em
 
     counts[has & 1u](option);
     touches[has_rows & 1u](option, at, id);
-    const uintptr_t answer = work(series, context, permit);
+    const uintptr_t answer = work(series, context, permit, frames);
 
     EMBED_CALL(embed_turnstile_table.leave, EmbedTurnstileLeaveCfg, .set = &series->turnstiles, .place = at);
     *missed = ~permit;
@@ -1226,8 +1418,9 @@ EMBED_HOST_DEVICE EMBED_INLINE uintptr_t carcer_positioned(SeriesCellularum *ser
 
     EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg,
                .word = carcer_word_picked(series, taken, carcer_foot_of(off, size)), .value = carcer_owner_word(owner));
+    // Explicit cast carries the tier's mask into the header's width, which is size_t's
     EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = carcer_word_picked(series, taken, off),
-               .value = carcer_word(size, CARCER_BUSY));
+               .value = carcer_word(size, CARCER_BUSY | (CARCER_DOWNWARD & (embed_atomic_usize_value)~persistent)));
     counts[taken & 1u](series, owner, size, persistent);
     // Explicit cast carries the base as the integer the offset adds to and the mask works on. A refused bump's
     // offset lies past the cellblock, and the sum is an integer's, never a pointer's
@@ -1273,17 +1466,21 @@ EMBED_HOST_DEVICE EMBED_INLINE void carcer_marked(const SeriesCellularum *series
  *       top upward. A refused bump moves nothing back: the boundary stays where the bump moved it. The bytes go
  *       on the tier's overrun by one more fetch-add, 0 for a bump that landed.
  * @note The room is the other boundary as read after the bump. A cell that crosses it answers 0, as does a bump
- *       that wrapped below the cellblock. So does a boundary read past the cellblock's size, which is another
- *       tier's bump wrapped. Between writers a boundary only moves toward the other, and every bump of the tier
- *       after a refused one fails too. The writer the refused take goes on to settles the boundary first.
+ *       that wrapped below its frame. So does a temporary position read past MMGR_CARCER_BYTES_MAX, which is a bump
+ *       down wrapped. Between writers a boundary only moves toward the other, and every bump of the tier after a
+ *       refused one fails too. The writer the refused take goes on to settles the boundary first.
  *       docs/concepts/locus-carcerum-algorithm.md states the invariant and its proof.
+ * @note Each boundary is its frame's base and its position. The pass reads the frames off the closed word, and they
+ *       hold still until it leaves its lane. The room compares offsets in the pool, and the wrap tests compare
+ *       positions. Banks.lean proves the bump in its frames.
  */
-EMBED_HOST_DEVICE static uintptr_t carcer_bumped(SeriesCellularum *series, const void *context, size_t permit)
+EMBED_HOST_DEVICE static uintptr_t carcer_bumped(SeriesCellularum *series, const void *context, size_t permit,
+                                                 embed_atomic_word_value frames)
 {
     const CarcerTakeCtx *const take = (const CarcerTakeCtx *)context;
     const size_t down = take->down;
     const size_t up = ~down;
-    // The word read ahead. A bump up whose half already is past the cellblock's max bytes moves nothing. The
+    // The word read ahead. A bump up whose position already is past MMGR_CARCER_BYTES_MAX moves nothing. The
     // bumps a round refuses move the end into the half's headroom and never carry into the top's half. A want past
     // MMGR_CARCER_WANT_MAX goes to the writer's path unmoved, which bounds what the bumps in flight add
     const embed_atomic_usize_value ahead =
@@ -1298,17 +1495,27 @@ EMBED_HOST_DEVICE static uintptr_t carcer_bumped(SeriesCellularum *series, const
         (embed_atomic_usize_value)carcer_pick(down, (0u - need) << MMGR_CARCER_HALF_BITS, need);
     embed_atomic_usize *const overrun =
         (embed_atomic_usize *)carcer_pick_at(down, &series->temporary_overrun, &series->persistent_overrun);
-    // the one fetch-add: the bump's own boundary moved, and the other read as it was at that same instant
+    // the frames of the pass's one read, which hold still while the pass holds its lane: the writer drains every
+    // pass before it moves them
+    const size_t own_base = carcer_pick(down, carcer_top_base(frames), carcer_end_base(frames));
+    const size_t other_base = carcer_pick(down, carcer_end_base(frames), carcer_top_base(frames));
+    // the one fetch-add: the bump's own position moved, and the other read as it was at that same instant
     const embed_atomic_usize_value word = EMBED_CALL(embed_atomic_usize_table.fetch_add, EmbedAtomicUsizeFetchAddCfg,
                                                      .word = &series->bounds, .value = moved);
     const size_t end_was = carcer_bounds_end(word);
     const size_t top_was = carcer_bounds_top(word);
-    const size_t was = carcer_pick(down, top_was, end_was);
-    const size_t across = carcer_pick(down, end_was, top_was);
-    const size_t now = carcer_pick(down, top_was - need, end_was + need);
-    // a boundary past the cellblock's size is the other tier's bump wrapped: no room either way
-    const size_t fits_up = carcer_all(now <= across) & carcer_all(now >= was) & carcer_all(across <= series->size);
-    const size_t fits_down = carcer_all(now >= across) & carcer_all(now <= was) & carcer_all(now <= series->size);
+    const size_t was_at = carcer_pick(down, top_was, end_was);
+    const size_t across_at = carcer_pick(down, end_was, top_was);
+    const size_t now_at = carcer_pick(down, top_was - need, end_was + need);
+    const size_t was = own_base + was_at;
+    const size_t across = other_base + across_at;
+    const size_t now = own_base + now_at;
+    // A temporary position past MMGR_CARCER_BYTES_MAX is a bump down wrapped below its frame: no room either way. A
+    // boundary past the cellblock's size holds no cell, whatever the words read
+    const size_t fits_up = carcer_all(now <= across) & carcer_all(now_at >= was_at) &
+                           carcer_all(across_at <= MMGR_CARCER_BYTES_MAX) & carcer_all(across <= series->size);
+    const size_t fits_down = carcer_all(now >= across) & carcer_all(now_at <= was_at) &
+                             carcer_all(now_at <= MMGR_CARCER_BYTES_MAX) & carcer_all(now <= series->size);
     const size_t taken = allowed & ((fits_up & up) | (fits_down & down));
     const size_t off = carcer_pick(down, now, was);
 
@@ -1332,9 +1539,12 @@ EMBED_HOST_DEVICE static uintptr_t carcer_bumped(SeriesCellularum *series, const
  *       which sweeps the region alone. A bump that another bump in flight pushed past the size goes back the same
  *       way, and finds its room on the writer's path. Regions.lean proves the bound.
  */
-EMBED_HOST_DEVICE static uintptr_t carcer_region_bumped(SeriesCellularum *series, const void *context, size_t permit)
+EMBED_HOST_DEVICE static uintptr_t carcer_region_bumped(SeriesCellularum *series, const void *context, size_t permit,
+                                                        embed_atomic_word_value frames)
 {
     const CarcerTakeCtx *const take = (const CarcerTakeCtx *)context;
+
+    (void)frames;
     const size_t allowed = permit & take->permit;
     const size_t need = (CARCER_HDR + take->want) & allowed;
     embed_atomic_usize *const depth = &series->regions[take->region].depth;
@@ -1445,6 +1655,7 @@ EMBED_HOST_DEVICE EMBED_INLINE CarcerSweep carcer_swept_between(SeriesCellularum
  * @brief One walk of a tier between its boundary and its base, as the boundary word holds them.
  *
  * @param[in,out] series Cellblock to walk [BORROWS].
+ * @param[in]     held   The closed word as the writer holds it.
  * @param[in]     want   Payload wanted, rounded.
  * @param[in]     below  The offset the run taken must end at or below.
  * @param[in]     down   Every bit set for the tier that grows down, none for the tier that grows up.
@@ -1453,13 +1664,13 @@ EMBED_HOST_DEVICE EMBED_INLINE CarcerSweep carcer_swept_between(SeriesCellularum
  * @note The persistent tier lies from offset 0 to the end. The temporary tier lies from the top to the size, or
  *       where the tier is regions, from the top to the regions' start, which holds no cell.
  */
-EMBED_HOST_DEVICE EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series, size_t want, size_t below,
-                                                        size_t down, size_t permit)
+EMBED_HOST_DEVICE EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series, embed_atomic_word_value held,
+                                                        size_t want, size_t below, size_t down, size_t permit)
 {
-    const embed_atomic_usize_value bounds =
-        EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds);
-    const size_t from = carcer_pick(down, carcer_bounds_top(bounds), 0u);
-    const size_t to = carcer_pick(down, series->size - MMGR_CARCER_REGION_AREA, carcer_bounds_end(bounds));
+    const CarcerBounds bounds = carcer_bounds_at(
+        held, EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds));
+    const size_t from = carcer_pick(down, bounds.top, 0u);
+    const size_t to = carcer_pick(down, series->size - MMGR_CARCER_REGION_AREA, bounds.end);
 
     return carcer_swept_between(series, want, below, down, permit, from, to);
 }
@@ -1470,12 +1681,14 @@ EMBED_HOST_DEVICE EMBED_INLINE CarcerSweep carcer_swept(SeriesCellularum *series
  *        returned to the region's gap.
  *
  * @param[in,out] series Cellblock to trim, its closed bit this context's [BORROWS].
+ * @param[in]     held   The closed word as the writer holds it.
  * @param[in]     permit Every bit set for the trim, none for one that reads nothing and stores each depth as it is.
  * @return               The temporary top as the boundary word holds it, which the regions never move.
  * @note The writer's path. Every pass is drained, so each depth is exact, and the walk from a region's top to its
  *       end reads positioned cells alone.
  */
-EMBED_HOST_DEVICE static size_t carcer_down_trimmed(SeriesCellularum *series, size_t permit)
+EMBED_HOST_DEVICE static size_t carcer_down_trimmed(SeriesCellularum *series, embed_atomic_word_value held,
+                                                    size_t permit)
 {
     size_t region;
 
@@ -1489,8 +1702,9 @@ EMBED_HOST_DEVICE static size_t carcer_down_trimmed(SeriesCellularum *series, si
         EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->regions[region].depth,
                    .value = carcer_pick(permit, end - down.boundary, depth));
     }
-    return carcer_bounds_top(
-        EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds));
+    return carcer_bounds_at(held,
+                            EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds))
+        .top;
 }
 #else
 /**
@@ -1498,12 +1712,14 @@ EMBED_HOST_DEVICE static size_t carcer_down_trimmed(SeriesCellularum *series, si
  *        top returned to the gap.
  *
  * @param[in,out] series Cellblock to trim, its closed bit this context's [BORROWS].
+ * @param[in]     held   The closed word as the writer holds it.
  * @param[in]     permit Every bit set for the trim, none for one that reads nothing and answers the top as it is.
  * @return               The temporary top after the trim.
  */
-EMBED_HOST_DEVICE static size_t carcer_down_trimmed(SeriesCellularum *series, size_t permit)
+EMBED_HOST_DEVICE static size_t carcer_down_trimmed(SeriesCellularum *series, embed_atomic_word_value held,
+                                                    size_t permit)
 {
-    return carcer_swept(series, SIZE_MAX, series->size, carcer_all(1), permit).boundary;
+    return carcer_swept(series, held, SIZE_MAX, series->size, carcer_all(1), permit).boundary;
 }
 #endif
 
@@ -1512,18 +1728,18 @@ EMBED_HOST_DEVICE static size_t carcer_down_trimmed(SeriesCellularum *series, si
  *        boundaries stored.
  *
  * @param[in,out] series Cellblock to trim, its closed bit this context's [BORROWS].
- * @param[in]     owed   The trim bits taken off the closed word.
+ * @param[in]     held   The closed word as the open's fetch-and read it: the trim bits it took, and the frames as
+ *                       the writer holds them.
  * @note The writer's path, reached from carcer_opened with every pass drained. A word with no bit set walks
  *       nothing and stores the boundaries as they are.
  */
-EMBED_HOST_DEVICE static void carcer_owed_trimmed(SeriesCellularum *series, embed_atomic_word_value owed)
+EMBED_HOST_DEVICE static void carcer_owed_trimmed(SeriesCellularum *series, embed_atomic_word_value held)
 {
     const CarcerSweep up =
-        carcer_swept(series, SIZE_MAX, series->size, 0u, carcer_all((owed & CARCER_TRIM_PERSISTENT) != 0u));
-    const size_t top = carcer_down_trimmed(series, carcer_all((owed & CARCER_TRIM_TEMPORARY) != 0u));
+        carcer_swept(series, held, SIZE_MAX, series->size, 0u, carcer_all((held & CARCER_TRIM_PERSISTENT) != 0u));
+    const size_t top = carcer_down_trimmed(series, held, carcer_all((held & CARCER_TRIM_TEMPORARY) != 0u));
 
-    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->bounds,
-               .value = carcer_bounds(up.boundary, top));
+    (void)carcer_bounds_stored(series, held, up.boundary, top);
 }
 
 /** @brief Where a take lies over the run the walk found for it, and the payload it carries. */
@@ -1579,20 +1795,19 @@ EMBED_HOST_DEVICE static uintptr_t carcer_spilled(SeriesCellularum *series, cons
     const size_t up = ~down;
     const size_t need = CARCER_HDR + want;
 
-    carcer_shut(series);
-    const CarcerSweep sweep = carcer_swept(series, want, series->size, down, carcer_all(1));
-    const embed_atomic_usize_value bounds =
-        EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds);
-    const size_t end = carcer_pick(down, carcer_bounds_end(bounds), sweep.boundary);
-    const size_t top = carcer_pick(down, sweep.boundary, carcer_bounds_top(bounds));
+    const embed_atomic_word_value held = carcer_shut(series);
+    const CarcerSweep sweep = carcer_swept(series, held, want, series->size, down, carcer_all(1));
+    const CarcerBounds bounds = carcer_bounds_at(
+        held, EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds));
+    const size_t end = carcer_pick(down, bounds.end, sweep.boundary);
+    const size_t top = carcer_pick(down, sweep.boundary, bounds.top);
     const size_t room = carcer_all(top >= end) & carcer_all((top - end) >= need) & ~sweep.found;
     const size_t end_after = end + (need & room & up);
     const size_t top_after = top - (need & room & down);
     const CarcerPlaced placed = carcer_split(series, sweep, want, down);
     const size_t off = carcer_pick(sweep.found, placed.at, carcer_pick(down, top_after, end));
 
-    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->bounds,
-               .value = carcer_bounds(end_after, top_after));
+    (void)carcer_bounds_stored(series, held, end_after, top_after);
     carcer_marked(series, end_after, top_after);
     const uintptr_t prisoner = carcer_positioned(series, sweep.found | room, off, placed.size, owner, up);
 
@@ -1618,7 +1833,7 @@ EMBED_HOST_DEVICE static uintptr_t carcer_region_spilled(SeriesCellularum *serie
     const size_t need = CARCER_HDR + want;
     const size_t end = carcer_region_end(series, region);
 
-    carcer_shut(series);
+    (void)carcer_shut(series);
     const size_t depth = carcer_region_depth(series, region);
     const CarcerSweep sweep =
         carcer_swept_between(series, want, series->size, carcer_all(1), carcer_all(1), end - depth, end);
@@ -1686,7 +1901,7 @@ EMBED_HOST_DEVICE static uintptr_t carcer_large_tried(SeriesCellularum *series, 
  * @return               The cell, or NULL [RETURNS OWNERSHIP].
  * @note An owner not of the table permits nothing, and the pass runs on the record counted by none. A request over
  *       the cellblock's size permits nothing the same way, before the round. The size is at max
- *       MMGR_CARCER_BYTES_MAX, and the round and the header added to it never wrap. The exclusive path is a row of
+ *       MMGR_CARCER_POOL_BYTES_MAX, and the round and the header added to it never wrap. The exclusive path is a row of
  *       a two-row table, the row whether the bump answered a cell.
  * @note Where the temporary tier is regions, a temporary take goes to the region the thread's place selects, or to
  *       the large region where it does not fit a region's room. A take the thread's region refuses, bumped and
@@ -1812,12 +2027,14 @@ EMBED_HOST_DEVICE EMBED_INLINE void carcer_owned(const SeriesCellularum *series,
 }
 
 /**
- * @brief A cell as a give or a growth reads it: its offset, its size, and whether the owner named is its own.
+ * @brief A cell as a give or a growth reads it: its offset, its size, its tier, and whether the owner named is its
+ *        own.
  */
 typedef struct
 {
     size_t off;      /**< The cell's offset. */
     size_t size;     /**< Its payload size. */
+    size_t down;     /**< Every bit set where its header names the temporary tier. */
     size_t proceeds; /**< Every bit set where the cell is the owner's and still counted. */
 } CarcerCell;
 
@@ -1838,14 +2055,16 @@ EMBED_HOST_DEVICE EMBED_INLINE CarcerCell carcer_cell_read(const SeriesCellularu
     static void (*const tells[2])(const CellOwner *, const CellOwner *, size_t) = {carcer_told_none,
                                                                                    mmgr_carcer_hw_misnamed};
     const size_t off = carcer_off_of(series, prisoner);
-    const size_t size = carcer_size_at(series, off);
+    const embed_atomic_usize_value header =
+        EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = carcer_word_at(series, off));
+    const size_t size = carcer_word_size(header);
     const embed_atomic_usize_value named = EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
                                                       .word = carcer_word_at(series, carcer_foot_of(off, size)));
     const size_t counted = permit & carcer_all((named & MMGR_OWNER_COMPLETE) == 0u);
     const size_t mine = counted & carcer_owner_is(named, owner);
     const CellOwner *const found = carcer_owner_found(named);
     const size_t another = counted & ~mine & carcer_all(found != NULL);
-    const CarcerCell cell = {off, size, mine};
+    const CarcerCell cell = {off, size, carcer_all((header & CARCER_DOWNWARD) != 0u), mine};
 
     tells[another & 1u](owner, found, size);
     return cell;
@@ -1922,8 +2141,8 @@ EMBED_HOST_DEVICE static void carcer_trimmed(SeriesCellularum *series, size_t pe
  *                          at its tier's boundary once free or finds the cellblock closed, and CARCER_GIVEN_PERSISTENT
  *                          where it position in the persistent tier.
  * @note No pass: a busy cell's words are its holder's alone, and the compaction reads a header free only after
- *       this store, which comes last. The end says the tier: a persistent cell lies below it. The caller
- *       trims the boundary a cell was at, outside any pass of its own.
+ *       this store, which comes last. The header says the tier, and so the give reads no frame. The caller trims
+ *       the boundary a cell was at, outside any pass of its own.
  * @note A give that names another owner, or a cell given back already, changes nothing, the payload included.
  *       Every store lands on the sink and every count is a row of none. A give with no cellblock, no prisoner or
  *       no owner reads the record over bytes of none and changes nothing.
@@ -1943,9 +2162,7 @@ EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_given(SeriesCellularum *site, void 
 
     carcer_owned(series, prisoner, given);
     const CarcerCell cell = carcer_cell_read(series, safe, named, given);
-    const size_t persistent =
-        carcer_all(cell.off < carcer_bounds_end(EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg,
-                                                           .word = &series->bounds)));
+    const size_t persistent = ~cell.down;
 
     mmgr_zero_buf(safe, cell.size & zeroing & cell.proceeds);
     carcer_foot_claimed(series, cell.off, cell.size, persistent, cell.proceeds);
@@ -1961,9 +2178,10 @@ EMBED_HOST_DEVICE EMBED_INLINE size_t carcer_given(SeriesCellularum *site, void 
                     CARCER_CLOSED) != 0u);
     const embed_atomic_usize_value word =
         EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds);
+    // the boundary word alone, compared modulo a bank: a cell at its boundary passes whatever the frame
     const size_t at_boundary =
-        closed | carcer_pick(persistent, carcer_all(carcer_end_of(cell.off, cell.size) == carcer_bounds_end(word)),
-                             carcer_all(cell.off == carcer_down_top(series, cell.off, word, ~persistent)));
+        closed | carcer_pick(persistent, carcer_bank_met(carcer_end_of(cell.off, cell.size), carcer_bounds_end(word)),
+                             carcer_down_met(series, cell.off, word, ~persistent));
     return cell.proceeds &
            (CARCER_GIVEN_BACK | (CARCER_GIVEN_AT_BOUNDARY & at_boundary) | (CARCER_GIVEN_PERSISTENT & persistent));
 }
@@ -2029,36 +2247,37 @@ EMBED_HOST_DEVICE static void *carcer_grown(SeriesCellularum *site, void *prison
         (const CellOwner *)carcer_pick_at(given, carcer_owner_record(owner), &carcer_owner_none);
 
     carcer_owned(series, prisoner, given);
-    carcer_shut(series);
+    const embed_atomic_word_value held = carcer_shut(series);
     const CarcerCell cell = carcer_cell_read(series, safe, named, given);
     // a size at or over the cellblock's fails before the round, and the round never wraps
     const size_t fits = carcer_all(size < series->size);
     const size_t want = carcer_want(size);
     const size_t grows = cell.proceeds & fits & carcer_all(want > cell.size);
     const size_t extra = (want - cell.size) & grows;
-    const embed_atomic_usize_value word =
-        EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds);
-    const size_t end = carcer_bounds_end(word);
-    const size_t top = carcer_bounds_top(word);
+    const CarcerBounds bounds = carcer_bounds_at(
+        held, EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds));
+    const size_t end = bounds.end;
+    const size_t top = bounds.top;
     const size_t up = carcer_all(cell.off < end);
     const size_t newest = carcer_pick(up, carcer_all(end == carcer_end_of(cell.off, cell.size)),
-                                      carcer_all(carcer_down_top(series, cell.off, word, ~up) == cell.off));
+                                      carcer_all(carcer_down_top(series, cell.off, bounds, ~up) == cell.off));
     const size_t room = carcer_pick(up, carcer_all(top >= end) & carcer_all((top - end) >= extra),
-                                    carcer_down_room(series, cell.off, word, extra, ~up));
+                                    carcer_down_room(series, cell.off, bounds, extra, ~up));
     const size_t moving = grows & newest & room;
     const size_t at = cell.off - (extra & moving & ~up);
     const size_t grown = carcer_pick(moving, want, cell.size);
     // the temporary tier's growth: the one stack's top down by the bytes, or the cell's region deepened by them
-    const size_t top_after = carcer_down_grown(series, cell.off, word, extra & moving & ~up, ~up);
+    const size_t top_after = carcer_down_grown(series, cell.off, bounds, extra & moving & ~up, ~up);
 
-    EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->bounds,
-               .value = carcer_bounds(end + (extra & moving & up), carcer_pick(CARCER_TIER_DOWN, top_after, top)));
+    (void)carcer_bounds_stored(series, held, end + (extra & moving & up),
+                               carcer_pick(CARCER_TIER_DOWN, top_after, top));
     // the words: a persistent cell's owner word past the growth, a temporary cell's header at the new top
     EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg,
                .word = carcer_word_picked(series, moving & up, carcer_foot_of(cell.off, want)),
                .value = carcer_owner_word(named));
+    // Explicit cast carries the tier's mask into the header's width, which is size_t's
     EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = carcer_word_picked(series, moving, at),
-               .value = carcer_word(grown, CARCER_BUSY));
+               .value = carcer_word(grown, CARCER_BUSY | (CARCER_DOWNWARD & (embed_atomic_usize_value)~up)));
     EMBED_CALL(memor.move_down, MemoriaCfg, .dst = series->base + at + CARCER_WORD,
                .src = series->base + cell.off + CARCER_WORD, .bytes = cell.size & moving & ~up);
     // the bytes added: past the old owner word for a persistent cell, past the moved payload for a temporary one
@@ -2094,7 +2313,7 @@ EMBED_HOST_DEVICE const CellOwner *mmgr_owner_of_buf(const SeriesCellularum *sit
     const embed_atomic_usize_value word =
         EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = carcer_word_at(series, off));
     const size_t size = carcer_word_size(word);
-    const size_t busy = owns & carcer_all(carcer_word_state(word) == CARCER_BUSY) &
+    const size_t busy = owns & carcer_all((carcer_word_state(word) & CARCER_BUSY) != 0u) &
                         carcer_all(carcer_end_of(off, size) <= series->size);
     const size_t foot = carcer_pick(busy, carcer_foot_of(off, size), off);
 
@@ -2282,13 +2501,15 @@ typedef struct
  * @return                The give's bits where the cell went back, 0 where the entry named none, the owner was
  *                        another's, or the pass missed.
  */
-EMBED_HOST_DEVICE static uintptr_t carcer_entry_given(SeriesCellularum *series, const void *context, size_t permit)
+EMBED_HOST_DEVICE static uintptr_t carcer_entry_given(SeriesCellularum *series, const void *context, size_t permit,
+                                                      embed_atomic_word_value frames)
 {
     const CarcerEntryGiveCtx *const give = (const CarcerEntryGiveCtx *)context;
     CarcerMovable *const movable = give->movable;
     // Explicit cast reads the word as the offset it holds
     const size_t payload =
         (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &give->entry->word);
+    (void)frames;
     const size_t named = permit & carcer_all(payload != 0u);
     void *const prisoner = series->base + (payload & named) + (CARCER_WORD & ~named);
     const size_t wipes = carcer_all(movable->wipes != 0u);
@@ -2399,22 +2620,26 @@ typedef struct
 } CarcerSpanCtx;
 
 /** @brief A read, the work of a pass: args->bytes copied out of the cell where the span fits. */
-EMBED_HOST_DEVICE static uintptr_t carcer_span_read_out(SeriesCellularum *series, const void *context, size_t permit)
+EMBED_HOST_DEVICE static uintptr_t carcer_span_read_out(SeriesCellularum *series, const void *context, size_t permit,
+                                                        embed_atomic_word_value frames)
 {
     const CarcerSpanCtx *const call = (const CarcerSpanCtx *)context;
     const CarcerSpan span = carcer_span_read(series, call->cell, call->args->offset, call->args->bytes, permit);
 
+    (void)frames;
     EMBED_CALL(memor.cpy, MemoriaCfg, .dst = carcer_pick_at(span.fits, call->args->dst, call->sink), .src = span.at,
                .bytes = call->args->bytes & span.fits);
     return span.fits & 1u;
 }
 
 /** @brief A write, the work of a pass: args->bytes copied into the cell where the span fits. */
-EMBED_HOST_DEVICE static uintptr_t carcer_span_written(SeriesCellularum *series, const void *context, size_t permit)
+EMBED_HOST_DEVICE static uintptr_t carcer_span_written(SeriesCellularum *series, const void *context, size_t permit,
+                                                       embed_atomic_word_value frames)
 {
     const CarcerSpanCtx *const call = (const CarcerSpanCtx *)context;
     const CarcerSpan span = carcer_span_read(series, call->cell, call->args->offset, call->args->bytes, permit);
 
+    (void)frames;
     EMBED_CALL(memor.cpy, MemoriaCfg, .dst = carcer_pick_at(span.fits, span.at, call->sink),
                .src = carcer_pick_at(span.fits, (void *)(uintptr_t)call->args->src, call->sink),
                .bytes = call->args->bytes & span.fits);
@@ -2427,7 +2652,8 @@ EMBED_HOST_DEVICE static uintptr_t carcer_span_written(SeriesCellularum *series,
  *
  * @note The answer is an embed_iword carried in the pass's integer: the caller reads it back as such.
  */
-EMBED_HOST_DEVICE static uintptr_t carcer_span_compared(SeriesCellularum *series, const void *context, size_t permit)
+EMBED_HOST_DEVICE static uintptr_t carcer_span_compared(SeriesCellularum *series, const void *context, size_t permit,
+                                                        embed_atomic_word_value frames)
 {
     const CarcerSpanCtx *const call = (const CarcerSpanCtx *)context;
     const size_t against_cell = carcer_all(call->args->other_cell != NULL);
@@ -2441,12 +2667,14 @@ EMBED_HOST_DEVICE static uintptr_t carcer_span_compared(SeriesCellularum *series
                    .other = carcer_pick_at(fits, (void *)(uintptr_t)other_at, call->sink),
                    .bytes = call->args->bytes & fits);
 
+    (void)frames;
     // Explicit casts carry the order, an embed_iword, as the pass's integer, 1 where a span did not fit
     return ((uintptr_t)order & (uintptr_t)fits) | ((uintptr_t)1u & ~(uintptr_t)fits);
 }
 
 /** @brief A measure, the work of a pass: the bytes from args->offset to the cell's next zero, or to its end. */
-EMBED_HOST_DEVICE static uintptr_t carcer_span_measured(SeriesCellularum *series, const void *context, size_t permit)
+EMBED_HOST_DEVICE static uintptr_t carcer_span_measured(SeriesCellularum *series, const void *context, size_t permit,
+                                                        embed_atomic_word_value frames)
 {
     const CarcerSpanCtx *const call = (const CarcerSpanCtx *)context;
     const CarcerSpan span = carcer_span_read(series, call->cell, call->args->offset, 0u, permit);
@@ -2456,6 +2684,7 @@ EMBED_HOST_DEVICE static uintptr_t carcer_span_measured(SeriesCellularum *series
     // Explicit cast reads the distance, which the cell's size bounds, as the bytes it is
     const size_t measured = carcer_pick(found, (size_t)(zero - span.at) & found, span.room);
 
+    (void)frames;
     return (uintptr_t)(measured & span.fits);
 }
 
@@ -2581,8 +2810,9 @@ EMBED_HOST_DEVICE embed_bool mmgr_movable_buf_move(SeriesCellularum *series)
     size_t refused = series->size;
     size_t moved = 0u;
     size_t is = has;
+    // the closed word as the writer holds it. Each store of the boundaries gives back the frames it picked
+    embed_atomic_word_value held = carcer_shut(series);
 
-    carcer_shut(series);
     while ((is & ~moved) != 0u)
     {
         size_t payload = 0u;
@@ -2592,18 +2822,18 @@ EMBED_HOST_DEVICE embed_bool mmgr_movable_buf_move(SeriesCellularum *series)
         const size_t off = (payload - CARCER_WORD) & is;
         const size_t size = carcer_size_at(series, off);
         // the first free run below the cell that holds it, the tier merged and trimmed on the way
-        const CarcerSweep sweep = carcer_swept(series, size, off, 0u, is);
+        const CarcerSweep sweep = carcer_swept(series, held, size, off, 0u, is);
         const size_t retained = carcer_split(series, sweep, size, 0u).size;
         const size_t wipes = carcer_all(option->wipes != 0u);
 
         // the end after the move: the cell's offset where the cell was at the end, the walk's end elsewhere
         const size_t at_end = sweep.found & carcer_all(carcer_end_of(off, size) == sweep.boundary);
 
-        EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->bounds,
-                   .value =
-                       carcer_bounds(carcer_pick(at_end, off, sweep.boundary),
-                                     carcer_bounds_top(EMBED_CALL(embed_atomic_usize_table.load,
-                                                                  EmbedAtomicUsizeLoadCfg, .word = &series->bounds))));
+        held = carcer_bounds_stored(
+            series, held, carcer_pick(at_end, off, sweep.boundary),
+            carcer_bounds_at(held,
+                             EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds))
+                .top);
         EMBED_CALL(memor.cpy, MemoriaCfg,
                    .dst = carcer_pick_at(sweep.found, series->base + sweep.at + CARCER_WORD, &series->sink),
                    .src = series->base + payload, .bytes = size & sweep.found);
@@ -2904,16 +3134,80 @@ EMBED_HOST_DEVICE embed_bool mmgr_who_owns_buf(const SeriesCellularum *series, c
     return (embed_bool)(((uintptr_t)at - (uintptr_t)series->base) < series->size);
 }
 
+/**
+ * @brief Both boundaries as offsets, read outside a pass, in a cellblock whose frames stay at bank 0: the boundary
+ *        word alone.
+ *
+ * @param[in] series Cellblock to read, of two banks or less [BORROWS].
+ * @return           The two boundaries, each its position.
+ * @note A cellblock of two banks or less has a frame cap of 0, and no writer changes its frames (Banks.frames_still).
+ */
+EMBED_HOST_DEVICE static CarcerBounds carcer_bounds_read_still(const SeriesCellularum *series)
+{
+    return carcer_bounds_at(0u,
+                            EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds));
+}
+
+/**
+ * @brief Both boundaries as offsets, read outside a pass, in a cellblock whose frames can change. The read takes the
+ *        epoch, the frames, the boundary word and the epoch again, until the two agree and are even.
+ *
+ * @param[in] series Cellblock to read [BORROWS].
+ * @return           The two boundaries, each its frame's base and its position.
+ * @note A writer moves the epoch to odd before it changes the frames and back to even after. Two epochs that agree
+ *       bound a read with no change of frame between them, and so the frames and the word name one instant
+ *       (Banks.reader_pair). A read waits out at most the three stores of a writer that changes the frames. Each
+ *       load acquires, so the later loads stay after the earlier ones.
+ */
+EMBED_HOST_DEVICE static CarcerBounds carcer_bounds_read_framed(const SeriesCellularum *series)
+{
+    embed_atomic_word_value first = 1u;
+    embed_atomic_word_value last = 0u;
+    embed_atomic_word_value frames = 0u;
+    embed_atomic_usize_value word = 0u;
+
+    while ((first != last) || ((first & 1u) != 0u))
+    {
+        first = EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &series->epoch);
+        frames = EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &series->closed);
+        word = EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds);
+        last = EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &series->epoch);
+    }
+    return carcer_bounds_at(frames, word);
+}
+
+/**
+ * @brief Both boundaries as offsets, read outside a pass. The cellblock's size picks the read: the boundary word
+ *        alone where the frames stay at bank 0, and the epoch's read where they can change.
+ *
+ * @param[in] series Cellblock to read [BORROWS].
+ * @return           The two boundaries.
+ */
+EMBED_HOST_DEVICE EMBED_INLINE CarcerBounds carcer_bounds_read(const SeriesCellularum *series)
+{
+    static CarcerBounds (*const reads[2])(const SeriesCellularum *) = {carcer_bounds_read_still,
+                                                                       carcer_bounds_read_framed};
+
+    return reads[(unsigned int)(MMGR_CARCER_FRAME_CAP(series->size) != 0u)](series);
+}
+
+EMBED_HOST_DEVICE size_t mmgr_series_cellularum_persistent_end(const SeriesCellularum *series)
+{
+    return carcer_bounds_read(series).end;
+}
+
+EMBED_HOST_DEVICE size_t mmgr_series_cellularum_temporary_top(const SeriesCellularum *series)
+{
+    return carcer_bounds_read(series).top;
+}
+
 EMBED_HOST_DEVICE size_t mmgr_buf_available(SeriesCellularum *series)
 {
     carcer_owed_serviced(series);
-    const embed_atomic_usize_value word =
-        EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds);
-    const size_t end = carcer_bounds_end(word);
-    const size_t top = carcer_bounds_top(word);
+    const CarcerBounds bounds = carcer_bounds_read(series);
 
     // a top below the end is a refused bump's overrun not yet settled: the gap reads 0
-    return (top - end) & carcer_all(top >= end);
+    return (bounds.top - bounds.end) & carcer_all(bounds.top >= bounds.end);
 }
 
 EMBED_HOST_DEVICE size_t mmgr_align_up_buf(size_t size)
@@ -2923,9 +3217,11 @@ EMBED_HOST_DEVICE size_t mmgr_align_up_buf(size_t size)
 
 EMBED_HOST_DEVICE void mmgr_series_cellularum_emptied(SeriesCellularum *series)
 {
-    // a cellblock over a hospes pool not yet placed has size 0, and both boundaries stay at 0
+    // a cellblock over a hospes pool not yet placed has size 0, and both boundaries and every field stay at 0
+    const size_t placed = carcer_all(series->size != 0u);
+
     EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->bounds,
-               .value = carcer_bounds(0u, (series->size - MMGR_CARCER_REGION_AREA) & carcer_all(series->size != 0u)));
+               .value = MMGR_CARCER_BOUNDS_AT_REST(series->size) & placed);
 #if MMGR_CARCER_REGIONS > 0u
     EMBED_CALL(memor.set, MemoriaCfg, .dst = series->regions, .bytes = sizeof(series->regions), .val = 0u);
 #endif
@@ -2941,7 +3237,10 @@ EMBED_HOST_DEVICE void mmgr_series_cellularum_emptied(SeriesCellularum *series)
     EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->persistent_in_use,
                .value = 0u);
     EMBED_CALL(embed_atomic_uptr_table.store, EmbedAtomicUptrStoreCfg, .word = &series->movable, .value = 0u);
-    EMBED_CALL(embed_atomic_word_table.store, EmbedAtomicWordStoreCfg, .word = &series->closed, .value = 0u);
+    // Explicit cast carries the mask into the closed word's width, which is size_t's
+    EMBED_CALL(embed_atomic_word_table.store, EmbedAtomicWordStoreCfg, .word = &series->closed,
+               .value = MMGR_CARCER_CLOSED_AT_REST(series->size) & (embed_atomic_word_value)placed);
+    EMBED_CALL(embed_atomic_word_table.store, EmbedAtomicWordStoreCfg, .word = &series->epoch, .value = 0u);
     EMBED_CALL(embed_atomic_usize_table.store, EmbedAtomicUsizeStoreCfg, .word = &series->sink, .value = 0u);
     EMBED_CALL(memor.set, MemoriaCfg, .dst = &series->turnstiles, .bytes = sizeof(series->turnstiles), .val = 0u);
 }
@@ -2950,7 +3249,7 @@ EMBED_HOST_DEVICE embed_bool mmgr_series_cellularum_placed(SeriesCellularum *ser
 {
     const size_t least = (size_t)MMGR_CARCER_REGION_AREA + (2u * (size_t)MMGR_CARCER_ALIGN);
     const size_t fits =
-        carcer_all(storage != NULL) & carcer_all(bytes >= least) & carcer_all(bytes <= (size_t)MMGR_CARCER_BYTES_MAX);
+        carcer_all(storage != NULL) & carcer_all(bytes >= least) & carcer_all(bytes <= MMGR_CARCER_POOL_BYTES_MAX);
 
     series->base = (uint8_t *)carcer_pick_at(fits, storage, series->base);
     series->size = carcer_pick(fits, bytes, series->size);
@@ -2961,11 +3260,11 @@ EMBED_HOST_DEVICE embed_bool mmgr_series_cellularum_placed(SeriesCellularum *ser
 EMBED_HOST_DEVICE void mmgr_series_cellularum_idle_each(SeriesCellularum *series, CarcerIdleEach each,
                                                         void *context)
 {
-    carcer_shut(series);
-    const embed_atomic_usize_value word =
-        EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds);
-    const size_t end = carcer_bounds_end(word);
-    const size_t top = carcer_bounds_top(word);
+    const embed_atomic_word_value held = carcer_shut(series);
+    const CarcerBounds bounds = carcer_bounds_at(
+        held, EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds));
+    const size_t end = bounds.end;
+    const size_t top = bounds.top;
 
     // the gap between the tiers; a top below the end is a refused bump's overrun not yet settled, and the gap reads 0
     each(context, series->base + end, (top - end) & carcer_all(top >= end));

@@ -72,7 +72,7 @@ typedef struct
 
 A \texttt{Max\allowbreak{}Security\allowbreak{}Guard} has the same members. Its release zeroes the payload before the give, and its growth zeroes the bytes it adds. A minimum security cellblock has no release that zeroes and a max security one has no plain release, so the choice is made once at the declaration and no call can make the other one. The bytes, the state and the warden are all static, so a declaration in a header gives each translation unit that includes it a site of its own.
 
-\texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}BODY} carries two static assertions per cellblock: the pool holds at least one cell, \texttt{2 * MMGR\_\allowbreak{}CARCER\_\allowbreak{}ALIGN} bytes, and the pool is at max \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}BYTES\_\allowbreak{}MAX}, the max bytes a half of the boundary word can name (Section 3.1). A pool that fails either does not build.
+\texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}BODY} carries two static assertions per cellblock: the pool holds at least one cell, \texttt{2 * MMGR\_\allowbreak{}CARCER\_\allowbreak{}ALIGN} bytes, and the pool is at max \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}POOL\_\allowbreak{}BYTES\_\allowbreak{}MAX}, the max bytes the banks of the closed word can name (Section 3.1). A pool that fails either does not build.
 
 \subsection{\texorpdfstring{2.3 Owners}{2.3 Owners}}
 
@@ -108,6 +108,7 @@ typedef struct
     embed_atomic_usize persistent_in_use;
     embed_atomic_uptr movable;
     embed_atomic_word closed;
+    embed_atomic_word epoch;
     embed_atomic_usize sink;
     EmbedTurnstiles turnstiles;
 } SeriesCellularum;
@@ -137,6 +138,16 @@ S + L\,(h + 2^{H-8}) < 2^{H},
 
 with \(L\) the lanes of the turnstiles, and it holds for 63 lanes at \(H = 32\) and for 31 lanes at \(H = 16\). The Lean file \texttt{Word.\allowbreak{}lean} states these as \texttt{bump\allowbreak{}Up\_\allowbreak{}no\_\allowbreak{}carry}, \texttt{bump\allowbreak{}Down\_\allowbreak{}borrow\_\allowbreak{}leaves}, \texttt{in\_\allowbreak{}flight\_\allowbreak{}within}, \texttt{caps\_\allowbreak{}64}, \texttt{caps\_\allowbreak{}32}, \texttt{lanes\_\allowbreak{}64} and \texttt{lanes\_\allowbreak{}32}. A bump down that takes the top below 0 wraps it modulo \(2^H\) to a value above \(2^H - L m > S\), and the fit test after the bump refuses it; that is \texttt{bump\allowbreak{}Down\_\allowbreak{}wrap\_\allowbreak{}refused} and \texttt{bump\allowbreak{}Down\_\allowbreak{}in\_\allowbreak{}flight\_\allowbreak{}within}.
 
+A pool can be larger than \(2^{H-1}\) bytes. Then each half holds a position, and the boundary is the base of the tier's frame plus that position. The pool is a run of banks of \(B = 2^{H-2}\) bytes, \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}BANK\_\allowbreak{}BYTES}, and bank \(k\) starts at \(k B\). The frame of a tier is the bank its position counts from. The closed word holds the bank count and the two frames in three fields above its four flag bits:
+
+\[
+E = f_E B + e, \qquad T = f_T B + t .
+\]
+
+The two limits above apply to the positions \(e\) and \(t\), with \(2^{H-1}\) in place of \(S\). A position reaches \(2^{H-1}\), which is two banks, so a tier crosses into the next bank with no writer. A pass reads the closed word once for its permit, and only a writer changes a frame, after its drain. The pass hands that word to its work as \texttt{frames}, so a bump has its frames from the load the pass already makes, and they hold still until it leaves its lane. A writer has its frames from the fetch-or that takes the closed bit, and only its own fetch-add changes them until it opens; \texttt{Banks.\allowbreak{}writer\_\allowbreak{}reads\_\allowbreak{}current} states it. So neither reads the closed word again for them. A writer that stores a boundary selects its frame: the persistent end gets its own bank and the temporary top the bank below its own, each at most \(c = \max(K - 2, 0)\) for a pool of \(K\) banks, \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}FRAME\_\allowbreak{}CAP}. A position from bank \(c\) reaches the end of the pool. Below the cap each position has a room of \(B\) bytes before a bump refuses it. A pool of two banks or less has \(c = 0\), so its frames stay at bank 0 and each store is the boundary word alone: \texttt{frames\_\allowbreak{}still} and \texttt{inv\_\allowbreak{}reframe\allowbreak{}In}. One fetch-add on the closed word moves both frames and leaves the flag bits as they are. The largest pool is \((2^b - 1) B\) bytes for fields of \(b\) bits, \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}POOL\_\allowbreak{}BYTES\_\allowbreak{}MAX}: \(2^{50} - 2^{30}\) at \(H = 32\) and \(511 \cdot 2^{14}\) at \(H = 16\).
+
+A give reads no frame. The header of a busy temporary cell carries \texttt{CARCER\_\allowbreak{}DOWNWARD}, the second state bit, so the header gives the tier. The give compares its cell with the boundary's position modulo \(B\), which is true for each cell at the boundary in each frame, and so the give reads the boundary word alone. A reader outside a pass reads the word alone in a pool of two banks or less. In a larger pool it reads an epoch, the frames, the word and the epoch again, and a writer makes the epoch odd while it changes a frame. \texttt{Banks.\allowbreak{}lean} proves the fields, the frames, the bump with frames, the epoch and the test modulo \(B\).
+
 The request guard is in the same file. The C rounds a request up to a multiple of \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}ALIGN}, and a request near the top of the word would round to a small cell. Every take and every growth refuses a request above the cellblock's size before it rounds, so the round and the header added to it stay below the word: \texttt{round\_\allowbreak{}wraps\_\allowbreak{}unguarded} exhibits the wrap, and \texttt{round\_\allowbreak{}guarded}, \texttt{need\_\allowbreak{}guarded}, \texttt{guard\_\allowbreak{}64} and \texttt{guard\_\allowbreak{}32} state the guard.
 
 \subsection{\texorpdfstring{3.2 Cells and the two tiers}{3.2 Cells and the two tiers}}
@@ -144,15 +155,16 @@ The request guard is in the same file. The C rounds a request up to a multiple o
 A cell is a header word, a payload and an owner word. \texttt{CARCER\_\allowbreak{}WORD} is \texttt{sizeof(embed\_\allowbreak{}atomic\_\allowbreak{}usize)} rounded up to \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}ALIGN}, and \texttt{CARCER\_\allowbreak{}HDR} is two of them, the header and the owner word together:
 
 \begin{Verbatim}
-#define CARCER_FREE  ((embed_atomic_usize_value)0u)
-#define CARCER_BUSY  ((embed_atomic_usize_value)1u)
-#define CARCER_STATE ((embed_atomic_usize_value)3u)
+#define CARCER_FREE     ((embed_atomic_usize_value)0u)
+#define CARCER_BUSY     ((embed_atomic_usize_value)1u)
+#define CARCER_DOWNWARD ((embed_atomic_usize_value)2u)
+#define CARCER_STATE    ((embed_atomic_usize_value)3u)
 #define CARCER_WORD \
     ((sizeof(embed_atomic_usize) + (MMGR_CARCER_ALIGN - 1u)) & ~(MMGR_CARCER_ALIGN - 1u))
 #define CARCER_HDR (2u * CARCER_WORD)
 \end{Verbatim}
 
-The header word is the payload size in its high bits and the cell's state in its two low bits, \texttt{CARCER\_\allowbreak{}FREE} or \texttt{CARCER\_\allowbreak{}BUSY}. The owner word is Section 3.6. A payload is a multiple of \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}ALIGN}, so the low bits of the size are free for the state. The persistent tier is its cells positioned end to end from offset 0, and its end \(e_P\) is the sum of their sizes with their headers. The temporary tier is the same cells positioned from the top \(t_Q\) up to \(S\). In the formal document the header size is \(h = 16\) and a cell is a pair \((o, p)\) that occupies \([o, o + h + p)\); the C answers the take with \(o + 8\), the first payload byte.
+The header word is the payload size in its high bits and the cell's state in its two low bits, \texttt{CARCER\_\allowbreak{}FREE} or \texttt{CARCER\_\allowbreak{}BUSY}, with \texttt{CARCER\_\allowbreak{}DOWNWARD} on a busy temporary cell. The owner word is Section 3.6. A payload is a multiple of \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}ALIGN}, so the low bits of the size are free for the state. The persistent tier is its cells positioned end to end from offset 0, and its end \(e_P\) is the sum of their sizes with their headers. The temporary tier is the same cells positioned from the top \(t_Q\) up to \(S\). In the formal document the header size is \(h = 16\) and a cell is a pair \((o, p)\) that occupies \([o, o + h + p)\); the C answers the take with \(o + 8\), the first payload byte.
 
 \texttt{Layout.\allowbreak{}lean} is the persistent tier as a list of cells with \texttt{foot}, \texttt{len}, \texttt{busy\allowbreak{}Cells} and \texttt{count}, the payload each owner holds. \texttt{Temporary.\allowbreak{}lean} is the temporary tier as the persistent tier mirrored: the same cells read in the same order, with the base at the cellblock's size and the boundary at the start of the first cell. Every operation of the persistent tier is an operation of the temporary tier with that one change, and the file states it as such. The sweep that joins free runs is \texttt{Layout.\allowbreak{}merge} for both; the trim that returns the free run at the boundary is \texttt{Layout.\allowbreak{}trim\allowbreak{}End} for the persistent tier and \texttt{trim\allowbreak{}Start} for the temporary one; the fit that positions a take over a free run is \texttt{Spill.\allowbreak{}first\allowbreak{}Fit} from offset 0 for the persistent tier and \texttt{last\allowbreak{}Fit} before the size for the temporary tier; and \texttt{positioned\allowbreak{}High}, which positions a temporary take at the high end of its run, is \texttt{Take.\allowbreak{}positioned} reversed, \texttt{positioned\allowbreak{}High\_\allowbreak{}reverse}.
 
@@ -168,16 +180,21 @@ const size_t allowed = permit & take->permit & within;
 const size_t need = (CARCER_HDR + take->want) & allowed;
 const embed_atomic_usize_value moved =
     (embed_atomic_usize_value)carcer_pick(down, (0u - need) << MMGR_CARCER_HALF_BITS, need);
+const size_t own_base = carcer_pick(down, carcer_top_base(frames), carcer_end_base(frames));
+const size_t other_base = carcer_pick(down, carcer_end_base(frames), carcer_top_base(frames));
 const embed_atomic_usize_value word = embed_atomic_usize_fetch_add(&series->bounds, moved);
 const size_t end_was = carcer_bounds_end(word);
 const size_t top_was = carcer_bounds_top(word);
-const size_t was = carcer_pick(down, top_was, end_was);
-const size_t across = carcer_pick(down, end_was, top_was);
-const size_t now = carcer_pick(down, top_was - need, end_was + need);
-const size_t fits_up =
-    carcer_all(now <= across) & carcer_all(now >= was) & carcer_all(across <= series->size);
-const size_t fits_down =
-    carcer_all(now >= across) & carcer_all(now <= was) & carcer_all(now <= series->size);
+const size_t was_at = carcer_pick(down, top_was, end_was);
+const size_t across_at = carcer_pick(down, end_was, top_was);
+const size_t now_at = carcer_pick(down, top_was - need, end_was + need);
+const size_t was = own_base + was_at;
+const size_t across = other_base + across_at;
+const size_t now = own_base + now_at;
+const size_t fits_up = carcer_all(now <= across) & carcer_all(now_at >= was_at) &
+                       carcer_all(across_at <= MMGR_CARCER_BYTES_MAX);
+const size_t fits_down = carcer_all(now >= across) & carcer_all(now_at <= was_at) &
+                         carcer_all(now_at <= MMGR_CARCER_BYTES_MAX);
 const size_t taken = allowed & ((fits_up & up) | (fits_down & down));
 (void)embed_atomic_usize_fetch_add(overrun, need & ~taken);
 \end{Verbatim}
@@ -194,7 +211,7 @@ const size_t taken = allowed & ((fits_up & up) | (fits_down & down));
 \neg\tau \Rightarrow O_E := O_E + n,\ \text{answer } \bot ,
 \]
 
-and a bump down is the mirror on \(T\) with \(O_T\). The first line is the one fetch-add; \(w\) and \(T_w\) are the two halves of the old value, read in the same atomic step as the add. The refused branch does not subtract \(n\) back. It adds \(n\) to the tier's overrun, \texttt{persistent\_\allowbreak{}overrun} or \texttt{temporary\_\allowbreak{}overrun}, and the boundary stays where the bump left it. A bump whose want is above \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}WANT\_\allowbreak{}MAX}, or whose half already reads above \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}BYTES\_\allowbreak{}MAX}, has \texttt{within} clear: its need is 0, its fetch-add adds 0, and it goes to the path of the writer with the word not moved.
+and a bump down is the mirror on \(T\) with \(O_T\). The first line is the one fetch-add; \(w\) and \(T_w\) are the two halves of the old value, read in the same atomic step as the add. The refused branch does not subtract \(n\) back. It adds \(n\) to the tier's overrun, \texttt{persistent\_\allowbreak{}overrun} or \texttt{temporary\_\allowbreak{}overrun}, and the boundary stays where the bump left it. A bump whose want is above \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}WANT\_\allowbreak{}MAX}, or whose position already reads above \texttt{MMGR\_\allowbreak{}CARCER\_\allowbreak{}BYTES\_\allowbreak{}MAX}, has \texttt{within} clear: its need is 0, its fetch-add adds 0, and it goes to the path of the writer with the word not moved.
 
 The state in the document is \(\sigma = (E, T, O_E, O_T, P, Q)\) with \(P\) a chain from 0 to \(e_P\) and \(Q\) a chain from \(t_Q\) to \(S\), and the invariant is
 

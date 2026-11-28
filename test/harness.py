@@ -36,7 +36,7 @@ because a fresh one costs a full configure and a full compile every time. The --
 a new one, the thing a changed target or a changed toolchain needs. The newest three per name stay and
 the older ones go on the way in.
 
-There are seven host trees and each one is a different question: each carries its own flags here
+There are eight host trees and each one is a different question: each carries its own flags here
 instead of in somebody's shell history:
 
   build           the library, as it ships
@@ -45,6 +45,7 @@ instead of in somebody's shell history:
   build-dma       DMA on, with recovery, the boundary word check and a settle window
   build-dma-lean  DMA on, with recovery and the settle window off
   build-extram    external memory on
+  build-banks     banks of 64 bytes, so every pool spans many banks and every writer moves a frame
   build-fuzz      the libFuzzer harnesses, one for each module, under the address and undefined behavior sanitizers
 
 One more tree answers a question about the GPU:
@@ -680,6 +681,13 @@ TREES = {
     "build-extram": {
         "what": "external memory on",
         "args": ["-DMMGR_ENABLE_EXTRAM=ON"],
+    },
+    # A bank of 64 bytes, so a pool of every suite spans many banks, and each writer that stores a boundary moves a
+    # frame. The suites then run every path of the frames that a pool past a half's reach takes. small_banks.h keeps
+    # the default bank on a closed word too narrow for the pools of the suites.
+    "build-banks": {
+        "what": "banks of 64 bytes, so every pool spans many banks",
+        "args": ["-DCMAKE_C_FLAGS=-include " + os.path.join(ROOT, "test", "support", "small_banks.h")],
     },
     "build-fuzz": {
         "what": "the libFuzzer harnesses, one for each module, under the address and undefined behavior sanitizers",

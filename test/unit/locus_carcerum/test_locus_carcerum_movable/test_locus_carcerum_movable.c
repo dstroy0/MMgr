@@ -928,8 +928,11 @@ void test_a_sort_that_meets_passes_between_its_moves_backs_off_and_doubles_the_w
     TEST_ASSERT_TRUE_MESSAGE((s_moving_told == 0u) || (s_max_wait >= MMGR_MOVABLE_READ_MS), "the wait is or doubled");
     assert_marked(one, 128u, 0x31u);
     assert_marked(two, 128u, 0x32u);
+    // Explicit cast reads the flag bits below the bank fields as the count they hold
     TEST_ASSERT_EQUAL_size_t_MESSAGE(
-        0u, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &plain_moving_ctx.closed),
+        0u,
+        (size_t)(EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &plain_moving_ctx.closed) &
+                 (((embed_atomic_word_value)1u << MMGR_CARCER_BANK_COUNT_AT) - 1u)),
         "the cellblock is open once the mover ends");
 }
 

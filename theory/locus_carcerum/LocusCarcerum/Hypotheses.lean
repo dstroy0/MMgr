@@ -48,10 +48,18 @@ def bytesMax (bits : Nat) : Nat := 2 ^ (bits / 2 - 1)
 theorem bytes_below_word : ∀ b ∈ widths, bytesMax b < 2 ^ b := by
   decide
 
-/-- The storage of a pool declaration is at max `MMGR_CARCER_BYTES_MAX`, as `MMGR_CARCER_STORAGE_0` asserts. So the
-hypothesis `size < W` of `Bounds.fits_inside` holds for each cell at each width. -/
-theorem span_hypothesis (b size : Nat) (hb : b ∈ widths) (h : size ≤ bytesMax b) : size < 2 ^ b :=
-  Nat.lt_of_le_of_lt h (bytes_below_word b hb)
+/-- `MMGR_CARCER_POOL_BYTES_MAX`: one less than the values of a field of the closed word, times the bytes of a
+region. A field has a third of the bits above the four flags, and a region is a quarter of a half's reach. -/
+def poolMax (bits : Nat) : Nat := (2 ^ ((bits - 4) / 3) - 1) * 2 ^ (bits / 2 - 2)
+
+/-- At each width, the max bytes of a pool are below the values of the word. -/
+theorem pool_below_word : ∀ b ∈ widths, poolMax b < 2 ^ b := by
+  decide
+
+/-- The storage of a pool declaration is at max `MMGR_CARCER_POOL_BYTES_MAX`, as `MMGR_CARCER_STORAGE_0` asserts. So
+the hypothesis `size < W` of `Bounds.fits_inside` holds for each cell at each width. -/
+theorem span_hypothesis (b size : Nat) (hb : b ∈ widths) (h : size ≤ poolMax b) : size < 2 ^ b :=
+  Nat.lt_of_le_of_lt h (pool_below_word b hb)
 
 /-- The span test of `vec[n]` at the word of 32 bits: a stride of 8 bytes and a count of 100. It passes index 99, and
 refuses index 100. -/

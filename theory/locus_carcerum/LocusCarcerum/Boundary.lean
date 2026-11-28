@@ -6,7 +6,8 @@ live, and `free k` says whether the cell at `k` went back. A writer's trim walks
 time and stops at the first busy cell or at `size`. Only then does it store the place it stopped at as the new `top`.
 
 A give stores its cell's header free, then reads the closed bit and `top`. It goes on to the fetch-or of
-`Trim.lean` where the closed bit holds or its cell is at `top`. The open takes the trim bit once, walks, and
+`Trim.lean` where the closed bit holds or its cell is at `top`. It can go there too where its read cannot rule that
+out. The open takes the trim bit once, walks, and
 clears the closed bit whatever trim bit is. The theorems: a cellblock with no trim owed and every context at
 rest has no free cell at its top. The next holder's take walks from `top` where a trim is owed.
 
@@ -64,6 +65,10 @@ inductive Step : State → State → Prop where
   cell is at `top`. -/
   | read {s : State} (i c : Nat) (h : s.place i = .stored c) :
       Step s { s with place := moved s.place i (if s.held || decide (s.top = c) then .fetching else .idle) }
+  /-- The give goes to its fetch-or where its read cannot rule out its cell at `top`. The C compares the cell and
+  `top` modulo a bank, as `Banks.at_boundary_mod` states, and so a cell at another place can go there too. -/
+  | readAny {s : State} (i c : Nat) (h : s.place i = .stored c) :
+      Step s { s with place := moved s.place i .fetching }
   /-- The give's fetch-or of the closed bit and the trim bit: it holds where the closed bit was clear. -/
   | fetchOr {s : State} (i : Nat) (h : s.place i = .fetching) :
       Step s { s with held := true, owed := true, place := moved s.place i (if s.held then .idle else .holding) }
@@ -208,6 +213,35 @@ theorem inv_step {size : Nat} {s s' : State} (hs : Inv size s) (st : Step size s
           rw [h] at hm
           have hc : c = s.top := by cases hm; rfl
           exact Or.inr (Or.inr (Or.inl ⟨m, by simp [moved, hc]⟩))
+        · exact Or.inr (Or.inl ⟨m, by simp [moved, hmi, hm]⟩)
+      all_goals
+        have hmi : m ≠ i := by intro e; subst e; rw [h] at hm; cases hm
+      · exact Or.inr (Or.inr (Or.inl ⟨m, by simp [moved, hmi, hm]⟩))
+      · exact Or.inr (Or.inr (Or.inr (Or.inl ⟨m, k, by simp [moved, hmi, hm]⟩)))
+      · exact Or.inr (Or.inr (Or.inr (Or.inr ⟨m, k, by simp [moved, hmi, hm]⟩)))
+  | readAny i c h =>
+    have hnw : ¬ Writer Place.fetching := by simp [Writer]
+    refine ⟨?_, ?_, ?_, ?_, ?_⟩
+    · intro j hj; exact hs.writerHeld j (writer_before hnw hj).2
+    · intro a b ha hb'
+      exact hs.oneWriter a b (writer_before hnw ha).2 (writer_before hnw hb').2
+    · intro j k hj
+      have hji : j ≠ i := by intro e; subst e; simp [moved] at hj
+      exact hs.walked j k (retained hj hji)
+    · intro j k hj hk hf
+      have hji : j ≠ i := by intro e; subst e; simp [moved] at hj
+      rcases hs.stoppedCovered j k (retained hj hji) hk hf with ho | ⟨m, hm⟩ | ⟨m, hm⟩
+      · exact Or.inl ho
+      · by_cases hmi : m = i
+        · exact Or.inr (Or.inr ⟨i, moved_self _ _ _⟩)
+        · exact Or.inr (Or.inl ⟨m, by simp [moved, hmi, hm]⟩)
+      · have hmi : m ≠ i := by intro e; subst e; rw [h] at hm; cases hm
+        exact Or.inr (Or.inr ⟨m, by simp [moved, hmi, hm]⟩)
+    · intro ht hf
+      rcases hs.topCovered ht hf with ho | ⟨m, hm⟩ | ⟨m, hm⟩ | ⟨m, k, hm⟩ | ⟨m, k, hm⟩
+      · exact Or.inl ho
+      · by_cases hmi : m = i
+        · exact Or.inr (Or.inr (Or.inl ⟨i, moved_self _ _ _⟩))
         · exact Or.inr (Or.inl ⟨m, by simp [moved, hmi, hm]⟩)
       all_goals
         have hmi : m ≠ i := by intro e; subst e; rw [h] at hm; cases hm

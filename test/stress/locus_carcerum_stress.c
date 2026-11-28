@@ -200,13 +200,17 @@ static uint32_t traced(unsigned int thread, unsigned int op, uint32_t off, size_
     return seq;
 }
 
-/** @brief Whether a header word is a busy cell's of at least `bytes` and within the storage. */
-static int header_fits(uint64_t word, size_t bytes)
+/**
+ * @brief Whether a header word is a busy cell's of at least `bytes` and within the storage. A temporary cell's header
+ *        also carries the bit of its tier.
+ */
+static int header_fits(uint64_t word, size_t bytes, int temporary)
 {
     const size_t rounded = (bytes + 7u) & ~(size_t)7u;
     const size_t size = (size_t)(word >> 2u);
+    const uint64_t state = (temporary != 0) ? 3u : 1u;
 
-    return ((word & 3u) == 1u) && (size >= rounded) && (size <= s_block->size);
+    return ((word & 3u) == state) && (size >= rounded) && (size <= s_block->size);
 }
 
 /** @brief A broken cell found: the record, the cell and the trace's steps near it printed once, then the program ends.
@@ -337,7 +341,7 @@ static void checked_all(unsigned int thread, const StressHeld *held, unsigned in
     {
         const uint64_t word = header_of(held[at].payload);
 
-        if (!header_fits(word, held[at].bytes))
+        if (!header_fits(word, held[at].bytes, held[at].temporary))
         {
             dumped(thread, &held[at], word);
         }
@@ -349,7 +353,7 @@ static void given(unsigned int thread, StressHeld *held, unsigned int *count, un
 {
     const uint64_t word = header_of(held[at].payload);
 
-    if (!header_fits(word, held[at].bytes))
+    if (!header_fits(word, held[at].bytes, held[at].temporary))
     {
         dumped(thread, &held[at], word);
     }

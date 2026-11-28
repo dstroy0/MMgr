@@ -822,3 +822,86 @@ void test_a_release_that_names_another_owner_changes_nothing_and_the_default_rep
     ram.a.persistent_buf_release(cell, cells);
     TEST_ASSERT_EQUAL_size_t(cells_before - 64u, mmgr_owner_in_use(cells));
 }
+
+/** @brief The cells a fill holds: one tier's takes of 64 bytes, or both tiers in turn, until the pool refuses. */
+#define FILL_MAX (A_BYTES / 64u)
+
+/**
+ * @brief Takes 64-byte cells until the pool refuses one: from the persistent tier, the temporary tier, or both in
+ *        turn. Each cell lies in the pool, and no two of them meet.
+ */
+static size_t fill_a(void **held, int persistent, int temporary)
+{
+    size_t count = 0u;
+    void *cell = (void *)1;
+
+    while ((cell != NULL) && (count < FILL_MAX))
+    {
+        const int up = (persistent != 0) && ((temporary == 0) || ((count & 1u) == 0u));
+
+        cell = up ? ram.a.persistent_buf_alloc(64u, cells) : ram.a.temporary_buf_alloc(64u, cells);
+        if (cell != NULL)
+        {
+            TEST_ASSERT_TRUE_MESSAGE(ram.a.who_owns_buf(cell), "a cell of a fill lies in the pool");
+            for (size_t other = 0u; other < count; other++)
+            {
+                const uintptr_t at = (uintptr_t)cell;
+                const uintptr_t there = (uintptr_t)held[other];
+
+                TEST_ASSERT_TRUE_MESSAGE((at + 64u <= there) || (there + 64u <= at), "two cells of a fill meet");
+            }
+            held[count] = cell;
+            count += 1u;
+        }
+    }
+    return count;
+}
+
+void test_the_closed_word_counts_the_banks_of_each_cellblock(void)
+{
+    TEST_ASSERT_EQUAL_size_t((A_BYTES + MMGR_CARCER_BANK_BYTES - 1u) / MMGR_CARCER_BANK_BYTES,
+                             mmgr_series_cellularum_banks(&ram_a_ctx));
+    TEST_ASSERT_EQUAL_size_t((OCTO_BYTES + MMGR_CARCER_BANK_BYTES - 1u) / MMGR_CARCER_BANK_BYTES,
+                             mmgr_series_cellularum_banks(&octo_o0_ctx));
+}
+
+void test_each_tier_fills_the_pool_across_its_banks_and_gives_it_all_back(void)
+{
+    void *held[FILL_MAX];
+
+    for (int tier = 0; tier < 2; tier++)
+    {
+        setUp();
+        const size_t count = fill_a(held, tier == 0, tier != 0);
+
+        TEST_ASSERT_TRUE_MESSAGE(count >= ((A_BYTES / (64u + (4u * sizeof(embed_atomic_usize)))) - 1u),
+                                 "a fill of one tier stops short of the pool");
+        TEST_ASSERT_TRUE_MESSAGE(ram.a.buf_available() < (64u + (4u * sizeof(embed_atomic_usize))),
+                                 "a fill leaves room for one more cell");
+        for (size_t at = count; at > 0u; at--)
+        {
+            ram.a.persistent_buf_release(held[at - 1u], cells);
+        }
+        TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_idle(&ram_a_ctx), "a fill given back leaves the pool idle");
+        TEST_ASSERT_EQUAL_size_t(A_BYTES, ram.a.buf_available());
+    }
+}
+
+void test_both_tiers_meet_across_the_banks_and_give_it_all_back_oldest_first(void)
+{
+    void *held[FILL_MAX];
+    const size_t count = fill_a(held, 1, 1);
+
+    TEST_ASSERT_TRUE_MESSAGE(count >= ((A_BYTES / (64u + (4u * sizeof(embed_atomic_usize)))) - 1u),
+                             "the tiers meet short of the pool");
+    TEST_ASSERT_TRUE(mmgr_series_cellularum_persistent_end(&ram_a_ctx) <=
+                     mmgr_series_cellularum_temporary_top(&ram_a_ctx));
+    for (size_t at = 0u; at < count; at++)
+    {
+        ram.a.persistent_buf_release(held[at], cells);
+    }
+    TEST_ASSERT_TRUE_MESSAGE(mmgr_series_cellularum_idle(&ram_a_ctx), "both tiers given back leave the pool idle");
+    TEST_ASSERT_EQUAL_size_t(A_BYTES, ram.a.buf_available());
+    TEST_ASSERT_NOT_NULL_MESSAGE(ram.a.persistent_buf_alloc(A_BYTES / 2u, cells),
+                                 "the pool takes half its bytes after the tiers went back");
+}

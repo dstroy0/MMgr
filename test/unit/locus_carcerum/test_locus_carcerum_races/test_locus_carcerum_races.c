@@ -189,11 +189,17 @@ void test_a_foot_is_counted_off_once_and_a_claim_not_permitted_touches_nothing(v
         0u, (size_t)EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &BLOCK->in_use));
 }
 
+/** @brief The cellblock's closed word, as the one read of a pass finds it. */
+static embed_atomic_word_value closed_read(void)
+{
+    return EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &BLOCK->closed);
+}
+
 void test_a_bump_the_gap_cannot_meet_leaves_the_boundary_moved_records_the_overrun_and_positions_its_words_on_the_sink(
     void)
 {
     const CarcerTakeCtx take = {RACED_BYTES, s_one, 0u, carcer_all(1), 0u};
-    const uintptr_t answer = carcer_bumped(BLOCK, &take, carcer_all(1));
+    const uintptr_t answer = carcer_bumped(BLOCK, &take, carcer_all(1), closed_read());
 
     TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)answer);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(CARCER_HDR + RACED_BYTES, mmgr_series_cellularum_persistent_end(BLOCK),
@@ -209,7 +215,7 @@ void test_a_bump_the_gap_cannot_meet_leaves_the_boundary_moved_records_the_overr
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_owner_in_use(s_one));
     const CarcerTakeCtx down = {RACED_BYTES, s_one, carcer_all(1), carcer_all(1), 0u};
 
-    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &down, carcer_all(1)));
+    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &down, carcer_all(1), closed_read()));
     TEST_ASSERT_EQUAL_size_t_MESSAGE(((size_t)RACED_BYTES - (CARCER_HDR + RACED_BYTES)) & (size_t)MMGR_CARCER_HALF_MASK,
                                      mmgr_series_cellularum_temporary_top(BLOCK),
                                      "the top is where the bump moved it, below zero within its half");
@@ -233,13 +239,13 @@ void test_after_a_refused_bump_every_bump_of_the_tier_is_refused_until_a_writer_
     const CarcerTakeCtx wide = {RACED_BYTES, s_one, 0u, carcer_all(1), 0u};
     const CarcerTakeCtx narrow = {PAYLOAD, s_two, 0u, carcer_all(1), 0u};
 
-    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &wide, carcer_all(1)));
-    TEST_ASSERT_EQUAL_UINT64_MESSAGE(0u, (uint64_t)carcer_bumped(BLOCK, &narrow, carcer_all(1)),
+    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &wide, carcer_all(1), closed_read()));
+    TEST_ASSERT_EQUAL_UINT64_MESSAGE(0u, (uint64_t)carcer_bumped(BLOCK, &narrow, carcer_all(1), closed_read()),
                                      "a bump that would fit the gap is refused behind a refused one");
     TEST_ASSERT_EQUAL_size_t(2u * CARCER_HDR + RACED_BYTES + PAYLOAD, mmgr_series_cellularum_persistent_end(BLOCK));
     carcer_settled(BLOCK);
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(BLOCK));
-    TEST_ASSERT_NOT_EQUAL(0u, (uint64_t)carcer_bumped(BLOCK, &narrow, carcer_all(1)));
+    TEST_ASSERT_NOT_EQUAL(0u, (uint64_t)carcer_bumped(BLOCK, &narrow, carcer_all(1), closed_read()));
     TEST_ASSERT_EQUAL_size_t(CARCER_HDR + PAYLOAD, mmgr_series_cellularum_persistent_end(BLOCK));
 }
 
@@ -247,18 +253,18 @@ void test_a_bump_not_permitted_moves_nothing(void)
 {
     const CarcerTakeCtx take = {PAYLOAD, s_one, 0u, carcer_all(1), 0u};
 
-    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &take, carcer_all(0)));
+    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &take, carcer_all(0), closed_read()));
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(BLOCK));
     const CarcerTakeCtx unlisted = {PAYLOAD, s_one, 0u, carcer_all(0), 0u};
 
-    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &unlisted, carcer_all(1)));
+    TEST_ASSERT_EQUAL_UINT64(0u, (uint64_t)carcer_bumped(BLOCK, &unlisted, carcer_all(1), closed_read()));
     TEST_ASSERT_EQUAL_size_t(0u, mmgr_series_cellularum_persistent_end(BLOCK));
 }
 
 void test_a_bump_that_lands_positions_its_header_and_owner_word_and_counts(void)
 {
     const CarcerTakeCtx take = {PAYLOAD, s_two, 0u, carcer_all(1), 0u};
-    const uintptr_t answer = carcer_bumped(BLOCK, &take, carcer_all(1));
+    const uintptr_t answer = carcer_bumped(BLOCK, &take, carcer_all(1), closed_read());
 
     TEST_ASSERT_EQUAL_PTR(BLOCK->base + CARCER_WORD, (void *)answer);
     TEST_ASSERT_EQUAL_size_t(carcer_end_of(0u, PAYLOAD), mmgr_series_cellularum_persistent_end(BLOCK));
@@ -308,19 +314,24 @@ void test_a_pass_through_a_closed_series_cellularum_opened_meanwhile_lands_on_it
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, mmgr_owner_in_use(s_one));
 }
 
+/** @brief The flag bits of the cellblock's closed word, below its bank fields. */
+static size_t closed_flags(void)
+{
+    // Explicit cast reads the flag bits as the count they hold
+    return (size_t)(EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &BLOCK->closed) &
+                    (((embed_atomic_word_value)1u << MMGR_CARCER_BANK_COUNT_AT) - 1u));
+}
+
 void test_a_closed_series_cellularum_opened_wakes_the_sleepers_and_clears_both_bits(void)
 {
     (void)EMBED_CALL(embed_atomic_word_table.fetch_or, EmbedAtomicWordFetchOrCfg, .word = &BLOCK->closed,
                      .value = CARCER_CLOSED | CARCER_CLOSED_SLEEPERS);
     carcer_opened(BLOCK);
-    TEST_ASSERT_EQUAL_size_t(
-        0u, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &BLOCK->closed));
-    carcer_shut(BLOCK);
-    TEST_ASSERT_EQUAL_size_t(CARCER_CLOSED, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg,
-                                                               .word = &BLOCK->closed));
+    TEST_ASSERT_EQUAL_size_t(0u, closed_flags());
+    (void)carcer_shut(BLOCK);
+    TEST_ASSERT_EQUAL_size_t(CARCER_CLOSED, closed_flags());
     carcer_opened(BLOCK);
-    TEST_ASSERT_EQUAL_size_t(
-        0u, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &BLOCK->closed));
+    TEST_ASSERT_EQUAL_size_t(0u, closed_flags());
 }
 
 void test_the_sweep_merges_free_runs_takes_the_first_that_fits_and_trims_the_end(void)
@@ -336,7 +347,8 @@ void test_the_sweep_merges_free_runs_takes_the_first_that_fits_and_trims_the_end
     (void)carcer_given(BLOCK, two, s_one, 0u, carcer_all(1));
     (void)carcer_given(BLOCK, three, s_one, 0u, carcer_all(1));
     TEST_ASSERT_EQUAL_size_t(end_with_four, mmgr_series_cellularum_persistent_end(BLOCK));
-    const CarcerSweep sweep = carcer_swept(BLOCK, (2u * PAYLOAD) + CARCER_HDR, RACED_BYTES, 0u, carcer_all(1));
+    const CarcerSweep sweep =
+        carcer_swept(BLOCK, closed_read(), (2u * PAYLOAD) + CARCER_HDR, RACED_BYTES, 0u, carcer_all(1));
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(SIZE_MAX, sweep.found, "the merged run below the held cell holds the take");
     TEST_ASSERT_EQUAL_size_t(carcer_off_of(BLOCK, one), sweep.at);
@@ -364,7 +376,7 @@ void test_the_downward_sweep_merges_free_runs_takes_the_last_that_fits_and_trims
     (void)carcer_given(BLOCK, three, s_one, 0u, carcer_all(1));
     TEST_ASSERT_EQUAL_size_t(top_with_four, mmgr_series_cellularum_temporary_top(BLOCK));
     const CarcerSweep sweep =
-        carcer_swept(BLOCK, (2u * PAYLOAD) + CARCER_HDR, RACED_BYTES, carcer_all(1), carcer_all(1));
+        carcer_swept(BLOCK, closed_read(), (2u * PAYLOAD) + CARCER_HDR, RACED_BYTES, carcer_all(1), carcer_all(1));
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(SIZE_MAX, sweep.found, "the merged run above the held cell holds the take");
     TEST_ASSERT_EQUAL_size_t(carcer_off_of(BLOCK, two), sweep.at);
@@ -390,7 +402,7 @@ void test_a_sweep_not_permitted_reads_nothing_and_retains_the_end(void)
 {
     uint8_t *const one = cells.raced.persistent_buf_alloc(PAYLOAD, s_one);
     const size_t end = mmgr_series_cellularum_persistent_end(BLOCK);
-    const CarcerSweep sweep = carcer_swept(BLOCK, PAYLOAD, RACED_BYTES, 0u, carcer_all(0));
+    const CarcerSweep sweep = carcer_swept(BLOCK, closed_read(), PAYLOAD, RACED_BYTES, 0u, carcer_all(0));
 
     TEST_ASSERT_EQUAL_size_t(0u, sweep.found);
     TEST_ASSERT_EQUAL_size_t_MESSAGE(end, sweep.boundary, "a walk of nothing leaves the end where it is");
@@ -406,10 +418,11 @@ void test_a_sweep_takes_no_run_ending_above_its_bound(void)
 
     (void)carcer_given(BLOCK, low, s_one, 0u, carcer_all(1));
     (void)carcer_given(BLOCK, high, s_one, 0u, carcer_all(1));
-    const CarcerSweep below_held = carcer_swept(BLOCK, PAYLOAD, carcer_off_of(BLOCK, held), 0u, carcer_all(1));
+    const CarcerSweep below_held =
+        carcer_swept(BLOCK, closed_read(), PAYLOAD, carcer_off_of(BLOCK, held), 0u, carcer_all(1));
 
     TEST_ASSERT_EQUAL_size_t(carcer_off_of(BLOCK, low), below_held.at);
-    const CarcerSweep below_low = carcer_swept(BLOCK, PAYLOAD, 0u, 0u, carcer_all(1));
+    const CarcerSweep below_low = carcer_swept(BLOCK, closed_read(), PAYLOAD, 0u, 0u, carcer_all(1));
 
     TEST_ASSERT_EQUAL_size_t_MESSAGE(0u, below_low.found, "no run ends at or below the lowest cell");
     TEST_ASSERT_NOT_NULL(top);
@@ -421,7 +434,7 @@ void test_a_split_positions_the_rest_as_a_free_cell_and_retains_a_run_too_small_
     uint8_t *const held = cells.raced.persistent_buf_alloc(PAYLOAD, s_one);
 
     (void)carcer_given(BLOCK, large, s_one, 0u, carcer_all(1));
-    const CarcerSweep sweep = carcer_swept(BLOCK, PAYLOAD, RACED_BYTES, 0u, carcer_all(1));
+    const CarcerSweep sweep = carcer_swept(BLOCK, closed_read(), PAYLOAD, RACED_BYTES, 0u, carcer_all(1));
     const CarcerPlaced placed = carcer_split(BLOCK, sweep, PAYLOAD, 0u);
 
     TEST_ASSERT_EQUAL_size_t(PAYLOAD, placed.size);
@@ -492,8 +505,7 @@ void test_the_trim_walks_the_top_up_over_free_cells_and_stops_at_a_busy_one(void
     (void)carcer_given(BLOCK, held, s_one, 0u, carcer_all(1));
     carcer_trimmed(BLOCK, 0u);
     TEST_ASSERT_EQUAL_size_t(RACED_BYTES, mmgr_series_cellularum_temporary_top(BLOCK));
-    TEST_ASSERT_EQUAL_size_t(
-        0u, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &BLOCK->closed));
+    TEST_ASSERT_EQUAL_size_t(0u, closed_flags());
 }
 
 void test_zeroing_starts_at_an_address_off_a_word_boundary(void)
@@ -619,9 +631,10 @@ void test_emptying_puts_the_record_back_at_rest(void)
                      .value = CARCER_CLOSED);
     mmgr_series_cellularum_emptied(BLOCK);
     TEST_ASSERT_TRUE(mmgr_series_cellularum_idle(BLOCK));
-    // Explicit cast reads the closed word as the count it holds
+    // Explicit casts read the closed word and its value at rest as the counts they hold: no flag, and the bank fields
     TEST_ASSERT_EQUAL_size_t(
-        0u, (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &BLOCK->closed));
+        (size_t)MMGR_CARCER_CLOSED_AT_REST(BLOCK->size),
+        (size_t)EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &BLOCK->closed));
     TEST_ASSERT_EQUAL_size_t(0u, lanes_busy());
     TEST_ASSERT_EQUAL_UINT32(
         0u, EMBED_CALL(embed_atomic_u32_table.load, EmbedAtomicU32LoadCfg, .word = &BLOCK->turnstiles.queue_length));

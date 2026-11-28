@@ -130,7 +130,7 @@ static void prove_shut(void)
     EMBED_CALL(embed_atomic_word_table.store, EmbedAtomicWordStoreCfg, .word = &s_series.closed,
                .value = (embed_atomic_word_value)nondet_size());
     s_pauses = 0u;
-    carcer_shut(&s_series);
+    (void)carcer_shut(&s_series);
     PROVE_ASSERT((EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &s_series.closed) &
                   CARCER_CLOSED) != 0u,
                  "the writer holds the closed bit");

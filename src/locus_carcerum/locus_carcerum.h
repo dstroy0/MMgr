@@ -428,11 +428,11 @@ EMBED_HOST_DEVICE void mmgr_carcer_hw_misnamed(const CellOwner *named, const Cel
 #define MMGR_CARCER_HALF_MASK ((embed_atomic_usize_value)(((embed_atomic_usize_value)1u << MMGR_CARCER_HALF_BITS) - 1u))
 
 /**
- * @brief The max bytes one cellblock may hold: half a boundary's reach. The other half is the headroom the
- *        bumps a round refuses move the boundary into before the next writer settles it.
+ * @brief The reach of a position in a boundary half: half the half's values. The other half is the headroom the
+ *        bumps a round refuses move the position into before the next writer settles it.
  *
- * @note LocusCarcerum() asserts each pool against this. A cell's header carries a size this large in the bits
- *       above its two state bits.
+ * @note A bump up reads its position at or below this before its fetch-add, and a temporary position past it is a
+ *       bump down that wrapped. A cell's header carries a size this large in the bits above its two state bits.
  */
 #define MMGR_CARCER_BYTES_MAX ((size_t)1u << (MMGR_CARCER_HALF_BITS - 1u))
 
@@ -444,15 +444,105 @@ EMBED_HOST_DEVICE void mmgr_carcer_hw_misnamed(const CellOwner *named, const Cel
 #define MMGR_CARCER_WANT_MAX ((size_t)1u << (MMGR_CARCER_HALF_BITS - 8u))
 
 /**
+ * @brief The bits of a bank's bytes: a bank is half the reach of a position. A test build can set fewer, so that a
+ *        small pool spans many banks.
+ *
+ * @note A pool is a run of banks, and bank k starts at k shifted left by this. Each tier's position counts from the
+ *       base of its frame, a bank, which the closed word names. A position reaches MMGR_CARCER_BYTES_MAX, so a tier
+ *       crosses into the next bank with no writer. A writer that stores a boundary picks the frame that leaves the
+ *       position a bank of room, at most MMGR_CARCER_FRAME_CAP. A pass reads the frames in its one read of the closed
+ *       word. A writer reads them in its fetch-or of the closed bit. theory/locus_carcerum/LocusCarcerum/Banks.lean
+ *       proves the frames.
+ */
+#ifndef MMGR_CARCER_BANK_SHIFT
+#define MMGR_CARCER_BANK_SHIFT (MMGR_CARCER_HALF_BITS - 2u)
+#endif
+
+/** @brief The bytes of one bank. */
+#define MMGR_CARCER_BANK_BYTES ((size_t)1u << MMGR_CARCER_BANK_SHIFT)
+
+/**
+ * @brief The bits of each field of the closed word above its four flag bits. The fields are the bank count, the
+ *        frame of the persistent tier and the frame of the temporary tier, in that order.
+ */
+#define MMGR_CARCER_BANK_FIELD_BITS ((unsigned int)(((sizeof(embed_atomic_word_value) * 8u) - 4u) / 3u))
+
+/** @brief The mask of one field, at bit 0. */
+#define MMGR_CARCER_BANK_FIELD_MASK                                                                                    \
+    ((embed_atomic_word_value)(((embed_atomic_word_value)1u << MMGR_CARCER_BANK_FIELD_BITS) - 1u))
+
+/** @brief The bit of the closed word that each field starts at. */
+#define MMGR_CARCER_BANK_COUNT_AT 4u
+#define MMGR_CARCER_BANK_END_AT (4u + MMGR_CARCER_BANK_FIELD_BITS)
+#define MMGR_CARCER_BANK_TOP_AT (4u + (2u * MMGR_CARCER_BANK_FIELD_BITS))
+
+/**
+ * @brief The max bytes one cellblock may hold: one less than the values of a field, times the bytes of a bank. So
+ *        every frame and the bank count fit their fields.
+ *
+ * @note LocusCarcerum() asserts each pool against this, and mmgr_series_cellularum_placed refuses a pool past it.
+ */
+#define MMGR_CARCER_POOL_BYTES_MAX                                                                                     \
+    ((size_t)((((size_t)1u << MMGR_CARCER_BANK_FIELD_BITS) - 1u) << MMGR_CARCER_BANK_SHIFT))
+
+/** @brief The bank an offset is in. */
+#define MMGR_CARCER_BANK_OF(off_) (((size_t)(off_)) >> MMGR_CARCER_BANK_SHIFT)
+
+/** @brief The banks a cellblock of bytes_ bytes takes: its bytes rounded up to a whole bank. */
+#define MMGR_CARCER_BANK_COUNT(bytes_) MMGR_CARCER_BANK_OF((size_t)(bytes_) + (MMGR_CARCER_BANK_BYTES - 1u))
+
+/**
+ * @brief The highest frame of a cellblock of bytes_ bytes: two banks below its bank count, or bank 0.
+ *
+ * @note A position from this frame reaches the cellblock's end. So a cellblock of two banks or less keeps both
+ *       frames at bank 0, and its writer never changes them (Banks.frames_still).
+ */
+#define MMGR_CARCER_FRAME_CAP(bytes_)                                                                                  \
+    ((MMGR_CARCER_BANK_COUNT(bytes_) > 2u) ? (MMGR_CARCER_BANK_COUNT(bytes_) - 2u) : (size_t)0u)
+
+/** @brief The frame a writer gives a persistent end in a cellblock of bytes_ bytes: the end's bank, or the cap. */
+#define MMGR_CARCER_END_FRAME(end_, bytes_)                                                                            \
+    ((MMGR_CARCER_BANK_OF(end_) < MMGR_CARCER_FRAME_CAP(bytes_)) ? MMGR_CARCER_BANK_OF(end_)                          \
+                                                                  : MMGR_CARCER_FRAME_CAP(bytes_))
+
+/** @brief The bank below a top's own bank, or bank 0. */
+#define MMGR_CARCER_BANK_BELOW(top_) (MMGR_CARCER_BANK_OF(top_) - (size_t)(MMGR_CARCER_BANK_OF(top_) != 0u))
+
+/**
+ * @brief The frame a writer gives a temporary top in a cellblock of bytes_ bytes: the bank below the top's own, or
+ *        the cap.
+ */
+#define MMGR_CARCER_TOP_FRAME(top_, bytes_)                                                                            \
+    ((MMGR_CARCER_BANK_BELOW(top_) < MMGR_CARCER_FRAME_CAP(bytes_)) ? MMGR_CARCER_BANK_BELOW(top_)                    \
+                                                                     : MMGR_CARCER_FRAME_CAP(bytes_))
+
+/**
+ * @brief The closed word of a cellblock at rest over bytes_ bytes. It holds no flag, the bank count, the persistent
+ *        frame at bank 0, and the temporary frame for the top at the regions' start.
+ */
+#define MMGR_CARCER_CLOSED_AT_REST(bytes_)                                                                             \
+    ((embed_atomic_word_value)((((embed_atomic_word_value)MMGR_CARCER_BANK_COUNT(bytes_)) << MMGR_CARCER_BANK_COUNT_AT) | \
+                               ((embed_atomic_word_value)MMGR_CARCER_TOP_FRAME(                                       \
+                                    (size_t)(bytes_) - MMGR_CARCER_REGION_AREA, bytes_)                               \
+                                << MMGR_CARCER_BANK_TOP_AT)))
+
+/** @brief The boundary word of a cellblock at rest over bytes_ bytes: the end at 0, the top's position in its frame. */
+#define MMGR_CARCER_BOUNDS_AT_REST(bytes_)                                                                             \
+    ((embed_atomic_usize_value)(((size_t)(bytes_) - MMGR_CARCER_REGION_AREA) -                                         \
+                                (MMGR_CARCER_TOP_FRAME((size_t)(bytes_) - MMGR_CARCER_REGION_AREA, bytes_)             \
+                                 << MMGR_CARCER_BANK_SHIFT))                                                           \
+     << MMGR_CARCER_HALF_BITS)
+
+/**
  * @brief One cellblock's state: its bytes, the two boundaries that grow toward each other, and the closed
  *        word a writer holds. Also the sink a refused store lands on, and the turnstiles every pass goes
  *        through.
  *
  * @note Written by the declaration that emits the cellblock and by the entries that cellblock owns. The base is
  *       the cellblock's own storage, and nothing derives an address from a site and an index.
- * @note bounds is the two boundaries in one word, each in bytes. Its low half is the offset just past the last
- *       persistent cell, and its high half the offset of the lowest temporary cell. A take bumps its tier's
- *       half by one fetch-add on the word. The old value carries the other boundary as it was at that same
+ * @note bounds is the two boundaries in one word, each a position in bytes from the base of its tier's frame. Its
+ *       low half names the offset just past the last persistent cell, and its high half the offset of the lowest
+ *       temporary cell. A take bumps its tier's half by one fetch-add on the word. The old value carries the other boundary as it was at that same
  *       instant: the room the take reads. A bump the gap cannot meet leaves the boundary where it moved it and
  *       adds its bytes to the tier's overrun, persistent_overrun or temporary_overrun. Every later bump of
  *       either tier fails, since the boundaries only move toward each other between writers and every bump
@@ -463,6 +553,10 @@ EMBED_HOST_DEVICE void mmgr_carcer_hw_misnamed(const CellOwner *named, const Cel
  * @note closed is the writer's word: bit 0 while a compaction, a growth or a move works alone, bit 1
  *       while a context sleeps on the word. A pass that reads bit 0 set touches nothing and tries once more after
  *       a backoff step. The word sink is the one every store of a pass that touches nothing lands on.
+ * @note Above its four flag bits, closed holds the bank count and the frame of each tier, the bank its position
+ *       counts from. A pass reads them with its permit, and only a writer with every pass drained changes them. The
+ *       member epoch is odd while a writer changes them, so a reader outside a pass reads a frame and a position as
+ *       one.
  * @note turnstiles is the bank of lanes a pass badges in at, EmbedTurnstiles' way, which a writer drains after
  *       it sets the closed bit. Zero at rest, as the last member, which a declaration leaves to the zero fill
  *       of static storage.
@@ -486,14 +580,15 @@ typedef struct
 {
     uint8_t *base;             /**< First byte of the cellblock [BORROWS]; NULL over a hospes pool until placed. */
     size_t size;               /**< Bytes in the cellblock; 0 over a hospes pool until placed. */
-    embed_atomic_usize bounds; /**< The persistent end in the low half, the temporary top in the high. */
+    embed_atomic_usize bounds; /**< The persistent position in the low half, the temporary position in the high. */
     embed_atomic_usize
         persistent_overrun;               /**< Bytes refused takes moved the persistent end by since the last writer. */
     embed_atomic_usize temporary_overrun; /**< Bytes refused takes moved the temporary top by since the last writer. */
     embed_atomic_usize in_use;            /**< Payload bytes of the cells taken and not given back. */
     embed_atomic_usize persistent_in_use; /**< The part of in_use in the persistent tier. */
     embed_atomic_uptr movable;            /**< The movable option's state, as an integer, zero without it. */
-    embed_atomic_word closed;             /**< The writer's bit, and the sleeper flag above it. */
+    embed_atomic_word closed;             /**< The writer's bit, the sleeper flag, the trim bits and the frames. */
+    embed_atomic_word epoch;              /**< Odd while a writer changes the frames. */
     embed_atomic_usize sink;              /**< Where a store that must not land lands. */
 #if MMGR_ENABLE_HW_MEM_CAPACITY_CB
     embed_atomic_usize persistent_hw; /**< The highest value of the persistent end so far. */
@@ -539,17 +634,19 @@ typedef struct
  *
  * @param[in] base_  First byte of the cellblock [BORROWS].
  * @param[in] bytes_ Bytes in the cellblock.
- * @note The temporary top starts at the regions' start, which is the cellblock's size where there is no region.
+ * @note The temporary top starts at the regions' start, which is the cellblock's size where there is no region. The
+ *       closed word starts with the bank count and the frames of that top and of an end at 0.
  */
 #define MMGR_CARCER_STATE(base_, bytes_)                                                                               \
     {(base_),                                                                                                          \
      (bytes_),                                                                                                         \
-     EMBED_ATOMIC_INIT((embed_atomic_usize_value)((bytes_) - MMGR_CARCER_REGION_AREA) << MMGR_CARCER_HALF_BITS),       \
+     EMBED_ATOMIC_INIT(MMGR_CARCER_BOUNDS_AT_REST(bytes_)),                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
+     EMBED_ATOMIC_INIT(MMGR_CARCER_CLOSED_AT_REST(bytes_)),                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u) MMGR_CARCER_STATE_HW,                                                                       \
      MMGR_CARCER_STATE_TURNSTILES MMGR_CARCER_STATE_REGIONS}
@@ -561,6 +658,7 @@ typedef struct
 #define MMGR_CARCER_STATE_HOSPES                                                                                       \
     {NULL,                                                                                                             \
      0u,                                                                                                               \
+     EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
      EMBED_ATOMIC_INIT(0u),                                                                                            \
@@ -655,29 +753,33 @@ typedef struct
  *
  * @param[in] series Cellblock to read [BORROWS].
  * @return           The persistent end, in bytes.
- * @note The end as the word holds it. A trim a give left owed on the open word does not run here;
- *       mmgr_buf_available and the next take run it.
+ * @note The end as the word and its frame hold it, read under the epoch as one pair. A trim a give left owed on the
+ *       open word does not run here; mmgr_buf_available and the next take run it.
  */
-EMBED_HOST_DEVICE EMBED_INLINE size_t mmgr_series_cellularum_persistent_end(const SeriesCellularum *series)
-{
-    // Explicit cast reads the word's low half as the offset it holds
-    return (size_t)(EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds) &
-                    MMGR_CARCER_HALF_MASK);
-}
+EMBED_HOST_DEVICE size_t mmgr_series_cellularum_persistent_end(const SeriesCellularum *series);
 
 /**
  * @brief Offset of the lowest temporary cell.
  *
  * @param[in] series Cellblock to read [BORROWS].
  * @return           The temporary top, in bytes.
- * @note The top as the word holds it. A trim a give left owed on the open word does not run here;
- *       mmgr_buf_available and the next take run it.
+ * @note The top as the word and its frame hold it, read under the epoch as one pair. A trim a give left owed on the
+ *       open word does not run here; mmgr_buf_available and the next take run it.
  */
-EMBED_HOST_DEVICE EMBED_INLINE size_t mmgr_series_cellularum_temporary_top(const SeriesCellularum *series)
+EMBED_HOST_DEVICE size_t mmgr_series_cellularum_temporary_top(const SeriesCellularum *series);
+
+/**
+ * @brief The banks a cellblock's bytes take, as its closed word holds the count.
+ *
+ * @param[in] series Cellblock to read [BORROWS].
+ * @return           The bank count, 0 over a hospes pool not yet placed.
+ */
+EMBED_HOST_DEVICE EMBED_INLINE size_t mmgr_series_cellularum_banks(const SeriesCellularum *series)
 {
-    // Explicit cast reads the word's high half as the offset it holds
-    return (size_t)(EMBED_CALL(embed_atomic_usize_table.load, EmbedAtomicUsizeLoadCfg, .word = &series->bounds) >>
-                    MMGR_CARCER_HALF_BITS);
+    // Explicit cast reads the field as the count it holds
+    return (size_t)((EMBED_CALL(embed_atomic_word_table.load, EmbedAtomicWordLoadCfg, .word = &series->closed) >>
+                     MMGR_CARCER_BANK_COUNT_AT) &
+                    MMGR_CARCER_BANK_FIELD_MASK);
 }
 
 /**
@@ -997,8 +1099,8 @@ EMBED_TABLE_LAYOUT(MaxSecurityGuard, MMGR_GUARD_MEMBER_NAMES);
 #define MMGR_CARCER_STORAGE_0(prisonsite_, name_)                                                                      \
     EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) >= (MMGR_CARCER_REGION_AREA + (2u * MMGR_CARCER_ALIGN)),     \
                         #prisonsite_ "." #name_ " is too small for its regions and one cell");                         \
-    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) <= MMGR_CARCER_BYTES_MAX,                                    \
-                        #prisonsite_ "." #name_ " is larger than a tier boundary's half word can name");               \
+    EMBED_STATIC_ASSERT(sizeof(mmgr_pars_storage_##name_) <= MMGR_CARCER_POOL_BYTES_MAX,                               \
+                        #prisonsite_ "." #name_ " is larger than the closed word's banks can name");                   \
     static EMBED_PASS_MEMORY SeriesCellularum prisonsite_##_##name_##_ctx =                                            \
         MMGR_CARCER_STATE(mmgr_pars_storage_##name_, name_##_bytes);
 
@@ -1545,9 +1647,9 @@ EMBED_HOST_DEVICE void mmgr_series_cellularum_emptied(SeriesCellularum *series);
  * @param[in,out] series  Cellblock to place [BORROWS].
  * @param[in]     storage First byte of the storage, aligned to MMGR_ALIGN_BYTES [BORROWS].
  * @param[in]     bytes   Bytes of the storage.
- * @return                EMBED_TRUE where the cellblock is placed. EMBED_FALSE where storage is NULL, the bytes are
- *                        fewer than the regions and one cell need, or more than a tier boundary's half word can
- *                        name: nothing changed, and the cellblock refuses every take as before.
+ * @return                EMBED_TRUE where the cellblock is placed. EMBED_FALSE where storage is NULL, or the bytes
+ *                        are fewer than the regions and one cell need or more than MMGR_CARCER_POOL_BYTES_MAX.
+ *                        Then nothing changed, and the cellblock refuses every take as before.
  * @note Called once, at a time no context reaches the cellblock, before its first take; the program keeps the
  *       storage for as long as the cellblock lives. A cellblock over an array its declaration emitted has its base
  *       from the linker and is never placed. theory/locus_carcerum/LocusCarcerum/Idle.lean proves that a cellblock

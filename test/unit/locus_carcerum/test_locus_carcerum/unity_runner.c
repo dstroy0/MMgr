@@ -61,6 +61,9 @@ extern void test_a_cell_carrying_the_size_asked_is_answered_as_it_is(void);
 extern void test_a_request_over_the_cellblock_is_refused_on_both_tiers(void);
 extern void test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell(void);
 extern void test_a_release_that_names_another_owner_changes_nothing_and_the_default_report_does_nothing(void);
+extern void test_the_closed_word_counts_the_banks_of_each_cellblock(void);
+extern void test_each_tier_fills_the_pool_across_its_banks_and_gives_it_all_back(void);
+extern void test_both_tiers_meet_across_the_banks_and_give_it_all_back_oldest_first(void);
 
 
 /*=======Mock Management=====*/
@@ -175,6 +178,9 @@ int main(void)
   run_test(test_a_request_over_the_cellblock_is_refused_on_both_tiers, "test_a_request_over_the_cellblock_is_refused_on_both_tiers", 766);
   run_test(test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell, "test_a_growth_over_the_cellblock_is_refused_and_leaves_the_cell", 789);
   run_test(test_a_release_that_names_another_owner_changes_nothing_and_the_default_report_does_nothing, "test_a_release_that_names_another_owner_changes_nothing_and_the_default_report_does_nothing", 808);
+  run_test(test_the_closed_word_counts_the_banks_of_each_cellblock, "test_the_closed_word_counts_the_banks_of_each_cellblock", 860);
+  run_test(test_each_tier_fills_the_pool_across_its_banks_and_gives_it_all_back, "test_each_tier_fills_the_pool_across_its_banks_and_gives_it_all_back", 868);
+  run_test(test_both_tiers_meet_across_the_banks_and_give_it_all_back_oldest_first, "test_both_tiers_meet_across_the_banks_and_give_it_all_back_oldest_first", 890);
 
   return UNITY_END();
 }

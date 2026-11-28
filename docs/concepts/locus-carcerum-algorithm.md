@@ -193,6 +193,53 @@ any thread. It proves that a refused take moves no busy cell, and that the regio
 $N R + L$. `Stacks.lean` proves that one stack two threads share sinks past every depth. A thread's own region
 has one thread, so it does not sink; the large region is the one stack threads share, and $L$ bounds it.
 
+### 3.9 Banks
+
+A pool can be larger than $2^{H-1}$ bytes. The pool is then a run of banks of $B = 2^{H-2}$ bytes, and bank $k$
+starts at $k B$. The closed word holds the bank count and a frame for each tier, above its four flag bits. The frame
+of a tier is the bank that its position counts from. Each half of $W$ holds the position of its tier. The boundary
+is the base of its frame plus its position: $E = f_E B + e$ and $T = f_T B + t$. §3.1 to §3.8 are the case
+$f_E = f_T = 0$.
+
+A pass reads the closed word once for its permit. The frames do not change while the pass holds its lane, because
+only an exclusive operation changes a frame, after the drain. Thus a bump reads the frames with no other load. An
+exclusive operation reads the frames in the fetch-or that sets the closed bit. Only that operation changes them
+until it clears the bit, so it also reads them with no other load.
+
+The two limits of §3 apply to the positions, with $2^{H-1}$ in place of $S$. A bump up that reads $e > 2^{H-1}$
+returns $\bot$ as in §3. A position $t > 2^{H-1}$ is a wrapped position. §3.1 and §3.2 compare $E$ and $T$ as offsets
+in the pool, and they test the wrap on the positions:
+
+$$
+\tau_{up} \equiv (w + n \le T_w) \wedge (e + n \ge e) \wedge (t_w \le 2^{H-1})
+$$
+
+$$
+\tau_{down} \equiv (w - n \ge E_w) \wedge (t - n \le t) \wedge (t - n \le 2^{H-1})
+$$
+
+Each exclusive operation that stores a boundary selects the frames. The persistent end gets its own bank,
+$f_E = \min(\lfloor E / B \rfloor, c)$. The temporary top gets the bank below its own bank,
+$f_T = \min(\max(\lfloor T / B \rfloor - 1, 0), c)$. Here $c = \max(K - 2, 0)$ for a pool of $K$ banks. A position
+from bank $c$ reaches the end of the pool, so no frame is above it. Thus $e \le 2B$ and $t \le 2B$.
+
+Below the cap, $e < B$, and $t \ge B$ if $T \ge B$. A bump then has a room of $B$ bytes or more before its position
+stops it. A pool of two banks or less has $c = 0$. Its frames stay at bank 0, and its read outside a pass reads $W$
+alone.
+
+One fetch-add on the closed word moves the frames. This add does not change the flag bits, so a trim bit that a
+free sets keeps its value. The largest pool is $(2^b - 1) B$ bytes, where $b$ is the number of bits in a field. This
+is $2^{50} - 2^{30}$ bytes at $H = 32$, and $511 \cdot 2^{14}$ bytes at $H = 16$.
+
+A free does not read a frame. The header of a busy cell holds its tier in the second state bit. The free compares
+its cell with the boundary modulo $B$. A cell at the boundary agrees with the position modulo $B$ for each frame.
+A cell that agrees but is not at the boundary causes a Trim that does not change the boundary.
+
+In a pool of more than two banks, a read of a boundary outside a pass reads an epoch, the frames, $W$ and the epoch
+again. An exclusive operation
+makes the epoch odd before it changes a frame, and even after the change. The read starts again until the two
+epochs agree and are even.
+
 ## 4. Lemmas
 
 A **round** is a max interval between two exclusive operations. In a round, only the operations of §3.1, §3.2
@@ -348,7 +395,17 @@ turnstile import its Manifold proofs: `Order.lean` carries `Manifold.Open.passes
 - `LocusCarcerum/Boundary.lean` writes the free of §3.4 and the Trim of §3.5 on the cells of one tier. The walk
   reads one header at a time and stores the edge after it stops. It proves that a cellblock has no free cell at its edge
   when its word holds no trim bit and no operation is in progress. It proves that the next open pass walks from the
-  edge when the word holds a trim bit.
+  edge when the word holds a trim bit. Its free can go to the trim when its read cannot exclude its cell at the
+  edge, as the test modulo $B$ of §3.9 does.
+- `LocusCarcerum/Banks.lean` writes the fields of the closed word and the frames of §3.9. It proves these facts:
+  - A flag operation does not change the fields, and one fetch-add moves them.
+  - A pass reads the frames of the word for all of its life. An exclusive operation holds them from its fetch-or
+    until it opens.
+  - The invariant of `Packed.lean` holds with frames. The frames of an exclusive operation give a room of $B$ bytes
+    and fit their fields.
+  - The frames with the cap keep the invariant, and a pool of two banks or less keeps them at bank 0.
+  - A read with two equal even epochs reads one pair.
+  - The test modulo $B$ is true for each cell at the boundary.
 - `LocusCarcerum/Futex.lean` writes the futex contract and the address wait that GenMC runs. It proves that the
   model reaches each state of the contract and no other state. It proves that a wait on the whole word has no state
   that the 32-bit wait of Linux does not have. It also checks that a wake of one waiter leaves a second waiter

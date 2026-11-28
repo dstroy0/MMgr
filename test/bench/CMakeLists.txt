@@ -52,6 +52,13 @@ if(NOT MMGR_PROTOCORE_OK)
     message(STATUS "MMgr: no ProtoCore at ${MMGR_PROTOCORE_DIR}, skipping bench_carcer_ab")
 endif()
 
+# The cellblock's threads rows start their threads through POSIX threads, which a Windows toolchain does not have
+if(WIN32)
+    list(FILTER MMGR_BENCH_SOURCES EXCLUDE REGEX "bench_carcer_banks\\.c$")
+else()
+    find_package(Threads REQUIRED)
+endif()
+
 foreach(bench_src ${MMGR_BENCH_SOURCES})
     get_filename_component(bench_name "${bench_src}" NAME_WE)
 
@@ -74,6 +81,12 @@ foreach(bench_src ${MMGR_BENCH_SOURCES})
                 "${MMGR_PROTOCORE_DIR}/src"
                 "${MMGR_PROTOCORE_DIR}"
                 "${MMGR_PROTOCORE_DIR}/test/core_setup/hal/host")
+        elseif(bench_name STREQUAL "bench_carcer_banks")
+            # The turnstiles sleep and wake through the host's address wait, which the bench takes from the suites'
+            # support
+            add_executable(${target} "${bench_src}" "${MMgr_SOURCE_DIR}/test/support/host_wait.c")
+            target_include_directories(${target} PRIVATE "${MMgr_SOURCE_DIR}/test/support")
+            target_link_libraries(${target} PRIVATE Threads::Threads)
         elseif(bench_name MATCHES "^bench_ancorae_")
             # All three draw their corpora from SHA-256 in counter mode. Every independence and
             # entropy number reads against corpora with the statistics the design expects.
